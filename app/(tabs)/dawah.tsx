@@ -1,62 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-
-interface DawahSection {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-  articles: number;
-}
-
-const sections: DawahSection[] = [
-  {
-    id: '1',
-    title: 'Scientific Miracles',
-    description: 'Embryology, mountains, seas, and more',
-    icon: 'flask',
-    color: colors.primary,
-    articles: 12,
-  },
-  {
-    id: '2',
-    title: 'Linguistic Miracles',
-    description: 'Eloquence and uniqueness of Arabic',
-    icon: 'text-format',
-    color: colors.secondary,
-    articles: 8,
-  },
-  {
-    id: '3',
-    title: 'Historical Miracles',
-    description: 'Prophecies and preserved manuscripts',
-    icon: 'history',
-    color: colors.accent,
-    articles: 15,
-  },
-  {
-    id: '4',
-    title: 'Mathematical Miracles',
-    description: 'Numeric patterns and word frequencies',
-    icon: 'calculate',
-    color: colors.highlight,
-    articles: 10,
-  },
-  {
-    id: '5',
-    title: 'How to Give Dawah',
-    description: 'Step-by-step conversation guides',
-    icon: 'chat',
-    color: colors.success,
-    articles: 20,
-  },
-];
+import { miracleCategories } from '@/data/miracles';
 
 export default function DawahScreen() {
+  const [selectedTab, setSelectedTab] = useState('scientific');
+
+  const selectedCategory = miracleCategories.find(cat => cat.id === selectedTab);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -64,53 +17,84 @@ export default function DawahScreen() {
         <Text style={styles.headerSubtitle}>Share Islam with confidence</Text>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.introCard}>
-          <IconSymbol
-            ios_icon_name="star.fill"
-            android_material_icon_name="star"
-            size={48}
-            color={colors.primary}
-          />
-          <Text style={styles.introTitle}>Welcome to Dawah Hub</Text>
-          <Text style={styles.introText}>
-            Explore the miracles of Islam and learn how to share your faith effectively with others.
-          </Text>
-        </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
+        contentContainerStyle={styles.tabsContent}
+      >
+        {miracleCategories.map((category, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.tabChip,
+              selectedTab === category.id && styles.tabChipActive,
+              { borderColor: category.color },
+              selectedTab === category.id && { backgroundColor: category.color },
+            ]}
+            onPress={() => setSelectedTab(category.id)}
+          >
+            <IconSymbol
+              ios_icon_name={category.icon as any}
+              android_material_icon_name={category.icon as any}
+              size={18}
+              color={selectedTab === category.id ? colors.card : category.color}
+            />
+            <Text
+              style={[
+                styles.tabChipText,
+                { color: selectedTab === category.id ? colors.card : category.color },
+              ]}
+            >
+              {category.title}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-        <View style={styles.sectionsContainer}>
-          {sections.map((section, index) => (
-            <TouchableOpacity key={index} style={styles.sectionCard} activeOpacity={0.8}>
-              <View style={[styles.iconContainer, { backgroundColor: section.color }]}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {selectedCategory && (
+          <React.Fragment>
+            <View style={styles.introCard}>
+              <View style={[styles.introIcon, { backgroundColor: selectedCategory.color }]}>
                 <IconSymbol
-                  ios_icon_name={section.icon as any}
-                  android_material_icon_name={section.icon as any}
+                  ios_icon_name={selectedCategory.icon as any}
+                  android_material_icon_name={selectedCategory.icon as any}
                   size={32}
                   color={colors.card}
                 />
               </View>
-              <View style={styles.sectionInfo}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <Text style={styles.sectionDescription}>{section.description}</Text>
-                <View style={styles.articlesBadge}>
+              <Text style={styles.introTitle}>{selectedCategory.title} Miracles</Text>
+              <Text style={styles.introSubtitle}>
+                {selectedCategory.miracles.length} miracles to explore
+              </Text>
+            </View>
+
+            {selectedCategory.miracles.map((miracle, index) => (
+              <View key={index} style={styles.miracleCard}>
+                <View style={styles.miracleHeader}>
+                  <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
+                    <Text style={styles.miracleNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.miracleTitle}>{miracle.title}</Text>
+                </View>
+                <Text style={styles.miracleDescription}>{miracle.description}</Text>
+                <Text style={styles.miracleDetails}>{miracle.details}</Text>
+                <View style={styles.miracleFooter}>
                   <IconSymbol
-                    ios_icon_name="doc.text"
-                    android_material_icon_name="article"
+                    ios_icon_name="book.fill"
+                    android_material_icon_name="menu-book"
                     size={14}
-                    color={colors.textSecondary}
+                    color={selectedCategory.color}
                   />
-                  <Text style={styles.articlesText}>{section.articles} articles</Text>
+                  <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
+                    {miracle.reference}
+                  </Text>
                 </View>
               </View>
-              <IconSymbol
-                ios_icon_name="chevron.right"
-                android_material_icon_name="chevron-right"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+            ))}
+          </React.Fragment>
+        )}
 
         <View style={styles.tipsCard}>
           <Text style={styles.tipsTitle}>Quick Dawah Tips</Text>
@@ -165,6 +149,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  tabsScroll: {
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tabsContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  tabChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    marginRight: 8,
+    gap: 6,
+  },
+  tabChipActive: {
+    borderWidth: 2,
+  },
+  tabChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   content: {
     flex: 1,
   },
@@ -177,71 +189,89 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
-  introTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  introText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  sectionsContainer: {
-    marginBottom: 24,
-  },
-  sectionCard: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
-    elevation: 2,
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  introIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginBottom: 12,
   },
-  sectionInfo: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 16,
+  introTitle: {
+    fontSize: 22,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
-  sectionDescription: {
-    fontSize: 13,
+  introSubtitle: {
+    fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 8,
   },
-  articlesBadge: {
+  miracleCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  miracleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  articlesText: {
-    fontSize: 12,
+  miracleNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  miracleNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  miracleTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  miracleDescription: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  miracleDetails: {
+    fontSize: 13,
     color: colors.textSecondary,
-    marginLeft: 4,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  miracleFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  miracleReference: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   tipsCard: {
     backgroundColor: colors.primary,
     borderRadius: 16,
     padding: 20,
+    marginTop: 8,
     boxShadow: '0px 4px 12px rgba(63, 81, 181, 0.3)',
     elevation: 4,
   },

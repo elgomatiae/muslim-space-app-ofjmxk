@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import Svg, { Circle } from 'react-native-svg';
+import ProgressRings from '@/components/ProgressRings';
 
 interface TrackerData {
   prayers: { completed: number; total: number; streak: number };
@@ -12,48 +12,54 @@ interface TrackerData {
 }
 
 export default function TrackerScreen() {
-  const [trackerData] = useState<TrackerData>({
+  const [trackerData, setTrackerData] = useState<TrackerData>({
     prayers: { completed: 3, total: 5, streak: 7 },
     dhikr: { count: 150, goal: 300, streak: 5 },
     quran: { pages: 2, goal: 5, streak: 12 },
   });
 
-  const renderProgressRing = (completed: number, total: number, color: string, size: number = 120) => {
-    const percentage = (completed / total) * 100;
-    const radius = (size - 12) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalType, setGoalType] = useState<'dhikr' | 'quran'>('dhikr');
+  const [goalValue, setGoalValue] = useState('');
 
-    return (
-      <View style={[styles.progressRing, { width: size, height: size }]}>
-        <Svg width={size} height={size}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={colors.border}
-            strokeWidth="8"
-            fill="none"
-          />
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={color}
-            strokeWidth="8"
-            fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
-        </Svg>
-        <View style={styles.progressRingContent}>
-          <Text style={styles.progressRingNumber}>{completed}</Text>
-          <Text style={styles.progressRingTotal}>/ {total}</Text>
-        </View>
-      </View>
-    );
+  const openGoalModal = (type: 'dhikr' | 'quran') => {
+    setGoalType(type);
+    setGoalValue(type === 'dhikr' ? trackerData.dhikr.goal.toString() : trackerData.quran.goal.toString());
+    setShowGoalModal(true);
+  };
+
+  const saveGoal = () => {
+    const value = parseInt(goalValue);
+    if (isNaN(value) || value <= 0) {
+      return;
+    }
+
+    if (goalType === 'dhikr') {
+      setTrackerData({
+        ...trackerData,
+        dhikr: { ...trackerData.dhikr, goal: value },
+      });
+    } else {
+      setTrackerData({
+        ...trackerData,
+        quran: { ...trackerData.quran, goal: value },
+      });
+    }
+    setShowGoalModal(false);
+  };
+
+  const incrementDhikr = () => {
+    setTrackerData({
+      ...trackerData,
+      dhikr: { ...trackerData.dhikr, count: trackerData.dhikr.count + 1 },
+    });
+  };
+
+  const incrementQuran = () => {
+    setTrackerData({
+      ...trackerData,
+      quran: { ...trackerData.quran, pages: trackerData.quran.pages + 1 },
+    });
   };
 
   return (
@@ -64,22 +70,12 @@ export default function TrackerScreen() {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Today&apos;s Overview</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              {renderProgressRing(trackerData.prayers.completed, trackerData.prayers.total, colors.primary, 100)}
-              <Text style={styles.summaryLabel}>Prayers</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              {renderProgressRing(trackerData.dhikr.count, trackerData.dhikr.goal, colors.secondary, 100)}
-              <Text style={styles.summaryLabel}>Dhikr</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              {renderProgressRing(trackerData.quran.pages, trackerData.quran.goal, colors.accent, 100)}
-              <Text style={styles.summaryLabel}>Quran</Text>
-            </View>
-          </View>
+        <View style={styles.ringsCard}>
+          <ProgressRings
+            prayers={trackerData.prayers}
+            dhikr={trackerData.dhikr}
+            quran={trackerData.quran}
+          />
         </View>
 
         <View style={styles.section}>
@@ -112,7 +108,18 @@ export default function TrackerScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dhikr</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Dhikr</Text>
+            <TouchableOpacity onPress={() => openGoalModal('dhikr')} style={styles.goalButton}>
+              <IconSymbol
+                ios_icon_name="target"
+                android_material_icon_name="flag"
+                size={16}
+                color={colors.secondary}
+              />
+              <Text style={styles.goalButtonText}>Set Goal</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.detailCard}>
             <View style={styles.detailHeader}>
               <IconSymbol
@@ -137,14 +144,25 @@ export default function TrackerScreen() {
               />
               <Text style={styles.streakText}>{trackerData.dhikr.streak} day streak</Text>
             </View>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Open Counter</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={incrementDhikr}>
+              <Text style={styles.actionButtonText}>Add Count (+1)</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quran Reading</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Quran Reading</Text>
+            <TouchableOpacity onPress={() => openGoalModal('quran')} style={styles.goalButton}>
+              <IconSymbol
+                ios_icon_name="target"
+                android_material_icon_name="flag"
+                size={16}
+                color={colors.accent}
+              />
+              <Text style={styles.goalButtonText}>Set Goal</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.detailCard}>
             <View style={styles.detailHeader}>
               <IconSymbol
@@ -169,8 +187,8 @@ export default function TrackerScreen() {
               />
               <Text style={styles.streakText}>{trackerData.quran.streak} day streak</Text>
             </View>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.actionButtonText}>Log Pages</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={incrementQuran}>
+              <Text style={styles.actionButtonText}>Log Page (+1)</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -188,6 +206,50 @@ export default function TrackerScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showGoalModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGoalModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={() => setShowGoalModal(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              Set {goalType === 'dhikr' ? 'Tasbih' : 'Pages'} Goal
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              How many {goalType === 'dhikr' ? 'dhikr counts' : 'pages'} do you want to complete daily?
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={goalValue}
+              onChangeText={setGoalValue}
+              keyboardType="number-pad"
+              placeholder="Enter goal"
+              placeholderTextColor={colors.textSecondary}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowGoalModal(false)}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonSave]}
+                onPress={saveGoal}
+              >
+                <Text style={styles.modalButtonTextSave}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -222,60 +284,38 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 120,
   },
-  summaryCard: {
+  ringsCard: {
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     elevation: 3,
-  },
-  summaryTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 20,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  summaryItem: {
     alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 12,
-  },
-  progressRing: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressRingContent: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressRingNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  progressRingTotal: {
-    fontSize: 14,
-    color: colors.textSecondary,
   },
   section: {
     marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
+  },
+  goalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  goalButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.secondary,
   },
   detailCard: {
     backgroundColor: colors.card,
@@ -352,5 +392,68 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 20,
+  },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonSave: {
+    backgroundColor: colors.primary,
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  modalButtonTextSave: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.card,
   },
 });

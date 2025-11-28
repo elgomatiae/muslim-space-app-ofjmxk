@@ -15,14 +15,14 @@ interface Dua {
 }
 
 const duaCategories = [
-  'All',
-  'Morning & Evening',
-  'Family',
-  'Hardship',
-  'Gratitude',
-  'Protection',
-  'Travel',
-  'Health',
+  { id: 'all', label: 'All', icon: 'apps' },
+  { id: 'morning', label: 'Morning', icon: 'wb-sunny' },
+  { id: 'family', label: 'Family', icon: 'people' },
+  { id: 'hardship', label: 'Hardship', icon: 'favorite-border' },
+  { id: 'gratitude', label: 'Gratitude', icon: 'star' },
+  { id: 'protection', label: 'Protection', icon: 'shield' },
+  { id: 'travel', label: 'Travel', icon: 'flight' },
+  { id: 'health', label: 'Health', icon: 'healing' },
 ];
 
 const duas: Dua[] = [
@@ -32,7 +32,7 @@ const duas: Dua[] = [
     arabic: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ',
     transliteration: 'Asbahna wa asbahal-mulku lillah',
     translation: 'We have entered a new day and with it all dominion is Allah\'s',
-    category: 'Morning & Evening',
+    category: 'morning',
     bookmarked: true,
   },
   {
@@ -41,7 +41,7 @@ const duas: Dua[] = [
     arabic: 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا',
     transliteration: 'Rabbi irhamhuma kama rabbayani saghira',
     translation: 'My Lord, have mercy upon them as they brought me up when I was small',
-    category: 'Family',
+    category: 'family',
     bookmarked: false,
   },
   {
@@ -50,7 +50,7 @@ const duas: Dua[] = [
     arabic: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ',
     transliteration: 'Hasbunallahu wa ni\'mal wakeel',
     translation: 'Allah is sufficient for us, and He is the best Disposer of affairs',
-    category: 'Hardship',
+    category: 'hardship',
     bookmarked: true,
   },
   {
@@ -59,7 +59,7 @@ const duas: Dua[] = [
     arabic: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
     transliteration: 'Alhamdulillahi rabbil \'alamin',
     translation: 'All praise is due to Allah, Lord of all the worlds',
-    category: 'Gratitude',
+    category: 'gratitude',
     bookmarked: false,
   },
   {
@@ -68,7 +68,7 @@ const duas: Dua[] = [
     arabic: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ',
     transliteration: 'A\'udhu bikalimatillahit-tammati min sharri ma khalaq',
     translation: 'I seek refuge in the perfect words of Allah from the evil of what He has created',
-    category: 'Protection',
+    category: 'protection',
     bookmarked: false,
   },
   {
@@ -77,13 +77,13 @@ const duas: Dua[] = [
     arabic: 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا',
     transliteration: 'Subhanal-ladhi sakhkhara lana hadha',
     translation: 'Glory be to Him who has subjected this to us',
-    category: 'Travel',
+    category: 'travel',
     bookmarked: true,
   },
 ];
 
 export default function DuasScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [bookmarkedDuas, setBookmarkedDuas] = useState<string[]>(
     duas.filter(d => d.bookmarked).map(d => d.id)
   );
@@ -96,7 +96,7 @@ export default function DuasScreen() {
     );
   };
 
-  const filteredDuas = selectedCategory === 'All'
+  const filteredDuas = selectedCategory === 'all'
     ? duas
     : duas.filter(dua => dua.category === selectedCategory);
 
@@ -107,32 +107,39 @@ export default function DuasScreen() {
         <Text style={styles.headerSubtitle}>Supplications for every occasion</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesScroll}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {duaCategories.map((category, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory(category)}
-          >
-            <Text
+      <View style={styles.categoriesContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {duaCategories.map((category, index) => (
+            <TouchableOpacity
+              key={index}
               style={[
-                styles.categoryChipText,
-                selectedCategory === category && styles.categoryChipTextActive,
+                styles.categoryButton,
+                selectedCategory === category.id && styles.categoryButtonActive,
               ]}
+              onPress={() => setSelectedCategory(category.id)}
             >
-              {category}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <IconSymbol
+                ios_icon_name={category.icon as any}
+                android_material_icon_name={category.icon as any}
+                size={20}
+                color={selectedCategory === category.id ? colors.card : colors.primary}
+              />
+              <Text
+                style={[
+                  styles.categoryButtonText,
+                  selectedCategory === category.id && styles.categoryButtonTextActive,
+                ]}
+              >
+                {category.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {filteredDuas.map((dua, index) => (
@@ -157,17 +164,10 @@ export default function DuasScreen() {
 
             <View style={styles.duaFooter}>
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>{dua.category}</Text>
+                <Text style={styles.categoryBadgeText}>
+                  {duaCategories.find(c => c.id === dua.category)?.label || dua.category}
+                </Text>
               </View>
-              <TouchableOpacity style={styles.shareButton}>
-                <IconSymbol
-                  ios_icon_name="square.and.arrow.up"
-                  android_material_icon_name="share"
-                  size={18}
-                  color={colors.primary}
-                />
-                <Text style={styles.shareButtonText}>Share</Text>
-              </TouchableOpacity>
             </View>
           </View>
         ))}
@@ -211,35 +211,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  categoriesScroll: {
+  categoriesContainer: {
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    paddingVertical: 12,
   },
   categoriesContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 8,
   },
-  categoryChip: {
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
+    gap: 6,
     marginRight: 8,
   },
-  categoryChipActive: {
+  categoryButtonActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  categoryChipText: {
+  categoryButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  categoryChipTextActive: {
+  categoryButtonTextActive: {
     color: colors.card,
   },
   content: {
@@ -293,9 +296,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   duaFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -305,23 +305,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+    alignSelf: 'flex-start',
   },
   categoryBadgeText: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
-  },
-  shareButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  shareButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 6,
   },
   emptyState: {
     alignItems: 'center',

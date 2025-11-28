@@ -1,68 +1,34 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, Linking } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-
-interface VideoCategory {
-  id: string;
-  title: string;
-  icon: string;
-  videos: Video[];
-}
-
-interface Video {
-  id: string;
-  title: string;
-  duration: string;
-  thumbnail: string;
-  speaker: string;
-}
-
-const categories: VideoCategory[] = [
-  {
-    id: '1',
-    title: 'Quran & Tafsir',
-    icon: 'book',
-    videos: [
-      { id: '1', title: 'Understanding Surah Al-Fatiha', duration: '15:30', thumbnail: 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?w=400', speaker: 'Sheikh Ahmad' },
-      { id: '2', title: 'Tafsir of Surah Yaseen', duration: '45:20', thumbnail: 'https://images.unsplash.com/photo-1610296669228-602fa827fc1f?w=400', speaker: 'Dr. Bilal' },
-      { id: '3', title: 'Miracles in the Quran', duration: '22:15', thumbnail: 'https://images.unsplash.com/photo-1584286595398-a59f21d25e6f?w=400', speaker: 'Sheikh Omar' },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Seerah',
-    icon: 'person',
-    videos: [
-      { id: '4', title: 'Life of Prophet Muhammad ﷺ', duration: '60:00', thumbnail: 'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=400', speaker: 'Sheikh Yasir' },
-      { id: '5', title: 'The Battle of Badr', duration: '35:45', thumbnail: 'https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=400', speaker: 'Dr. Ahmad' },
-    ],
-  },
-  {
-    id: '3',
-    title: 'Aqeedah',
-    icon: 'star',
-    videos: [
-      { id: '6', title: 'The Six Pillars of Iman', duration: '28:30', thumbnail: 'https://images.unsplash.com/photo-1519834785169-98be25ec3f84?w=400', speaker: 'Sheikh Ibrahim' },
-      { id: '7', title: 'Understanding Tawheed', duration: '40:15', thumbnail: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400', speaker: 'Dr. Khalid' },
-    ],
-  },
-  {
-    id: '4',
-    title: 'Motivational',
-    icon: 'favorite',
-    videos: [
-      { id: '8', title: 'Never Give Up on Allah', duration: '12:45', thumbnail: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=400', speaker: 'Sheikh Mufti' },
-      { id: '9', title: 'The Power of Dua', duration: '18:20', thumbnail: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=400', speaker: 'Sheikh Nouman' },
-    ],
-  },
-];
+import { lectureCategories, recitationCategories } from '@/data/videos';
+import { quizzes } from '@/data/quizzes';
+import { useRouter } from 'expo-router';
 
 export default function LearningScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<'lectures' | 'recitations' | 'quizzes'>('lectures');
+  const router = useRouter();
 
-  const renderCategoryVideos = (category: VideoCategory) => (
+  const openYouTubeVideo = async (youtubeId: string) => {
+    const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+    const youtubeAppUrl = `vnd.youtube://watch?v=${youtubeId}`;
+    
+    try {
+      const canOpen = await Linking.canOpenURL(youtubeAppUrl);
+      if (canOpen) {
+        await Linking.openURL(youtubeAppUrl);
+      } else {
+        await Linking.openURL(youtubeUrl);
+      }
+    } catch (error) {
+      console.log('Error opening YouTube:', error);
+      await Linking.openURL(youtubeUrl);
+    }
+  };
+
+  const renderCategoryVideos = (category: any) => (
     <View key={category.id} style={styles.categorySection}>
       <View style={styles.categoryHeader}>
         <IconSymbol
@@ -74,9 +40,22 @@ export default function LearningScreen() {
         <Text style={styles.categoryTitle}>{category.title}</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.videosScroll}>
-        {category.videos.map((video, index) => (
-          <TouchableOpacity key={index} style={styles.videoCard} activeOpacity={0.8}>
+        {category.videos.map((video: any, index: number) => (
+          <TouchableOpacity 
+            key={index} 
+            style={styles.videoCard} 
+            activeOpacity={0.8}
+            onPress={() => openYouTubeVideo(video.youtubeId)}
+          >
             <Image source={{ uri: video.thumbnail }} style={styles.thumbnail} />
+            <View style={styles.playIconOverlay}>
+              <IconSymbol
+                ios_icon_name="play.circle.fill"
+                android_material_icon_name="play-circle"
+                size={48}
+                color="rgba(255, 255, 255, 0.9)"
+              />
+            </View>
             <View style={styles.durationBadge}>
               <Text style={styles.durationText}>{video.duration}</Text>
             </View>
@@ -100,10 +79,10 @@ export default function LearningScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <View style={styles.tabsContainer}>
           <TouchableOpacity 
-            style={[styles.tab, selectedCategory === null && styles.tabActive]}
-            onPress={() => setSelectedCategory(null)}
+            style={[styles.tab, selectedCategory === 'lectures' && styles.tabActive]}
+            onPress={() => setSelectedCategory('lectures')}
           >
-            <Text style={[styles.tabText, selectedCategory === null && styles.tabTextActive]}>
+            <Text style={[styles.tabText, selectedCategory === 'lectures' && styles.tabTextActive]}>
               Lectures
             </Text>
           </TouchableOpacity>
@@ -125,35 +104,43 @@ export default function LearningScreen() {
           </TouchableOpacity>
         </View>
 
-        {selectedCategory === null && (
+        {selectedCategory === 'lectures' && (
           <React.Fragment>
-            {categories.map(category => renderCategoryVideos(category))}
+            {lectureCategories.map(category => renderCategoryVideos(category))}
           </React.Fragment>
         )}
 
         {selectedCategory === 'recitations' && (
-          <View style={styles.comingSoon}>
-            <IconSymbol
-              ios_icon_name="music.note"
-              android_material_icon_name="music-note"
-              size={64}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.comingSoonText}>Quran Recitations</Text>
-            <Text style={styles.comingSoonSubtext}>Beautiful recitations coming soon</Text>
-          </View>
+          <React.Fragment>
+            {recitationCategories.map(category => renderCategoryVideos(category))}
+          </React.Fragment>
         )}
 
         {selectedCategory === 'quizzes' && (
-          <View style={styles.comingSoon}>
-            <IconSymbol
-              ios_icon_name="questionmark.circle"
-              android_material_icon_name="help"
-              size={64}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.comingSoonText}>Islamic Quizzes</Text>
-            <Text style={styles.comingSoonSubtext}>Test your knowledge soon</Text>
+          <View style={styles.quizzesContainer}>
+            {quizzes.map((quiz, index) => (
+              <TouchableOpacity key={index} style={styles.quizCard} activeOpacity={0.8}>
+                <View style={[styles.quizIconContainer, { backgroundColor: quiz.color }]}>
+                  <IconSymbol
+                    ios_icon_name={quiz.icon as any}
+                    android_material_icon_name={quiz.icon as any}
+                    size={32}
+                    color={colors.card}
+                  />
+                </View>
+                <View style={styles.quizInfo}>
+                  <Text style={styles.quizTitle}>{quiz.title}</Text>
+                  <Text style={styles.quizCategory}>{quiz.category}</Text>
+                  <Text style={styles.quizQuestions}>{quiz.questions.length} questions</Text>
+                </View>
+                <IconSymbol
+                  ios_icon_name="chevron.right"
+                  android_material_icon_name="chevron-right"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -248,6 +235,13 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: colors.border,
   },
+  playIconOverlay: {
+    position: 'absolute',
+    top: 36,
+    left: 76,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   durationBadge: {
     position: 'absolute',
     top: 8,
@@ -275,21 +269,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-  comingSoon: {
-    flex: 1,
+  quizzesContainer: {
+    paddingHorizontal: 16,
+  },
+  quizCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  quizIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 80,
+    marginRight: 16,
   },
-  comingSoonText: {
-    fontSize: 24,
+  quizInfo: {
+    flex: 1,
+  },
+  quizTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    marginTop: 16,
+    marginBottom: 4,
   },
-  comingSoonSubtext: {
-    fontSize: 14,
+  quizCategory: {
+    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginBottom: 2,
+  },
+  quizQuestions: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });
