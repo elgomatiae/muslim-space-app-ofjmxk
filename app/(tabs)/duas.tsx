@@ -1,190 +1,197 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, ImageBackground } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
-interface Dua {
+interface DuaCategory {
   id: string;
   title: string;
+  icon: string;
+  color: string;
+  duas: Dua[];
+}
+
+interface Dua {
+  id: string;
   arabic: string;
   transliteration: string;
   translation: string;
-  category: string;
-  bookmarked: boolean;
+  reference: string;
 }
 
-const duaCategories = [
-  { id: 'all', label: 'All', icon: 'apps' },
-  { id: 'morning', label: 'Morning', icon: 'wb-sunny' },
-  { id: 'family', label: 'Family', icon: 'people' },
-  { id: 'hardship', label: 'Hardship', icon: 'favorite-border' },
-  { id: 'gratitude', label: 'Gratitude', icon: 'star' },
-  { id: 'protection', label: 'Protection', icon: 'shield' },
-  { id: 'travel', label: 'Travel', icon: 'flight' },
-  { id: 'health', label: 'Health', icon: 'healing' },
-];
-
-const duas: Dua[] = [
+const duaCategories: DuaCategory[] = [
   {
-    id: '1',
-    title: 'Morning Dua',
-    arabic: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ',
-    transliteration: 'Asbahna wa asbahal-mulku lillah',
-    translation: 'We have entered a new day and with it all dominion is Allah\'s',
-    category: 'morning',
-    bookmarked: true,
+    id: 'family',
+    title: 'Family',
+    icon: 'heart',
+    color: colors.secondary,
+    duas: [
+      {
+        id: 'f1',
+        arabic: 'رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ',
+        transliteration: 'Rabbana hab lana min azwajina wa dhurriyyatina qurrata a\'yunin',
+        translation: 'Our Lord, grant us from among our wives and offspring comfort to our eyes',
+        reference: 'Quran 25:74',
+      },
+    ],
   },
   {
-    id: '2',
-    title: 'For Parents',
-    arabic: 'رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا',
-    transliteration: 'Rabbi irhamhuma kama rabbayani saghira',
-    translation: 'My Lord, have mercy upon them as they brought me up when I was small',
-    category: 'family',
-    bookmarked: false,
+    id: 'stress',
+    title: 'Stress',
+    icon: 'cloud',
+    color: colors.accent,
+    duas: [
+      {
+        id: 's1',
+        arabic: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ',
+        transliteration: 'Hasbunallahu wa ni\'mal wakeel',
+        translation: 'Allah is sufficient for us, and He is the best Disposer of affairs',
+        reference: 'Quran 3:173',
+      },
+    ],
   },
   {
-    id: '3',
-    title: 'In Times of Difficulty',
-    arabic: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ',
-    transliteration: 'Hasbunallahu wa ni\'mal wakeel',
-    translation: 'Allah is sufficient for us, and He is the best Disposer of affairs',
-    category: 'hardship',
-    bookmarked: true,
-  },
-  {
-    id: '4',
+    id: 'gratitude',
     title: 'Gratitude',
-    arabic: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
-    transliteration: 'Alhamdulillahi rabbil \'alamin',
-    translation: 'All praise is due to Allah, Lord of all the worlds',
-    category: 'gratitude',
-    bookmarked: false,
+    icon: 'star',
+    color: colors.highlight,
+    duas: [
+      {
+        id: 'g1',
+        arabic: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
+        transliteration: 'Alhamdulillahi rabbil \'alameen',
+        translation: 'All praise is due to Allah, Lord of the worlds',
+        reference: 'Quran 1:2',
+      },
+    ],
   },
   {
-    id: '5',
-    title: 'Protection from Evil',
-    arabic: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ',
-    transliteration: 'A\'udhu bikalimatillahit-tammati min sharri ma khalaq',
-    translation: 'I seek refuge in the perfect words of Allah from the evil of what He has created',
-    category: 'protection',
-    bookmarked: false,
+    id: 'strength',
+    title: 'Strength',
+    icon: 'bolt',
+    color: colors.warning,
+    duas: [
+      {
+        id: 'st1',
+        arabic: 'رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي',
+        transliteration: 'Rabbi ishrah li sadri wa yassir li amri',
+        translation: 'My Lord, expand for me my breast and ease for me my task',
+        reference: 'Quran 20:25-26',
+      },
+    ],
   },
   {
-    id: '6',
-    title: 'Before Travel',
-    arabic: 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا',
-    transliteration: 'Subhanal-ladhi sakhkhara lana hadha',
-    translation: 'Glory be to Him who has subjected this to us',
-    category: 'travel',
-    bookmarked: true,
+    id: 'protection',
+    title: 'Protection',
+    icon: 'shield',
+    color: colors.primary,
+    duas: [
+      {
+        id: 'p1',
+        arabic: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ',
+        transliteration: 'A\'udhu bikalimatillahit-tammati min sharri ma khalaq',
+        translation: 'I seek refuge in the perfect words of Allah from the evil of what He has created',
+        reference: 'Muslim',
+      },
+    ],
+  },
+  {
+    id: 'travel',
+    title: 'Travel',
+    icon: 'airplane',
+    color: colors.accent,
+    duas: [
+      {
+        id: 't1',
+        arabic: 'سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ',
+        transliteration: 'Subhanal-ladhi sakhkhara lana hadha wa ma kunna lahu muqrinin',
+        translation: 'Glory to Him who has subjected this to us, and we could never have it',
+        reference: 'Quran 43:13',
+      },
+    ],
   },
 ];
 
 export default function DuasScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [bookmarkedDuas, setBookmarkedDuas] = useState<string[]>(
-    duas.filter(d => d.bookmarked).map(d => d.id)
-  );
+  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
 
-  const toggleBookmark = (duaId: string) => {
-    setBookmarkedDuas(prev =>
-      prev.includes(duaId)
-        ? prev.filter(id => id !== duaId)
-        : [...prev, duaId]
-    );
-  };
-
-  const filteredDuas = selectedCategory === 'all'
-    ? duas
-    : duas.filter(dua => dua.category === selectedCategory);
+  const category = duaCategories.find(c => c.id === selectedCategory);
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iY2FsbGlncmFwaHkiIHg9IjAiIHk9IjAiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48dGV4dCB4PSI1MCIgeT0iMTAwIiBmb250LXNpemU9IjgwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtinINmE2YTZhzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjI1MCIgZm9udC1zaXplPSI2MCIgb3BhY2l0eT0iMC4wMyIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMDAwMDAwIj7Yp9mE2K3ZhdivINmE2YTZhzwvdGV4dD48dGV4dCB4PSI1MCIgeT0iMzUwIiBmb250LXNpemU9IjcwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtiz2KjYrdin2YY8L3RleHQ+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNjYWxsaWdyYXBoeSkiLz48L3N2Zz4=' }}
+      style={styles.container}
+      imageStyle={styles.backgroundImageStyle}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Duas</Text>
         <Text style={styles.headerSubtitle}>Supplications for every occasion</Text>
       </View>
 
-      <View style={styles.categoriesContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {duaCategories.map((category, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category.id && styles.categoryButtonActive,
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
-            >
-              <IconSymbol
-                ios_icon_name={category.icon as any}
-                android_material_icon_name={category.icon as any}
-                size={20}
-                color={selectedCategory === category.id ? colors.card : colors.primary}
-              />
-              <Text
-                style={[
-                  styles.categoryButtonText,
-                  selectedCategory === category.id && styles.categoryButtonTextActive,
-                ]}
+      {!selectedCategory ? (
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <View style={styles.categoriesGrid}>
+            {duaCategories.map((cat, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.categoryButton, { backgroundColor: cat.color }]}
+                onPress={() => setSelectedCategory(cat.id)}
+                activeOpacity={0.8}
               >
-                {category.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {filteredDuas.map((dua, index) => (
-          <View key={index} style={styles.duaCard}>
-            <View style={styles.duaHeader}>
-              <Text style={styles.duaTitle}>{dua.title}</Text>
-              <TouchableOpacity onPress={() => toggleBookmark(dua.id)}>
                 <IconSymbol
-                  ios_icon_name={bookmarkedDuas.includes(dua.id) ? 'bookmark.fill' : 'bookmark'}
-                  android_material_icon_name={bookmarkedDuas.includes(dua.id) ? 'bookmark' : 'bookmark-border'}
-                  size={24}
-                  color={bookmarkedDuas.includes(dua.id) ? colors.secondary : colors.textSecondary}
+                  ios_icon_name={cat.icon as any}
+                  android_material_icon_name={cat.icon as any}
+                  size={32}
+                  color={colors.card}
                 />
+                <Text style={styles.categoryButtonText}>{cat.title}</Text>
               </TouchableOpacity>
-            </View>
-
-            <View style={styles.duaContent}>
-              <Text style={styles.duaArabic}>{dua.arabic}</Text>
-              <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
-              <Text style={styles.duaTranslation}>{dua.translation}</Text>
-            </View>
-
-            <View style={styles.duaFooter}>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryBadgeText}>
-                  {duaCategories.find(c => c.id === dua.category)?.label || dua.category}
-                </Text>
-              </View>
-            </View>
+            ))}
           </View>
-        ))}
-
-        {filteredDuas.length === 0 && (
-          <View style={styles.emptyState}>
+        </ScrollView>
+      ) : (
+        <React.Fragment>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setSelectedCategory(null)}
+          >
             <IconSymbol
-              ios_icon_name="magnifyingglass"
-              android_material_icon_name="search"
-              size={64}
-              color={colors.textSecondary}
+              ios_icon_name="chevron.left"
+              android_material_icon_name="chevron-left"
+              size={24}
+              color={colors.text}
             />
-            <Text style={styles.emptyStateText}>No duas found in this category</Text>
-          </View>
-        )}
-      </ScrollView>
-    </View>
+            <Text style={styles.backButtonText}>Back to Categories</Text>
+          </TouchableOpacity>
+
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+            {category && (
+              <React.Fragment>
+                <View style={[styles.categoryHeader, { backgroundColor: category.color }]}>
+                  <IconSymbol
+                    ios_icon_name={category.icon as any}
+                    android_material_icon_name={category.icon as any}
+                    size={32}
+                    color={colors.card}
+                  />
+                  <Text style={styles.categoryHeaderTitle}>{category.title} Duas</Text>
+                </View>
+
+                {category.duas.map((dua, index) => (
+                  <View key={index} style={styles.duaCard}>
+                    <Text style={styles.duaArabic}>{dua.arabic}</Text>
+                    <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
+                    <Text style={styles.duaTranslation}>{dua.translation}</Text>
+                    <Text style={styles.duaReference}>{dua.reference}</Text>
+                  </View>
+                ))}
+              </React.Fragment>
+            )}
+          </ScrollView>
+        </React.Fragment>
+      )}
+    </ImageBackground>
   );
 }
 
@@ -192,6 +199,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backgroundImageStyle: {
+    opacity: 1,
   },
   header: {
     paddingTop: Platform.OS === 'android' ? 48 : 60,
@@ -211,40 +221,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  categoriesContainer: {
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 12,
-  },
-  categoriesContent: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  categoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 6,
-    marginRight: 8,
-  },
-  categoryButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  categoryButtonTextActive: {
-    color: colors.card,
-  },
   content: {
     flex: 1,
   },
@@ -252,74 +228,92 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 120,
   },
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  categoryButton: {
+    width: '48%',
+    aspectRatio: 1,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+    elevation: 4,
+  },
+  categoryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginLeft: 8,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20,
+    gap: 12,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+    elevation: 4,
+  },
+  categoryHeaderTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.card,
+  },
   duaCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
-  },
-  duaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  duaTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    flex: 1,
-  },
-  duaContent: {
-    marginBottom: 16,
+    elevation: 2,
   },
   duaArabic: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.text,
     textAlign: 'right',
     marginBottom: 12,
-    lineHeight: 40,
+    lineHeight: 36,
   },
   duaTransliteration: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 10,
     fontStyle: 'italic',
-    marginBottom: 8,
-    lineHeight: 20,
   },
   duaTranslation: {
     fontSize: 15,
     color: colors.text,
     lineHeight: 22,
+    marginBottom: 12,
   },
-  duaFooter: {
-    paddingTop: 12,
+  duaReference: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-  },
-  categoryBadge: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  categoryBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-  },
-  emptyStateText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 16,
   },
 });

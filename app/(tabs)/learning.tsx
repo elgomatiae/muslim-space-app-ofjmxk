@@ -1,150 +1,184 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, ImageBackground } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { lectureCategories, recitationCategories } from '@/data/videos';
-import { quizzes } from '@/data/quizzes';
-import { useRouter } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { videoCategories, quranRecitations, quizzes } from '@/data/videos';
+
+type TabType = 'lectures' | 'recitations' | 'quizzes';
 
 export default function LearningScreen() {
-  const [selectedCategory, setSelectedCategory] = useState<'lectures' | 'recitations' | 'quizzes'>('lectures');
-  const router = useRouter();
+  const [selectedTab, setSelectedTab] = useState<TabType>('lectures');
 
-  const openYouTubeVideo = async (youtubeId: string) => {
-    const youtubeUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-    const youtubeAppUrl = `vnd.youtube://watch?v=${youtubeId}`;
-    
-    try {
-      const canOpen = await Linking.canOpenURL(youtubeAppUrl);
-      if (canOpen) {
-        await Linking.openURL(youtubeAppUrl);
-      } else {
-        await Linking.openURL(youtubeUrl);
-      }
-    } catch (error) {
-      console.log('Error opening YouTube:', error);
-      await Linking.openURL(youtubeUrl);
-    }
+  const openVideo = (url: string) => {
+    Linking.openURL(url);
   };
 
-  const renderCategoryVideos = (category: any) => (
-    <View key={category.id} style={styles.categorySection}>
-      <View style={styles.categoryHeader}>
-        <IconSymbol
-          ios_icon_name={category.icon as any}
-          android_material_icon_name={category.icon as any}
-          size={24}
-          color={colors.primary}
-        />
-        <Text style={styles.categoryTitle}>{category.title}</Text>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.videosScroll}>
-        {category.videos.map((video: any, index: number) => (
-          <TouchableOpacity 
-            key={index} 
-            style={styles.videoCard} 
-            activeOpacity={0.8}
-            onPress={() => openYouTubeVideo(video.youtubeId)}
-          >
-            <Image source={{ uri: video.thumbnail }} style={styles.thumbnail} />
-            <View style={styles.playIconOverlay}>
-              <IconSymbol
-                ios_icon_name="play.circle.fill"
-                android_material_icon_name="play-circle"
-                size={48}
-                color="rgba(255, 255, 255, 0.9)"
-              />
-            </View>
-            <View style={styles.durationBadge}>
-              <Text style={styles.durationText}>{video.duration}</Text>
-            </View>
-            <View style={styles.videoInfo}>
-              <Text style={styles.videoTitle} numberOfLines={2}>{video.title}</Text>
-              <Text style={styles.videoSpeaker}>{video.speaker}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iY2FsbGlncmFwaHkiIHg9IjAiIHk9IjAiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48dGV4dCB4PSI1MCIgeT0iMTAwIiBmb250LXNpemU9IjgwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtinINmE2YTZhzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjI1MCIgZm9udC1zaXplPSI2MCIgb3BhY2l0eT0iMC4wMyIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMDAwMDAwIj7Yp9mE2K3ZhdivINmE2YTZhzwvdGV4dD48dGV4dCB4PSI1MCIgeT0iMzUwIiBmb250LXNpemU9IjcwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtiz2KjYrdin2YY8L3RleHQ+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNjYWxsaWdyYXBoeSkiLz48L3N2Zz4=' }}
+      style={styles.container}
+      imageStyle={styles.backgroundImageStyle}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Learning</Text>
         <Text style={styles.headerSubtitle}>Expand your Islamic knowledge</Text>
       </View>
 
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'lectures' && styles.tabActive]}
+          onPress={() => setSelectedTab('lectures')}
+        >
+          <IconSymbol
+            ios_icon_name="play.rectangle.fill"
+            android_material_icon_name="play-circle"
+            size={20}
+            color={selectedTab === 'lectures' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.tabText, selectedTab === 'lectures' && styles.tabTextActive]}>
+            Lectures
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'recitations' && styles.tabActive]}
+          onPress={() => setSelectedTab('recitations')}
+        >
+          <IconSymbol
+            ios_icon_name="book.fill"
+            android_material_icon_name="menu-book"
+            size={20}
+            color={selectedTab === 'recitations' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.tabText, selectedTab === 'recitations' && styles.tabTextActive]}>
+            Recitations
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'quizzes' && styles.tabActive]}
+          onPress={() => setSelectedTab('quizzes')}
+        >
+          <IconSymbol
+            ios_icon_name="questionmark.circle.fill"
+            android_material_icon_name="quiz"
+            size={20}
+            color={selectedTab === 'quizzes' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.tabText, selectedTab === 'quizzes' && styles.tabTextActive]}>
+            Quizzes
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, selectedCategory === 'lectures' && styles.tabActive]}
-            onPress={() => setSelectedCategory('lectures')}
-          >
-            <Text style={[styles.tabText, selectedCategory === 'lectures' && styles.tabTextActive]}>
-              Lectures
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, selectedCategory === 'recitations' && styles.tabActive]}
-            onPress={() => setSelectedCategory('recitations')}
-          >
-            <Text style={[styles.tabText, selectedCategory === 'recitations' && styles.tabTextActive]}>
-              Recitations
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, selectedCategory === 'quizzes' && styles.tabActive]}
-            onPress={() => setSelectedCategory('quizzes')}
-          >
-            <Text style={[styles.tabText, selectedCategory === 'quizzes' && styles.tabTextActive]}>
-              Quizzes
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {selectedCategory === 'lectures' && (
+        {selectedTab === 'lectures' && (
           <React.Fragment>
-            {lectureCategories.map(category => renderCategoryVideos(category))}
+            {videoCategories.map((category, categoryIndex) => (
+              <View key={categoryIndex} style={styles.categorySection}>
+                <Text style={styles.categoryTitle}>{category.title}</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.videoScroll}
+                >
+                  {category.videos.map((video, videoIndex) => (
+                    <TouchableOpacity
+                      key={videoIndex}
+                      style={styles.videoCard}
+                      onPress={() => openVideo(video.url)}
+                    >
+                      <View style={styles.thumbnail}>
+                        <IconSymbol
+                          ios_icon_name="play.circle.fill"
+                          android_material_icon_name="play-circle"
+                          size={48}
+                          color={colors.card}
+                        />
+                      </View>
+                      <Text style={styles.videoTitle} numberOfLines={2}>
+                        {video.title}
+                      </Text>
+                      <Text style={styles.videoDuration}>{video.duration}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ))}
           </React.Fragment>
         )}
 
-        {selectedCategory === 'recitations' && (
+        {selectedTab === 'recitations' && (
           <React.Fragment>
-            {recitationCategories.map(category => renderCategoryVideos(category))}
+            {quranRecitations.map((category, categoryIndex) => (
+              <View key={categoryIndex} style={styles.categorySection}>
+                <Text style={styles.categoryTitle}>{category.title}</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.videoScroll}
+                >
+                  {category.recitations.map((recitation, recitationIndex) => (
+                    <TouchableOpacity
+                      key={recitationIndex}
+                      style={styles.videoCard}
+                      onPress={() => openVideo(recitation.url)}
+                    >
+                      <View style={[styles.thumbnail, { backgroundColor: colors.secondary }]}>
+                        <IconSymbol
+                          ios_icon_name="waveform"
+                          android_material_icon_name="graphic-eq"
+                          size={48}
+                          color={colors.card}
+                        />
+                      </View>
+                      <Text style={styles.videoTitle} numberOfLines={2}>
+                        {recitation.title}
+                      </Text>
+                      <Text style={styles.videoDuration}>{recitation.reciter}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ))}
           </React.Fragment>
         )}
 
-        {selectedCategory === 'quizzes' && (
-          <View style={styles.quizzesContainer}>
-            {quizzes.map((quiz, index) => (
-              <TouchableOpacity key={index} style={styles.quizCard} activeOpacity={0.8}>
-                <View style={[styles.quizIconContainer, { backgroundColor: quiz.color }]}>
+        {selectedTab === 'quizzes' && (
+          <React.Fragment>
+            {quizzes.map((quiz, quizIndex) => (
+              <TouchableOpacity key={quizIndex} style={styles.quizCard}>
+                <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
                   <IconSymbol
-                    ios_icon_name={quiz.icon as any}
-                    android_material_icon_name={quiz.icon as any}
+                    ios_icon_name="questionmark.circle.fill"
+                    android_material_icon_name="quiz"
                     size={32}
                     color={colors.card}
                   />
                 </View>
                 <View style={styles.quizInfo}>
                   <Text style={styles.quizTitle}>{quiz.title}</Text>
-                  <Text style={styles.quizCategory}>{quiz.category}</Text>
-                  <Text style={styles.quizQuestions}>{quiz.questions.length} questions</Text>
+                  <Text style={styles.quizDescription}>{quiz.description}</Text>
+                  <View style={styles.quizMeta}>
+                    <Text style={styles.quizMetaText}>{quiz.questions} questions</Text>
+                    <Text style={styles.quizMetaText}>•</Text>
+                    <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
+                  </View>
                 </View>
                 <IconSymbol
                   ios_icon_name="chevron.right"
                   android_material_icon_name="chevron-right"
-                  size={20}
+                  size={24}
                   color={colors.textSecondary}
                 />
               </TouchableOpacity>
             ))}
-          </View>
+          </React.Fragment>
         )}
       </ScrollView>
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -152,6 +186,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  backgroundImageStyle: {
+    opacity: 1,
   },
   header: {
     paddingTop: Platform.OS === 'android' ? 48 : 60,
@@ -171,124 +208,100 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 120,
-  },
-  tabsContainer: {
+  tabBar: {
     flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 8,
   },
   tab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   tabActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderBottomColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textSecondary,
   },
   tabTextActive: {
-    color: colors.card,
+    color: colors.primary,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 120,
   },
   categorySection: {
     marginBottom: 24,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 12,
   },
   categoryTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.text,
-    marginLeft: 8,
+    marginBottom: 12,
   },
-  videosScroll: {
-    paddingLeft: 16,
+  videoScroll: {
+    paddingRight: 16,
   },
   videoCard: {
-    width: 200,
+    width: 180,
     marginRight: 12,
     backgroundColor: colors.card,
     borderRadius: 12,
     overflow: 'hidden',
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
   },
   thumbnail: {
     width: '100%',
-    height: 120,
-    backgroundColor: colors.border,
-  },
-  playIconOverlay: {
-    position: 'absolute',
-    top: 36,
-    left: 76,
+    height: 100,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  durationBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  durationText: {
-    color: colors.card,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  videoInfo: {
-    padding: 12,
   },
   videoTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    padding: 12,
+    paddingBottom: 4,
+    lineHeight: 18,
   },
-  videoSpeaker: {
+  videoDuration: {
     fontSize: 12,
     color: colors.textSecondary,
-  },
-  quizzesContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   quizCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
     boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
     elevation: 2,
   },
-  quizIconContainer: {
+  quizIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   quizInfo: {
     flex: 1,
@@ -299,12 +312,16 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
-  quizCategory: {
+  quizDescription: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 2,
+    marginBottom: 6,
   },
-  quizQuestions: {
+  quizMeta: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quizMetaText: {
     fontSize: 12,
     color: colors.textSecondary,
   },
