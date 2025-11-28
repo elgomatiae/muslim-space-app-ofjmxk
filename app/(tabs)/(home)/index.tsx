@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, ImageBackground, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Dimensions } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import * as Location from 'expo-location';
@@ -96,11 +96,7 @@ export default function HomeScreen() {
   const completedCount = prayers.filter(p => p.completed).length;
 
   return (
-    <ImageBackground
-      source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iY2FsbGlncmFwaHkiIHg9IjAiIHk9IjAiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48dGV4dCB4PSI1MCIgeT0iMTAwIiBmb250LXNpemU9IjgwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtinINmE2YTZhzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjI1MCIgZm9udC1zaXplPSI2MCIgb3BhY2l0eT0iMC4wMyIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMDAwMDAwIj7Yp9mE2K3ZhdivINmE2YTZhzwvdGV4dD48dGV4dCB4PSI1MCIgeT0iMzUwIiBmb250LXNpemU9IjcwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtiz2KjYrdin2YY8L3RleHQ+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNjYWxsaWdyYXBoeSkiLz48L3N2Zz4=' }}
-      style={styles.container}
-      imageStyle={styles.backgroundImageStyle}
-    >
+    <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Text style={styles.greeting}>As-salamu alaykum</Text>
@@ -180,7 +176,6 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.trackerCard}>
-          <Text style={styles.trackerTitle}>Today&apos;s Iman Tracker</Text>
           <ProgressRings
             prayers={trackerData.prayers}
             dhikr={trackerData.dhikr}
@@ -227,7 +222,7 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -235,9 +230,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  backgroundImageStyle: {
-    opacity: 1,
   },
   scrollView: {
     flex: 1,
@@ -359,12 +351,6 @@ const styles = StyleSheet.create({
     boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.12)',
     elevation: 3,
     alignItems: 'center',
-  },
-  trackerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
   },
   progressCard: {
     backgroundColor: colors.card,

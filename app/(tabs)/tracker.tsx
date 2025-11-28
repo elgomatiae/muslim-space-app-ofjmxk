@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Modal, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import ProgressRings from '@/components/ProgressRings';
@@ -20,6 +20,12 @@ const dhikrPhrases = [
   { id: 'la-hawla', arabic: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِٱللَّٰهِ', transliteration: 'La hawla wa la quwwata illa billah', translation: 'There is no power nor strength except with Allah' },
 ];
 
+const quranSurahs = [
+  'Al-Fatiha', 'Al-Baqarah', 'Ali \'Imran', 'An-Nisa', 'Al-Ma\'idah', 'Al-An\'am', 'Al-A\'raf', 'Al-Anfal',
+  'At-Tawbah', 'Yunus', 'Hud', 'Yusuf', 'Ar-Ra\'d', 'Ibrahim', 'Al-Hijr', 'An-Nahl', 'Al-Isra', 'Al-Kahf',
+  'Maryam', 'Ta-Ha', 'Al-Anbiya', 'Al-Hajj', 'Al-Mu\'minun', 'An-Nur', 'Al-Furqan', 'Ash-Shu\'ara',
+];
+
 export default function TrackerScreen() {
   const [trackerData, setTrackerData] = useState<TrackerData>({
     prayers: { completed: 3, total: 5, streak: 7 },
@@ -29,10 +35,14 @@ export default function TrackerScreen() {
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showDhikrModal, setShowDhikrModal] = useState(false);
+  const [showQuranModal, setShowQuranModal] = useState(false);
   const [goalType, setGoalType] = useState<'dhikr' | 'quran'>('dhikr');
   const [goalValue, setGoalValue] = useState('');
   const [selectedDhikr, setSelectedDhikr] = useState(dhikrPhrases[0]);
   const [tasbihCount, setTasbihCount] = useState(0);
+  const [currentSurah, setCurrentSurah] = useState('Al-Baqarah');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentJuz, setCurrentJuz] = useState(1);
 
   const openGoalModal = (type: 'dhikr' | 'quran') => {
     setGoalType(type);
@@ -82,16 +92,25 @@ export default function TrackerScreen() {
       ...trackerData,
       quran: { ...trackerData.quran, pages: trackerData.quran.pages + 1 },
     });
+    setCurrentPage(currentPage + 1);
+  };
+
+  const decrementQuran = () => {
+    if (trackerData.quran.pages > 0) {
+      setTrackerData({
+        ...trackerData,
+        quran: { ...trackerData.quran, pages: trackerData.quran.pages - 1 },
+      });
+      if (currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    }
   };
 
   return (
-    <ImageBackground
-      source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iY2FsbGlncmFwaHkiIHg9IjAiIHk9IjAiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48dGV4dCB4PSI1MCIgeT0iMTAwIiBmb250LXNpemU9IjgwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtinINmE2YTZhzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjI1MCIgZm9udC1zaXplPSI2MCIgb3BhY2l0eT0iMC4wMyIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMDAwMDAwIj7Yp9mE2K3ZhdivINmE2YTZhzwvdGV4dD48dGV4dCB4PSI1MCIgeT0iMzUwIiBmb250LXNpemU9IjcwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtiz2KjYrdin2YY8L3RleHQ+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNjYWxsaWdyYXBoeSkiLz48L3N2Zz4=' }}
-      style={styles.container}
-      imageStyle={styles.backgroundImageStyle}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Iman Tracker</Text>
+        <Text style={styles.headerTitle}>Faith Tracker</Text>
         <Text style={styles.headerSubtitle}>Track your spiritual journey</Text>
       </View>
 
@@ -229,21 +248,83 @@ export default function TrackerScreen() {
               <Text style={styles.goalButtonText}>Set Goal</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.detailCard}>
-            <View style={styles.detailHeader}>
+          <View style={styles.quranCard}>
+            <View style={styles.quranHeader}>
               <IconSymbol
                 ios_icon_name="book.fill"
                 android_material_icon_name="menu-book"
                 size={32}
                 color={colors.accent}
               />
-              <View style={styles.detailInfo}>
-                <Text style={styles.detailTitle}>Daily Reading</Text>
-                <Text style={styles.detailSubtitle}>
-                  {trackerData.quran.pages} of {trackerData.quran.goal} pages
+              <View style={styles.quranHeaderInfo}>
+                <Text style={styles.quranTitle}>Daily Reading</Text>
+                <Text style={styles.quranSubtitle}>
+                  {trackerData.quran.pages} of {trackerData.quran.goal} pages today
                 </Text>
               </View>
             </View>
+
+            <TouchableOpacity 
+              style={styles.surahSelector}
+              onPress={() => setShowQuranModal(true)}
+            >
+              <View style={styles.surahSelectorContent}>
+                <View>
+                  <Text style={styles.surahLabel}>Current Surah</Text>
+                  <Text style={styles.surahName}>{currentSurah}</Text>
+                </View>
+                <IconSymbol
+                  ios_icon_name="chevron.down.circle.fill"
+                  android_material_icon_name="arrow-drop-down-circle"
+                  size={28}
+                  color={colors.accent}
+                />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.quranProgress}>
+              <View style={styles.quranProgressItem}>
+                <Text style={styles.quranProgressLabel}>Page</Text>
+                <Text style={styles.quranProgressValue}>{currentPage}</Text>
+                <Text style={styles.quranProgressTotal}>of 604</Text>
+              </View>
+              <View style={styles.quranProgressDivider} />
+              <View style={styles.quranProgressItem}>
+                <Text style={styles.quranProgressLabel}>Juz</Text>
+                <Text style={styles.quranProgressValue}>{currentJuz}</Text>
+                <Text style={styles.quranProgressTotal}>of 30</Text>
+              </View>
+            </View>
+
+            <View style={styles.quranButtons}>
+              <TouchableOpacity 
+                style={styles.quranButtonSecondary}
+                onPress={decrementQuran}
+              >
+                <IconSymbol
+                  ios_icon_name="minus.circle"
+                  android_material_icon_name="remove-circle"
+                  size={24}
+                  color={colors.accent}
+                />
+                <Text style={styles.quranButtonSecondaryText}>-1 Page</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quranButtonMain}
+                onPress={incrementQuran}
+                activeOpacity={0.8}
+              >
+                <IconSymbol
+                  ios_icon_name="plus.circle.fill"
+                  android_material_icon_name="add-circle"
+                  size={24}
+                  color={colors.card}
+                />
+                <Text style={styles.quranButtonMainText}>+1 Page</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.streakBadge}>
               <IconSymbol
                 ios_icon_name="flame.fill"
@@ -253,9 +334,6 @@ export default function TrackerScreen() {
               />
               <Text style={styles.streakText}>{trackerData.quran.streak} day streak</Text>
             </View>
-            <TouchableOpacity style={styles.actionButton} onPress={incrementQuran}>
-              <Text style={styles.actionButtonText}>Log Page (+1)</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -370,7 +448,63 @@ export default function TrackerScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </ImageBackground>
+
+      <Modal
+        visible={showQuranModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQuranModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={() => setShowQuranModal(false)}
+        >
+          <View style={styles.dhikrModalContent}>
+            <View style={styles.dhikrModalHeader}>
+              <Text style={styles.modalTitle}>Select Surah</Text>
+              <TouchableOpacity onPress={() => setShowQuranModal(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={28}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.dhikrList}>
+              {quranSurahs.map((surah, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.surahOption,
+                    currentSurah === surah && styles.surahOptionSelected,
+                  ]}
+                  onPress={() => {
+                    setCurrentSurah(surah);
+                    setShowQuranModal(false);
+                  }}
+                >
+                  <View style={styles.surahOptionContent}>
+                    <Text style={styles.surahOptionNumber}>{index + 1}</Text>
+                    <Text style={styles.surahOptionName}>{surah}</Text>
+                  </View>
+                  {currentSurah === surah && (
+                    <IconSymbol
+                      ios_icon_name="checkmark.circle.fill"
+                      android_material_icon_name="check-circle"
+                      size={24}
+                      color={colors.accent}
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
   );
 }
 
@@ -379,13 +513,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  backgroundImageStyle: {
-    opacity: 1,
-  },
   header: {
     paddingTop: Platform.OS === 'android' ? 48 : 60,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -397,7 +528,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
   },
   content: {
@@ -474,24 +605,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     alignSelf: 'flex-start',
-    marginBottom: 12,
   },
   streakText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginLeft: 6,
-  },
-  actionButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.card,
   },
   tasbihCard: {
     backgroundColor: colors.card,
@@ -589,6 +708,123 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.secondary,
+  },
+  quranCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  quranHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  quranHeaderInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  quranTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  quranSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  surahSelector: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
+  surahSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  surahLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  surahName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  quranProgress: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+  },
+  quranProgressItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  quranProgressLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  quranProgressValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.accent,
+    marginBottom: 4,
+  },
+  quranProgressTotal: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  quranProgressDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 16,
+  },
+  quranButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  quranButtonMain: {
+    flex: 1,
+    backgroundColor: colors.accent,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quranButtonMainText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  quranButtonSecondary: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  quranButtonSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
   },
   motivationCard: {
     backgroundColor: colors.highlight,
@@ -730,5 +966,36 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontStyle: 'italic',
+  },
+  surahOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  surahOptionSelected: {
+    borderColor: colors.accent,
+    backgroundColor: colors.card,
+  },
+  surahOptionContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  surahOptionNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.accent,
+    width: 32,
+  },
+  surahOptionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
 });
