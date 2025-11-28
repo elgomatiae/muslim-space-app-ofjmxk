@@ -31,74 +31,76 @@ export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsPr
   
   return (
     <View style={styles.container}>
-      <Svg width={size} height={size}>
-        <Circle
-          cx={center}
-          cy={center}
-          r={outerRadius}
-          stroke={colors.border}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <Circle
-          cx={center}
-          cy={center}
-          r={outerRadius}
-          stroke={colors.primary}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={getCircumference(outerRadius)}
-          strokeDashoffset={getStrokeDashoffset(outerRadius, prayersPercentage)}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
+      <View style={styles.ringsContainer}>
+        <Svg width={size} height={size}>
+          <Circle
+            cx={center}
+            cy={center}
+            r={outerRadius}
+            stroke={colors.border}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          <Circle
+            cx={center}
+            cy={center}
+            r={outerRadius}
+            stroke={colors.primary}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={getCircumference(outerRadius)}
+            strokeDashoffset={getStrokeDashoffset(outerRadius, prayersPercentage)}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+          
+          <Circle
+            cx={center}
+            cy={center}
+            r={middleRadius}
+            stroke={colors.border}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          <Circle
+            cx={center}
+            cy={center}
+            r={middleRadius}
+            stroke={colors.secondary}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={getCircumference(middleRadius)}
+            strokeDashoffset={getStrokeDashoffset(middleRadius, dhikrPercentage)}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+          
+          <Circle
+            cx={center}
+            cy={center}
+            r={innerRadius}
+            stroke={colors.border}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          <Circle
+            cx={center}
+            cy={center}
+            r={innerRadius}
+            stroke={colors.accent}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={getCircumference(innerRadius)}
+            strokeDashoffset={getStrokeDashoffset(innerRadius, quranPercentage)}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${center} ${center})`}
+          />
+        </Svg>
         
-        <Circle
-          cx={center}
-          cy={center}
-          r={middleRadius}
-          stroke={colors.border}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <Circle
-          cx={center}
-          cy={center}
-          r={middleRadius}
-          stroke={colors.secondary}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={getCircumference(middleRadius)}
-          strokeDashoffset={getStrokeDashoffset(middleRadius, dhikrPercentage)}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-        
-        <Circle
-          cx={center}
-          cy={center}
-          r={innerRadius}
-          stroke={colors.border}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <Circle
-          cx={center}
-          cy={center}
-          r={innerRadius}
-          stroke={colors.accent}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={getCircumference(innerRadius)}
-          strokeDashoffset={getStrokeDashoffset(innerRadius, quranPercentage)}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-      </Svg>
-      
-      <View style={styles.centerContent}>
-        <Text style={styles.centerTitle}>Faith</Text>
-        <Text style={styles.centerTitle}>Tracker</Text>
+        <View style={styles.centerContent}>
+          <Text style={styles.centerTitle}>Faith</Text>
+          <Text style={styles.centerTitle}>Tracker</Text>
+        </View>
       </View>
       
       <View style={styles.legend}>
@@ -125,8 +127,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
   },
+  ringsContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   centerContent: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -135,6 +146,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     lineHeight: 28,
+    textAlign: 'center',
   },
   legend: {
     marginTop: 24,

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import * as Linking from 'expo-linking';
@@ -16,11 +16,7 @@ export default function LearningScreen() {
   };
 
   return (
-    <ImageBackground
-      source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iY2FsbGlncmFwaHkiIHg9IjAiIHk9IjAiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48dGV4dCB4PSI1MCIgeT0iMTAwIiBmb250LXNpemU9IjgwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtinINmE2YTZhzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjI1MCIgZm9udC1zaXplPSI2MCIgb3BhY2l0eT0iMC4wMyIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMDAwMDAwIj7Yp9mE2K3ZhdivINmE2YTZhzwvdGV4dD48dGV4dCB4PSI1MCIgeT0iMzUwIiBmb250LXNpemU9IjcwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtiz2KjYrdin2YY8L3RleHQ+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNjYWxsaWdyYXBoeSkiLz48L3N2Zz4=' }}
-      style={styles.container}
-      imageStyle={styles.backgroundImageStyle}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Learning</Text>
         <Text style={styles.headerSubtitle}>Expand your Islamic knowledge</Text>
@@ -90,18 +86,28 @@ export default function LearningScreen() {
                       style={styles.videoCard}
                       onPress={() => openVideo(video.url)}
                     >
-                      <View style={styles.thumbnail}>
+                      <Image 
+                        source={{ uri: video.thumbnail }} 
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.playIconOverlay}>
                         <IconSymbol
                           ios_icon_name="play.circle.fill"
                           android_material_icon_name="play-circle"
                           size={48}
-                          color={colors.card}
+                          color="rgba(255, 255, 255, 0.9)"
                         />
                       </View>
-                      <Text style={styles.videoTitle} numberOfLines={2}>
-                        {video.title}
-                      </Text>
-                      <Text style={styles.videoDuration}>{video.duration}</Text>
+                      <View style={styles.videoInfo}>
+                        <Text style={styles.videoTitle} numberOfLines={2}>
+                          {video.title}
+                        </Text>
+                        <Text style={styles.videoSpeaker} numberOfLines={1}>
+                          {video.speaker}
+                        </Text>
+                        <Text style={styles.videoDuration}>{video.duration}</Text>
+                      </View>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -126,7 +132,7 @@ export default function LearningScreen() {
                       style={styles.videoCard}
                       onPress={() => openVideo(recitation.url)}
                     >
-                      <View style={[styles.thumbnail, { backgroundColor: colors.secondary }]}>
+                      <View style={[styles.thumbnail, styles.recitationThumbnail]}>
                         <IconSymbol
                           ios_icon_name="waveform"
                           android_material_icon_name="graphic-eq"
@@ -134,10 +140,15 @@ export default function LearningScreen() {
                           color={colors.card}
                         />
                       </View>
-                      <Text style={styles.videoTitle} numberOfLines={2}>
-                        {recitation.title}
-                      </Text>
-                      <Text style={styles.videoDuration}>{recitation.reciter}</Text>
+                      <View style={styles.videoInfo}>
+                        <Text style={styles.videoTitle} numberOfLines={2}>
+                          {recitation.title}
+                        </Text>
+                        <Text style={styles.videoSpeaker} numberOfLines={1}>
+                          {recitation.reciter}
+                        </Text>
+                        <Text style={styles.videoDuration}>{recitation.duration}</Text>
+                      </View>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -178,7 +189,7 @@ export default function LearningScreen() {
           </React.Fragment>
         )}
       </ScrollView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -186,9 +197,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  backgroundImageStyle: {
-    opacity: 1,
   },
   header: {
     paddingTop: Platform.OS === 'android' ? 48 : 60,
@@ -256,7 +264,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   videoCard: {
-    width: 180,
+    width: 200,
     marginRight: 12,
     backgroundColor: colors.card,
     borderRadius: 12,
@@ -266,24 +274,41 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     width: '100%',
-    height: 100,
-    backgroundColor: colors.primary,
+    height: 112,
+    backgroundColor: colors.border,
+  },
+  recitationThumbnail: {
+    backgroundColor: colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  playIconOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 112,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoInfo: {
+    padding: 12,
   },
   videoTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    padding: 12,
-    paddingBottom: 4,
     lineHeight: 18,
+    marginBottom: 4,
+  },
+  videoSpeaker: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
   },
   videoDuration: {
     fontSize: 12,
     color: colors.textSecondary,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
   },
   quizCard: {
     flexDirection: 'row',
