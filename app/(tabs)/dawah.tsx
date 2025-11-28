@@ -45,7 +45,7 @@ export default function DawahScreen() {
             <IconSymbol
               ios_icon_name={category.icon as any}
               android_material_icon_name={category.icon as any}
-              size={18}
+              size={16}
               color={selectedTab === category.id ? colors.card : category.color}
             />
             <Text style={[
@@ -223,14 +223,14 @@ const styles = StyleSheet.create({
   },
   tabsContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     gap: 8,
   },
   tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: colors.background,
     borderWidth: 2,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   tabButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   tabButtonTextActive: {

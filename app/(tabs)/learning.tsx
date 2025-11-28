@@ -30,7 +30,7 @@ export default function LearningScreen() {
           <IconSymbol
             ios_icon_name="play.rectangle.fill"
             android_material_icon_name="play-circle"
-            size={20}
+            size={24}
             color={selectedTab === 'lectures' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, selectedTab === 'lectures' && styles.tabTextActive]}>
@@ -45,7 +45,7 @@ export default function LearningScreen() {
           <IconSymbol
             ios_icon_name="book.fill"
             android_material_icon_name="menu-book"
-            size={20}
+            size={24}
             color={selectedTab === 'recitations' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, selectedTab === 'recitations' && styles.tabTextActive]}>
@@ -60,7 +60,7 @@ export default function LearningScreen() {
           <IconSymbol
             ios_icon_name="questionmark.circle.fill"
             android_material_icon_name="quiz"
-            size={20}
+            size={24}
             color={selectedTab === 'quizzes' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, selectedTab === 'quizzes' && styles.tabTextActive]}>
@@ -132,12 +132,17 @@ export default function LearningScreen() {
                       style={styles.videoCard}
                       onPress={() => openVideo(recitation.url)}
                     >
-                      <View style={[styles.thumbnail, styles.recitationThumbnail]}>
+                      <Image 
+                        source={{ uri: recitation.thumbnail }} 
+                        style={styles.thumbnail}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.playIconOverlay}>
                         <IconSymbol
-                          ios_icon_name="waveform"
-                          android_material_icon_name="graphic-eq"
+                          ios_icon_name="play.circle.fill"
+                          android_material_icon_name="play-circle"
                           size={48}
-                          color={colors.card}
+                          color="rgba(255, 255, 255, 0.9)"
                         />
                       </View>
                       <View style={styles.videoInfo}>
@@ -199,21 +204,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'android' ? 48 : 60,
+    paddingTop: Platform.OS === 'android' ? 48 : 50,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 12,
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   tabBar: {
@@ -228,21 +233,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 6,
-    borderBottomWidth: 2,
+    paddingVertical: 16,
+    gap: 8,
+    borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
   tabActive: {
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   tabTextActive: {
     color: colors.primary,
+    fontWeight: '700',
   },
   content: {
     flex: 1,
@@ -276,11 +282,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 112,
     backgroundColor: colors.border,
-  },
-  recitationThumbnail: {
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   playIconOverlay: {
     position: 'absolute',

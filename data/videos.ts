@@ -21,6 +21,7 @@ export interface Recitation {
   duration: string;
   reciter: string;
   url: string;
+  thumbnail: string;
 }
 
 export interface RecitationCategory {
@@ -278,6 +279,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '1:30',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=pbt1LhsI_Ek',
+        thumbnail: 'https://img.youtube.com/vi/pbt1LhsI_Ek/mqdefault.jpg',
       },
       {
         id: 'r2',
@@ -285,6 +287,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '0:45',
         reciter: 'Abdul Rahman Al-Sudais',
         url: 'https://www.youtube.com/watch?v=Ow5d9tlQmXw',
+        thumbnail: 'https://img.youtube.com/vi/Ow5d9tlQmXw/mqdefault.jpg',
       },
       {
         id: 'r3',
@@ -292,6 +295,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '0:50',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=8wXRH4COJe0',
+        thumbnail: 'https://img.youtube.com/vi/8wXRH4COJe0/mqdefault.jpg',
       },
       {
         id: 'r4',
@@ -299,6 +303,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '0:55',
         reciter: 'Abdul Rahman Al-Sudais',
         url: 'https://www.youtube.com/watch?v=j-vhNhxwBjU',
+        thumbnail: 'https://img.youtube.com/vi/j-vhNhxwBjU/mqdefault.jpg',
       },
     ],
   },
@@ -313,6 +318,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '2:30:00',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=VOUp3ZZ9t3A',
+        thumbnail: 'https://img.youtube.com/vi/VOUp3ZZ9t3A/mqdefault.jpg',
       },
       {
         id: 'r6',
@@ -320,6 +326,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '18:45',
         reciter: 'Abdul Rahman Al-Sudais',
         url: 'https://www.youtube.com/watch?v=xZIqd_-1Zus',
+        thumbnail: 'https://img.youtube.com/vi/xZIqd_-1Zus/mqdefault.jpg',
       },
       {
         id: 'r7',
@@ -327,6 +334,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '35:20',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=Iq8LVJjIUy0',
+        thumbnail: 'https://img.youtube.com/vi/Iq8LVJjIUy0/mqdefault.jpg',
       },
     ],
   },
@@ -341,6 +349,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '12:30',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=qsLCtMJZPGo',
+        thumbnail: 'https://img.youtube.com/vi/qsLCtMJZPGo/mqdefault.jpg',
       },
       {
         id: 'r9',
@@ -348,6 +357,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '10:15',
         reciter: 'Abdul Rahman Al-Sudais',
         url: 'https://www.youtube.com/watch?v=nxXgAiVZRCM',
+        thumbnail: 'https://img.youtube.com/vi/nxXgAiVZRCM/mqdefault.jpg',
       },
       {
         id: 'r10',
@@ -355,6 +365,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '14:20',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=Ow_5LqammyE',
+        thumbnail: 'https://img.youtube.com/vi/Ow_5LqammyE/mqdefault.jpg',
       },
     ],
   },
@@ -369,6 +380,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '16:40',
         reciter: 'Abdul Rahman Al-Sudais',
         url: 'https://www.youtube.com/watch?v=I206g-594xo',
+        thumbnail: 'https://img.youtube.com/vi/I206g-594xo/mqdefault.jpg',
       },
       {
         id: 'r12',
@@ -376,6 +388,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '28:30',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=aZb7f9ln1K8',
+        thumbnail: 'https://img.youtube.com/vi/aZb7f9ln1K8/mqdefault.jpg',
       },
     ],
   },
@@ -390,6 +403,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '45:00',
         reciter: 'Mishary Rashid Alafasy',
         url: 'https://www.youtube.com/watch?v=VOUp3ZZ9t3A',
+        thumbnail: 'https://img.youtube.com/vi/VOUp3ZZ9t3A/mqdefault.jpg',
       },
       {
         id: 'r14',
@@ -397,6 +411,7 @@ export const quranRecitations: RecitationCategory[] = [
         duration: '5:30',
         reciter: 'Abdul Rahman Al-Sudais',
         url: 'https://www.youtube.com/watch?v=8wXRH4COJe0',
+        thumbnail: 'https://img.youtube.com/vi/8wXRH4COJe0/mqdefault.jpg',
       },
     ],
   },

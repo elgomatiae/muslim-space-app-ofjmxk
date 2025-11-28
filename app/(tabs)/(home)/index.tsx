@@ -146,12 +146,14 @@ export default function HomeScreen() {
         <View style={styles.dailyContentRow}>
           <View style={styles.dailyCardVertical}>
             <View style={styles.dailyCardHeader}>
-              <IconSymbol
-                ios_icon_name="book.fill"
-                android_material_icon_name="menu-book"
-                size={20}
-                color={colors.primary}
-              />
+              <View style={styles.dailyIconCircle}>
+                <IconSymbol
+                  ios_icon_name="book.fill"
+                  android_material_icon_name="menu-book"
+                  size={22}
+                  color={colors.card}
+                />
+              </View>
               <Text style={styles.dailyCardTitle}>Daily Verse</Text>
             </View>
             <Text style={styles.dailyArabic}>{dailyVerse.arabic}</Text>
@@ -161,12 +163,14 @@ export default function HomeScreen() {
 
           <View style={styles.dailyCardVertical}>
             <View style={styles.dailyCardHeader}>
-              <IconSymbol
-                ios_icon_name="text.quote"
-                android_material_icon_name="format-quote"
-                size={20}
-                color={colors.secondary}
-              />
+              <View style={[styles.dailyIconCircle, { backgroundColor: colors.secondary }]}>
+                <IconSymbol
+                  ios_icon_name="text.quote"
+                  android_material_icon_name="format-quote"
+                  size={22}
+                  color={colors.card}
+                />
+              </View>
               <Text style={styles.dailyCardTitle}>Daily Hadith</Text>
             </View>
             <Text style={styles.dailyArabic}>{dailyHadith.arabic}</Text>
@@ -306,42 +310,55 @@ const styles = StyleSheet.create({
   dailyCardVertical: {
     flex: 1,
     backgroundColor: colors.card,
-    borderRadius: 12,
-    padding: 16,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 2,
-    minHeight: 280,
+    borderRadius: 16,
+    padding: 18,
+    boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.12)',
+    elevation: 3,
+    minHeight: 300,
   },
   dailyCardHeader: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  dailyIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    boxShadow: '0px 2px 6px rgba(63, 81, 181, 0.3)',
+    elevation: 2,
   },
   dailyCardTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    marginLeft: 8,
+    textAlign: 'center',
   },
   dailyArabic: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'right',
-    marginBottom: 10,
-    lineHeight: 26,
+    marginBottom: 12,
+    lineHeight: 30,
   },
   dailyTranslation: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.text,
-    lineHeight: 19,
-    marginBottom: 8,
+    lineHeight: 22,
+    marginBottom: 10,
+    textAlign: 'left',
   },
   dailyReference: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
     marginTop: 'auto',
+    textAlign: 'center',
   },
   trackerCard: {
     backgroundColor: colors.card,
