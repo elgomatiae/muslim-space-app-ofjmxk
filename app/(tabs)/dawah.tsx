@@ -7,8 +7,13 @@ import { miracleCategories } from '@/data/miracles';
 
 export default function DawahScreen() {
   const [selectedTab, setSelectedTab] = useState('scientific');
+  const [expandedMiracle, setExpandedMiracle] = useState<string | null>(null);
 
   const selectedCategory = miracleCategories.find(cat => cat.id === selectedTab);
+
+  const toggleMiracle = (miracleId: string) => {
+    setExpandedMiracle(expandedMiracle === miracleId ? null : miracleId);
+  };
 
   return (
     <View style={styles.container}>
@@ -55,49 +60,80 @@ export default function DawahScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedCategory && (
           <React.Fragment>
-            <View style={styles.introCard}>
-              <View style={[styles.introIcon, { backgroundColor: selectedCategory.color }]}>
-                <IconSymbol
-                  ios_icon_name={selectedCategory.icon as any}
-                  android_material_icon_name={selectedCategory.icon as any}
-                  size={32}
-                  color={colors.card}
-                />
+            <View style={[styles.categoryHeader, { backgroundColor: selectedCategory.color }]}>
+              <IconSymbol
+                ios_icon_name={selectedCategory.icon as any}
+                android_material_icon_name={selectedCategory.icon as any}
+                size={28}
+                color={colors.card}
+              />
+              <View style={styles.categoryHeaderText}>
+                <Text style={styles.categoryTitle}>{selectedCategory.title} Miracles</Text>
+                <Text style={styles.categoryCount}>
+                  {selectedCategory.miracles.length} miracles to explore
+                </Text>
               </View>
-              <Text style={styles.introTitle}>{selectedCategory.title} Miracles</Text>
-              <Text style={styles.introSubtitle}>
-                {selectedCategory.miracles.length} miracles to explore
-              </Text>
             </View>
 
-            {selectedCategory.miracles.map((miracle, index) => (
-              <View key={index} style={styles.miracleCard}>
-                <View style={styles.miracleHeader}>
-                  <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
-                    <Text style={styles.miracleNumberText}>{index + 1}</Text>
+            {selectedCategory.miracles.map((miracle, index) => {
+              const isExpanded = expandedMiracle === miracle.id;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.miracleCard}
+                  onPress={() => toggleMiracle(miracle.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.miracleHeader}>
+                    <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
+                      <Text style={styles.miracleNumberText}>{index + 1}</Text>
+                    </View>
+                    <Text style={styles.miracleTitle}>{miracle.title}</Text>
+                    <IconSymbol
+                      ios_icon_name={isExpanded ? 'chevron.up' : 'chevron.down'}
+                      android_material_icon_name={isExpanded ? 'expand-less' : 'expand-more'}
+                      size={24}
+                      color={colors.textSecondary}
+                    />
                   </View>
-                  <Text style={styles.miracleTitle}>{miracle.title}</Text>
-                </View>
-                <Text style={styles.miracleDescription}>{miracle.description}</Text>
-                <Text style={styles.miracleDetails}>{miracle.details}</Text>
-                <View style={styles.miracleFooter}>
-                  <IconSymbol
-                    ios_icon_name="book.fill"
-                    android_material_icon_name="menu-book"
-                    size={14}
-                    color={selectedCategory.color}
-                  />
-                  <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
-                    {miracle.reference}
+                  
+                  <Text style={styles.miracleDescription} numberOfLines={isExpanded ? undefined : 2}>
+                    {miracle.description}
                   </Text>
-                </View>
-              </View>
-            ))}
+                  
+                  {isExpanded && (
+                    <React.Fragment>
+                      <View style={styles.divider} />
+                      <Text style={styles.miracleDetails}>{miracle.details}</Text>
+                      <View style={styles.miracleFooter}>
+                        <IconSymbol
+                          ios_icon_name="book.fill"
+                          android_material_icon_name="menu-book"
+                          size={16}
+                          color={selectedCategory.color}
+                        />
+                        <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
+                          {miracle.reference}
+                        </Text>
+                      </View>
+                    </React.Fragment>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </React.Fragment>
         )}
 
         <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>Quick Dawah Tips</Text>
+          <View style={styles.tipsHeader}>
+            <IconSymbol
+              ios_icon_name="lightbulb.fill"
+              android_material_icon_name="lightbulb"
+              size={24}
+              color={colors.card}
+            />
+            <Text style={styles.tipsTitle}>Quick Dawah Tips</Text>
+          </View>
           <View style={styles.tipsList}>
             <View style={styles.tipItem}>
               <View style={styles.tipBullet} />
@@ -184,38 +220,33 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 120,
   },
-  introCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 24,
+  categoryHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 12,
   },
-  introIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+  categoryHeaderText: {
+    flex: 1,
   },
-  introTitle: {
-    fontSize: 22,
+  categoryTitle: {
+    fontSize: 20,
     fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
+    color: colors.card,
+    marginBottom: 2,
   },
-  introSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
+  categoryCount: {
+    fontSize: 13,
+    color: colors.card,
+    opacity: 0.9,
   },
   miracleCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
     elevation: 2,
   },
@@ -225,15 +256,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   miracleNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   miracleNumberText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.card,
   },
@@ -245,20 +276,24 @@ const styles = StyleSheet.create({
   },
   miracleDescription: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  miracleDetails: {
-    fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 12,
+  },
+  miracleDetails: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
     marginBottom: 12,
   },
   miracleFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -275,11 +310,16 @@ const styles = StyleSheet.create({
     boxShadow: '0px 4px 12px rgba(63, 81, 181, 0.3)',
     elevation: 4,
   },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
   tipsTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.card,
-    marginBottom: 16,
   },
   tipsList: {
     gap: 12,

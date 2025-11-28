@@ -11,6 +11,15 @@ interface TrackerData {
   quran: { pages: number; goal: number; streak: number };
 }
 
+const dhikrPhrases = [
+  { id: 'subhanallah', arabic: 'سُبْحَانَ ٱللَّٰهِ', transliteration: 'SubhanAllah', translation: 'Glory be to Allah' },
+  { id: 'alhamdulillah', arabic: 'ٱلْحَمْدُ لِلَّٰهِ', transliteration: 'Alhamdulillah', translation: 'All praise is due to Allah' },
+  { id: 'allahu-akbar', arabic: 'ٱللَّٰهُ أَكْبَرُ', transliteration: 'Allahu Akbar', translation: 'Allah is the Greatest' },
+  { id: 'la-ilaha-illallah', arabic: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ', transliteration: 'La ilaha illallah', translation: 'There is no god but Allah' },
+  { id: 'astaghfirullah', arabic: 'أَسْتَغْفِرُ ٱللَّٰهَ', transliteration: 'Astaghfirullah', translation: 'I seek forgiveness from Allah' },
+  { id: 'la-hawla', arabic: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِٱللَّٰهِ', transliteration: 'La hawla wa la quwwata illa billah', translation: 'There is no power nor strength except with Allah' },
+];
+
 export default function TrackerScreen() {
   const [trackerData, setTrackerData] = useState<TrackerData>({
     prayers: { completed: 3, total: 5, streak: 7 },
@@ -19,8 +28,11 @@ export default function TrackerScreen() {
   });
 
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [showDhikrModal, setShowDhikrModal] = useState(false);
   const [goalType, setGoalType] = useState<'dhikr' | 'quran'>('dhikr');
   const [goalValue, setGoalValue] = useState('');
+  const [selectedDhikr, setSelectedDhikr] = useState(dhikrPhrases[0]);
+  const [tasbihCount, setTasbihCount] = useState(0);
 
   const openGoalModal = (type: 'dhikr' | 'quran') => {
     setGoalType(type);
@@ -48,11 +60,21 @@ export default function TrackerScreen() {
     setShowGoalModal(false);
   };
 
-  const incrementDhikr = () => {
+  const incrementTasbih = () => {
+    setTasbihCount(tasbihCount + 1);
     setTrackerData({
       ...trackerData,
       dhikr: { ...trackerData.dhikr, count: trackerData.dhikr.count + 1 },
     });
+  };
+
+  const resetTasbih = () => {
+    setTasbihCount(0);
+  };
+
+  const selectDhikr = (dhikr: typeof dhikrPhrases[0]) => {
+    setSelectedDhikr(dhikr);
+    setShowDhikrModal(false);
   };
 
   const incrementQuran = () => {
@@ -109,7 +131,7 @@ export default function TrackerScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Dhikr</Text>
+            <Text style={styles.sectionTitle}>Tasbih Counter</Text>
             <TouchableOpacity onPress={() => openGoalModal('dhikr')} style={styles.goalButton}>
               <IconSymbol
                 ios_icon_name="target"
@@ -120,21 +142,64 @@ export default function TrackerScreen() {
               <Text style={styles.goalButtonText}>Set Goal</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.detailCard}>
-            <View style={styles.detailHeader}>
-              <IconSymbol
-                ios_icon_name="circle.grid.3x3.fill"
-                android_material_icon_name="apps"
-                size={32}
-                color={colors.secondary}
-              />
-              <View style={styles.detailInfo}>
-                <Text style={styles.detailTitle}>Tasbih Counter</Text>
-                <Text style={styles.detailSubtitle}>
-                  {trackerData.dhikr.count} of {trackerData.dhikr.goal} today
-                </Text>
+          
+          <View style={styles.tasbihCard}>
+            <TouchableOpacity 
+              style={styles.dhikrSelector}
+              onPress={() => setShowDhikrModal(true)}
+            >
+              <View style={styles.dhikrSelectorContent}>
+                <View style={styles.dhikrTextContainer}>
+                  <Text style={styles.dhikrArabic}>{selectedDhikr.arabic}</Text>
+                  <Text style={styles.dhikrTransliteration}>{selectedDhikr.transliteration}</Text>
+                  <Text style={styles.dhikrTranslation}>{selectedDhikr.translation}</Text>
+                </View>
+                <IconSymbol
+                  ios_icon_name="chevron.down.circle.fill"
+                  android_material_icon_name="arrow-drop-down-circle"
+                  size={28}
+                  color={colors.secondary}
+                />
               </View>
+            </TouchableOpacity>
+
+            <View style={styles.tasbihCounter}>
+              <Text style={styles.tasbihCountLabel}>Current Count</Text>
+              <Text style={styles.tasbihCountNumber}>{tasbihCount}</Text>
+              <Text style={styles.tasbihCountTotal}>
+                Total Today: {trackerData.dhikr.count} / {trackerData.dhikr.goal}
+              </Text>
             </View>
+
+            <View style={styles.tasbihButtons}>
+              <TouchableOpacity 
+                style={styles.tasbihButtonMain}
+                onPress={incrementTasbih}
+                activeOpacity={0.8}
+              >
+                <IconSymbol
+                  ios_icon_name="plus.circle.fill"
+                  android_material_icon_name="add-circle"
+                  size={32}
+                  color={colors.card}
+                />
+                <Text style={styles.tasbihButtonMainText}>Count</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.tasbihButtonReset}
+                onPress={resetTasbih}
+              >
+                <IconSymbol
+                  ios_icon_name="arrow.counterclockwise"
+                  android_material_icon_name="refresh"
+                  size={20}
+                  color={colors.secondary}
+                />
+                <Text style={styles.tasbihButtonResetText}>Reset</Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.streakBadge}>
               <IconSymbol
                 ios_icon_name="flame.fill"
@@ -144,9 +209,6 @@ export default function TrackerScreen() {
               />
               <Text style={styles.streakText}>{trackerData.dhikr.streak} day streak</Text>
             </View>
-            <TouchableOpacity style={styles.actionButton} onPress={incrementDhikr}>
-              <Text style={styles.actionButtonText}>Add Count (+1)</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -247,6 +309,60 @@ export default function TrackerScreen() {
                 <Text style={styles.modalButtonTextSave}>Save</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={showDhikrModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDhikrModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1}
+          onPress={() => setShowDhikrModal(false)}
+        >
+          <View style={styles.dhikrModalContent}>
+            <View style={styles.dhikrModalHeader}>
+              <Text style={styles.modalTitle}>Select Dhikr</Text>
+              <TouchableOpacity onPress={() => setShowDhikrModal(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={28}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.dhikrList}>
+              {dhikrPhrases.map((dhikr, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dhikrOption,
+                    selectedDhikr.id === dhikr.id && styles.dhikrOptionSelected,
+                  ]}
+                  onPress={() => selectDhikr(dhikr)}
+                >
+                  <View style={styles.dhikrOptionContent}>
+                    <Text style={styles.dhikrOptionArabic}>{dhikr.arabic}</Text>
+                    <Text style={styles.dhikrOptionTransliteration}>{dhikr.transliteration}</Text>
+                    <Text style={styles.dhikrOptionTranslation}>{dhikr.translation}</Text>
+                  </View>
+                  {selectedDhikr.id === dhikr.id && (
+                    <IconSymbol
+                      ios_icon_name="checkmark.circle.fill"
+                      android_material_icon_name="check-circle"
+                      size={24}
+                      color={colors.secondary}
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -370,6 +486,103 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.card,
   },
+  tasbihCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  dhikrSelector: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: colors.secondary,
+  },
+  dhikrSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dhikrTextContainer: {
+    flex: 1,
+  },
+  dhikrArabic: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+    textAlign: 'left',
+  },
+  dhikrTransliteration: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.secondary,
+    marginBottom: 2,
+  },
+  dhikrTranslation: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  tasbihCounter: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  tasbihCountLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  tasbihCountNumber: {
+    fontSize: 64,
+    fontWeight: '700',
+    color: colors.secondary,
+    marginBottom: 8,
+  },
+  tasbihCountTotal: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  tasbihButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  tasbihButtonMain: {
+    flex: 1,
+    backgroundColor: colors.secondary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tasbihButtonMainText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  tasbihButtonReset: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tasbihButtonResetText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.secondary,
+  },
   motivationCard: {
     backgroundColor: colors.highlight,
     borderRadius: 16,
@@ -455,5 +668,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.card,
+  },
+  dhikrModalContent: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+    width: '100%',
+    marginTop: 'auto',
+  },
+  dhikrModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dhikrList: {
+    maxHeight: 500,
+  },
+  dhikrOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  dhikrOptionSelected: {
+    borderColor: colors.secondary,
+    backgroundColor: colors.card,
+  },
+  dhikrOptionContent: {
+    flex: 1,
+  },
+  dhikrOptionArabic: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  dhikrOptionTransliteration: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.secondary,
+    marginBottom: 2,
+  },
+  dhikrOptionTranslation: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
 });
