@@ -289,7 +289,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Prayer Times</Text>
           {prayers.map((prayer, index) => (
             <TouchableOpacity
-              key={index}
+              key={`prayer-${prayer.name}-${index}`}
               style={[styles.prayerCard, prayer.completed && styles.prayerCardCompleted]}
               onPress={() => togglePrayer(index)}
               activeOpacity={0.7}
