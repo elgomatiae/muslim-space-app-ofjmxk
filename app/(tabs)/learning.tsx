@@ -4,15 +4,22 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image }
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import * as Linking from 'expo-linking';
-import { videoCategories, quranRecitations, quizzes } from '@/data/videos';
+import { videoCategories, quranRecitations } from '@/data/videos';
+import { quizBanks } from '@/data/quizData';
+import { useRouter } from 'expo-router';
 
 type TabType = 'lectures' | 'recitations' | 'quizzes';
 
 export default function LearningScreen() {
   const [selectedTab, setSelectedTab] = useState<TabType>('lectures');
+  const router = useRouter();
 
   const openVideo = (url: string) => {
     Linking.openURL(url);
+  };
+
+  const openQuiz = (quizId: string) => {
+    router.push(`/quiz?quizId=${quizId}` as any);
   };
 
   return (
@@ -164,33 +171,56 @@ export default function LearningScreen() {
 
         {selectedTab === 'quizzes' && (
           <React.Fragment>
-            {quizzes.map((quiz, quizIndex) => (
-              <TouchableOpacity key={`quiz-${quizIndex}-${quiz.title}`} style={styles.quizCard}>
-                <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
-                  <IconSymbol
-                    ios_icon_name="questionmark.circle.fill"
-                    android_material_icon_name="quiz"
-                    size={32}
-                    color={colors.card}
-                  />
-                </View>
-                <View style={styles.quizInfo}>
-                  <Text style={styles.quizTitle}>{quiz.title}</Text>
-                  <Text style={styles.quizDescription}>{quiz.description}</Text>
-                  <View style={styles.quizMeta}>
-                    <Text style={styles.quizMetaText}>{quiz.questions} questions</Text>
-                    <Text style={styles.quizMetaText}>•</Text>
-                    <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
+            <View style={styles.quizzesGrid}>
+              {quizBanks.map((quiz, quizIndex) => (
+                <TouchableOpacity 
+                  key={`quiz-${quizIndex}-${quiz.title}`} 
+                  style={styles.quizCard}
+                  onPress={() => openQuiz(quiz.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
+                    <IconSymbol
+                      ios_icon_name="questionmark.circle.fill"
+                      android_material_icon_name="quiz"
+                      size={32}
+                      color={colors.card}
+                    />
                   </View>
-                </View>
-                <IconSymbol
-                  ios_icon_name="chevron.right"
-                  android_material_icon_name="chevron-right"
-                  size={24}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.quizInfo}>
+                    <Text style={styles.quizTitle}>{quiz.title}</Text>
+                    <Text style={styles.quizDescription}>{quiz.description}</Text>
+                    <View style={styles.quizMeta}>
+                      <View style={styles.quizMetaItem}>
+                        <IconSymbol
+                          ios_icon_name="list.bullet"
+                          android_material_icon_name="list"
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.quizMetaText}>10 questions</Text>
+                      </View>
+                      <Text style={styles.quizMetaText}>•</Text>
+                      <View style={styles.quizMetaItem}>
+                        <IconSymbol
+                          ios_icon_name="chart.bar.fill"
+                          android_material_icon_name="bar-chart"
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <IconSymbol
+                    ios_icon_name="chevron.right"
+                    android_material_icon_name="chevron-right"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
           </React.Fragment>
         )}
       </ScrollView>
@@ -311,13 +341,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  quizzesGrid: {
+    gap: 12,
+  },
   quizCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
     elevation: 2,
   },
@@ -345,7 +377,13 @@ const styles = StyleSheet.create({
   },
   quizMeta: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+  },
+  quizMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   quizMetaText: {
     fontSize: 12,

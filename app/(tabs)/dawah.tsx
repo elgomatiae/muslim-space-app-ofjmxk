@@ -45,7 +45,7 @@ export default function DawahScreen() {
             <IconSymbol
               ios_icon_name={category.icon as any}
               android_material_icon_name={category.icon as any}
-              size={16}
+              size={14}
               color={selectedTab === category.id ? colors.card : category.color}
             />
             <Text style={[
@@ -62,17 +62,17 @@ export default function DawahScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedCategory && (
           <React.Fragment>
-            <View style={[styles.categoryBanner, { backgroundColor: selectedCategory.color }]}>
+            <View style={[styles.categoryHeader, { backgroundColor: selectedCategory.color }]}>
               <IconSymbol
                 ios_icon_name={selectedCategory.icon as any}
                 android_material_icon_name={selectedCategory.icon as any}
-                size={32}
+                size={24}
                 color={colors.card}
               />
-              <View style={styles.categoryBannerText}>
-                <Text style={styles.categoryBannerTitle}>{selectedCategory.title} Miracles</Text>
-                <Text style={styles.categoryBannerSubtitle}>
-                  {selectedCategory.miracles.length} miracles to explore
+              <View style={styles.categoryHeaderText}>
+                <Text style={styles.categoryHeaderTitle}>{selectedCategory.title} Miracles</Text>
+                <Text style={styles.categoryHeaderSubtitle}>
+                  {selectedCategory.miracles.length} miracles
                 </Text>
               </View>
             </View>
@@ -83,65 +83,58 @@ export default function DawahScreen() {
                 return (
                   <TouchableOpacity
                     key={index}
-                    style={[
-                      styles.miracleCard,
-                      isExpanded && styles.miracleCardExpanded,
-                    ]}
+                    style={styles.miracleCard}
                     onPress={() => toggleMiracle(miracle.id)}
                     activeOpacity={0.8}
                   >
-                    <Image
-                      source={{ uri: miracle.image }}
-                      style={styles.miracleImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.miracleContent}>
-                      <View style={styles.miracleHeader}>
-                        <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
-                          <Text style={styles.miracleNumberText}>{index + 1}</Text>
-                        </View>
-                        <Text style={styles.miracleTitle} numberOfLines={isExpanded ? undefined : 2}>
-                          {miracle.title}
-                        </Text>
+                    <View style={styles.miracleImageContainer}>
+                      <Image
+                        source={{ uri: miracle.image }}
+                        style={styles.miracleImage}
+                        resizeMode="cover"
+                      />
+                      <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
+                        <Text style={styles.miracleNumberText}>{index + 1}</Text>
                       </View>
+                    </View>
+                    
+                    <View style={styles.miracleContent}>
+                      <Text style={styles.miracleTitle} numberOfLines={isExpanded ? undefined : 2}>
+                        {miracle.title}
+                      </Text>
                       
-                      {!isExpanded && (
-                        <Text style={styles.miracleDescription} numberOfLines={3}>
-                          {miracle.description}
-                        </Text>
-                      )}
+                      <Text style={styles.miracleDescription} numberOfLines={isExpanded ? undefined : 2}>
+                        {miracle.description}
+                      </Text>
                       
                       {isExpanded && (
                         <React.Fragment>
-                          <View style={styles.expandedContent}>
-                            <Text style={styles.miracleDescriptionFull}>{miracle.description}</Text>
-                            <View style={styles.divider} />
-                            <Text style={styles.miracleDetails}>{miracle.details}</Text>
-                            <View style={styles.miracleFooter}>
-                              <IconSymbol
-                                ios_icon_name="book.fill"
-                                android_material_icon_name="menu-book"
-                                size={18}
-                                color={selectedCategory.color}
-                              />
-                              <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
-                                {miracle.reference}
-                              </Text>
-                            </View>
+                          <View style={styles.divider} />
+                          <Text style={styles.miracleDetails}>{miracle.details}</Text>
+                          <View style={styles.miracleFooter}>
+                            <IconSymbol
+                              ios_icon_name="book.fill"
+                              android_material_icon_name="menu-book"
+                              size={14}
+                              color={selectedCategory.color}
+                            />
+                            <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
+                              {miracle.reference}
+                            </Text>
                           </View>
                         </React.Fragment>
                       )}
 
                       <View style={styles.expandButton}>
-                        <IconSymbol
-                          ios_icon_name={isExpanded ? 'chevron.up' : 'chevron.down'}
-                          android_material_icon_name={isExpanded ? 'expand-less' : 'expand-more'}
-                          size={20}
-                          color={selectedCategory.color}
-                        />
                         <Text style={[styles.expandButtonText, { color: selectedCategory.color }]}>
                           {isExpanded ? 'Show Less' : 'Read More'}
                         </Text>
+                        <IconSymbol
+                          ios_icon_name={isExpanded ? 'chevron.up' : 'chevron.down'}
+                          android_material_icon_name={isExpanded ? 'expand-less' : 'expand-more'}
+                          size={16}
+                          color={selectedCategory.color}
+                        />
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -156,36 +149,25 @@ export default function DawahScreen() {
             <IconSymbol
               ios_icon_name="lightbulb.fill"
               android_material_icon_name="lightbulb"
-              size={28}
+              size={24}
               color={colors.card}
             />
             <Text style={styles.tipsTitle}>Quick Dawah Tips</Text>
           </View>
           <View style={styles.tipsList}>
-            <View style={styles.tipItem}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Start with common ground and shared values</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Listen actively and show genuine interest</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Use clear examples and relatable stories</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Be patient and respectful at all times</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Focus on the beauty and wisdom of Islam</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <View style={styles.tipBullet} />
-              <Text style={styles.tipText}>Share personal experiences and transformations</Text>
-            </View>
+            {[
+              'Start with common ground and shared values',
+              'Listen actively and show genuine interest',
+              'Use clear examples and relatable stories',
+              'Be patient and respectful at all times',
+              'Focus on the beauty and wisdom of Islam',
+              'Share personal experiences and transformations',
+            ].map((tip, index) => (
+              <View key={index} style={styles.tipItem}>
+                <View style={styles.tipBullet} />
+                <Text style={styles.tipText}>{tip}</Text>
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -201,19 +183,19 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === 'android' ? 48 : 60,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   tabsScroll: {
@@ -223,22 +205,22 @@ const styles = StyleSheet.create({
   },
   tabsContent: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 8,
   },
   tabButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: colors.background,
-    borderWidth: 2,
+    borderWidth: 1.5,
     marginRight: 8,
     gap: 6,
   },
   tabButtonActive: {
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   tabButtonText: {
     fontSize: 13,
@@ -254,167 +236,156 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 120,
   },
-  categoryBanner: {
+  categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 20,
-    gap: 16,
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
-    elevation: 4,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 12,
+    boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.12)',
+    elevation: 3,
   },
-  categoryBannerText: {
+  categoryHeaderText: {
     flex: 1,
   },
-  categoryBannerTitle: {
-    fontSize: 22,
+  categoryHeaderTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: colors.card,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  categoryBannerSubtitle: {
-    fontSize: 14,
+  categoryHeaderSubtitle: {
+    fontSize: 13,
     color: colors.card,
     opacity: 0.9,
   },
   miraclesGrid: {
-    gap: 16,
+    gap: 12,
   },
   miracleCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
-    boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
   },
-  miracleCardExpanded: {
-    boxShadow: '0px 6px 16px rgba(0, 0, 0, 0.15)',
-    elevation: 6,
+  miracleImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 140,
   },
   miracleImage: {
     width: '100%',
-    height: 180,
+    height: '100%',
     backgroundColor: colors.border,
   },
-  miracleContent: {
-    padding: 16,
-  },
-  miracleHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    gap: 12,
-  },
   miracleNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+    elevation: 3,
   },
   miracleNumberText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.card,
   },
+  miracleContent: {
+    padding: 14,
+  },
   miracleTitle: {
-    flex: 1,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    lineHeight: 24,
+    lineHeight: 22,
+    marginBottom: 8,
   },
   miracleDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 21,
-    marginBottom: 12,
-  },
-  miracleDescriptionFull: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 23,
-    marginBottom: 16,
-    fontWeight: '500',
-  },
-  expandedContent: {
-    marginTop: 4,
+    lineHeight: 19,
+    marginBottom: 10,
   },
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginVertical: 16,
+    marginVertical: 12,
   },
   miracleDetails: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
-    lineHeight: 22,
-    marginBottom: 16,
+    lineHeight: 20,
+    marginBottom: 12,
   },
   miracleFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    marginBottom: 12,
+    marginBottom: 8,
+    gap: 6,
   },
   miracleReference: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    marginLeft: 8,
   },
   expandButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    gap: 6,
+    paddingVertical: 6,
+    gap: 4,
   },
   expandButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   tipsCard: {
     backgroundColor: colors.primary,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 12,
+    padding: 20,
     marginTop: 8,
-    boxShadow: '0px 4px 12px rgba(63, 81, 181, 0.3)',
-    elevation: 4,
+    boxShadow: '0px 3px 10px rgba(63, 81, 181, 0.25)',
+    elevation: 3,
   },
   tipsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 12,
+    marginBottom: 16,
+    gap: 10,
   },
   tipsTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.card,
   },
   tipsList: {
-    gap: 14,
+    gap: 12,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   tipBullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: colors.card,
-    marginTop: 7,
-    marginRight: 12,
+    marginTop: 6,
+    marginRight: 10,
   },
   tipText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.card,
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });
