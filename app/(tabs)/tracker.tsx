@@ -1,9 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import ProgressRings from '@/components/ProgressRings';
+import ProfileButton from '@/components/ProfileButton';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface TrackerData {
   prayers: { completed: number; total: number; streak: number };
@@ -26,7 +30,10 @@ const quranSurahs = [
   'Maryam', 'Ta-Ha', 'Al-Anbiya', 'Al-Hajj', 'Al-Mu\'minun', 'An-Nur', 'Al-Furqan', 'Ash-Shu\'ara',
 ];
 
+const TRACKER_STORAGE_KEY = '@tracker_data';
+
 export default function TrackerScreen() {
+  const { user, isConfigured } = useAuth();
   const [trackerData, setTrackerData] = useState<TrackerData>({
     prayers: { completed: 3, total: 5, streak: 7 },
     dhikr: { count: 150, goal: 300, streak: 5 },
@@ -43,6 +50,78 @@ export default function TrackerScreen() {
   const [currentSurah, setCurrentSurah] = useState('Al-Baqarah');
   const [currentPage, setCurrentPage] = useState(1);
   const [currentJuz, setCurrentJuz] = useState(1);
+
+  // Load tracker data on mount
+  useEffect(() => {
+    loadTrackerData();
+  }, [user]);
+
+  // Save tracker data whenever it changes
+  useEffect(() => {
+    saveTrackerData();
+  }, [trackerData]);
+
+  const loadTrackerData = async () => {
+    try {
+      if (user && isConfigured) {
+        // Load from Supabase if user is logged in
+        const { data, error } = await supabase
+          .from('tracker_data')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data && !error) {
+          console.log('Loaded tracker data from Supabase:', data);
+          setTrackerData({
+            prayers: data.prayers || trackerData.prayers,
+            dhikr: data.dhikr || trackerData.dhikr,
+            quran: data.quran || trackerData.quran,
+          });
+        } else {
+          console.log('No tracker data found in Supabase, using defaults');
+        }
+      } else {
+        // Load from AsyncStorage if not logged in
+        const storedData = await AsyncStorage.getItem(TRACKER_STORAGE_KEY);
+        if (storedData) {
+          console.log('Loaded tracker data from AsyncStorage');
+          setTrackerData(JSON.parse(storedData));
+        }
+      }
+    } catch (error) {
+      console.log('Error loading tracker data:', error);
+    }
+  };
+
+  const saveTrackerData = async () => {
+    try {
+      if (user && isConfigured) {
+        // Save to Supabase if user is logged in
+        const { error } = await supabase
+          .from('tracker_data')
+          .upsert({
+            user_id: user.id,
+            prayers: trackerData.prayers,
+            dhikr: trackerData.dhikr,
+            quran: trackerData.quran,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (error) {
+          console.log('Error saving to Supabase:', error);
+        } else {
+          console.log('Saved tracker data to Supabase');
+        }
+      } else {
+        // Save to AsyncStorage if not logged in
+        await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(trackerData));
+        console.log('Saved tracker data to AsyncStorage');
+      }
+    } catch (error) {
+      console.log('Error saving tracker data:', error);
+    }
+  };
 
   const openGoalModal = (type: 'dhikr' | 'quran') => {
     setGoalType(type);
@@ -110,11 +189,28 @@ export default function TrackerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Faith Tracker</Text>
-        <Text style={styles.headerSubtitle}>Track your spiritual journey</Text>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Faith Tracker</Text>
+            <Text style={styles.headerSubtitle}>Track your spiritual journey</Text>
+          </View>
+          <ProfileButton />
+        </View>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {user && isConfigured && (
+          <View style={styles.syncBanner}>
+            <IconSymbol
+              ios_icon_name="checkmark.icloud.fill"
+              android_material_icon_name="cloud-done"
+              size={20}
+              color={colors.success}
+            />
+            <Text style={styles.syncBannerText}>Synced to cloud</Text>
+          </View>
+        )}
+
         <View style={styles.ringsCard}>
           <ProgressRings
             prayers={trackerData.prayers}
@@ -521,6 +617,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 32,
     fontWeight: '700',
@@ -537,6 +638,22 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 120,
+  },
+  syncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  syncBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.success,
+    marginLeft: 8,
   },
   ringsCard: {
     backgroundColor: colors.card,
