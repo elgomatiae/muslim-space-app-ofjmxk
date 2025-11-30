@@ -73,7 +73,7 @@ export default function LearningScreen() {
         {selectedTab === 'lectures' && (
           <React.Fragment>
             {videoCategories.map((category, categoryIndex) => (
-              <View key={categoryIndex} style={styles.categorySection}>
+              <View key={`category-${categoryIndex}-${category.title}`} style={styles.categorySection}>
                 <Text style={styles.categoryTitle}>{category.title}</Text>
                 <ScrollView
                   horizontal
@@ -82,7 +82,7 @@ export default function LearningScreen() {
                 >
                   {category.videos.map((video, videoIndex) => (
                     <TouchableOpacity
-                      key={videoIndex}
+                      key={`video-${categoryIndex}-${videoIndex}-${video.title}`}
                       style={styles.videoCard}
                       onPress={() => openVideo(video.url)}
                     >
@@ -119,7 +119,7 @@ export default function LearningScreen() {
         {selectedTab === 'recitations' && (
           <React.Fragment>
             {quranRecitations.map((category, categoryIndex) => (
-              <View key={categoryIndex} style={styles.categorySection}>
+              <View key={`recitation-category-${categoryIndex}-${category.title}`} style={styles.categorySection}>
                 <Text style={styles.categoryTitle}>{category.title}</Text>
                 <ScrollView
                   horizontal
@@ -128,7 +128,7 @@ export default function LearningScreen() {
                 >
                   {category.recitations.map((recitation, recitationIndex) => (
                     <TouchableOpacity
-                      key={recitationIndex}
+                      key={`recitation-${categoryIndex}-${recitationIndex}-${recitation.title}`}
                       style={styles.videoCard}
                       onPress={() => openVideo(recitation.url)}
                     >
@@ -165,7 +165,7 @@ export default function LearningScreen() {
         {selectedTab === 'quizzes' && (
           <React.Fragment>
             {quizzes.map((quiz, quizIndex) => (
-              <TouchableOpacity key={quizIndex} style={styles.quizCard}>
+              <TouchableOpacity key={`quiz-${quizIndex}-${quiz.title}`} style={styles.quizCard}>
                 <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
                   <IconSymbol
                     ios_icon_name="questionmark.circle.fill"
