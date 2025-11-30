@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Muslim Space",
@@ -34,7 +35,12 @@
     "plugins": [
       "expo-font",
       "expo-router",
-      "expo-web-browser"
+      [
+        "expo-web-browser",
+        {
+          "experimentalLauncherActivity": false
+        }
+      ]
     ],
     "scheme": "natively",
     "experiments": {
@@ -43,6 +49,5 @@
     "extra": {
       "router": {}
     }
-  },
-  "scheme": "Muslim Space"
+  }
 }

@@ -2,8 +2,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+// Complete the auth session for web browser
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   user: User | null;
@@ -46,14 +50,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Supabase not configured, skipping auth initialization');
       setLoading(false);
       return;
-    }
-
-    // Configure Google Sign-In
-    if (Platform.OS !== 'web') {
-      GoogleSignin.configure({
-        webClientId: 'YOUR_WEB_CLIENT_ID_FROM_GOOGLE_CONSOLE', // User needs to replace this
-        iosClientId: 'YOUR_IOS_CLIENT_ID_FROM_GOOGLE_CONSOLE', // Optional, for iOS
-      });
     }
 
     // Get initial session
@@ -134,46 +130,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      if (Platform.OS === 'web') {
-        // Web OAuth flow
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: 'https://natively.dev/auth/callback'
-          }
-        });
-        
-        if (error) {
-          console.log('Google sign in error:', error);
-          return { error, data: null };
+      console.log('Starting Google sign in flow...');
+      
+      // Create the redirect URL for the app
+      const redirectTo = Linking.createURL('google-auth');
+      console.log('Redirect URL:', redirectTo);
+
+      // Start the OAuth flow
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) {
+        console.log('Error initiating Google OAuth:', error);
+        return { error, data: null };
+      }
+
+      const authUrl = data?.url;
+      if (!authUrl) {
+        console.log('No auth URL returned from Supabase');
+        return { error: { message: 'No authentication URL received' }, data: null };
+      }
+
+      console.log('Opening browser for Google auth...');
+      
+      // Open the browser for authentication
+      const result = await WebBrowser.openAuthSessionAsync(
+        authUrl,
+        redirectTo,
+        {
+          showInRecents: true,
         }
+      );
+
+      console.log('Browser result:', result);
+
+      if (result.type === 'success') {
+        // Extract the URL parameters
+        const url = result.url;
+        const params = extractParamsFromUrl(url);
         
-        return { error: null, data };
-      } else {
-        // Native Google Sign-In flow
-        await GoogleSignin.hasPlayServices();
-        const userInfo = await GoogleSignin.signIn();
-        
-        if (userInfo.data?.idToken) {
-          const { data, error } = await supabase.auth.signInWithIdToken({
-            provider: 'google',
-            token: userInfo.data.idToken,
+        console.log('Extracted params:', params);
+
+        if (params.access_token && params.refresh_token) {
+          // Set the session with the tokens
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: params.access_token,
+            refresh_token: params.refresh_token,
           });
-          
-          if (error) {
-            console.log('Google sign in error:', error);
-            return { error, data: null };
+
+          if (sessionError) {
+            console.log('Error setting session:', sessionError);
+            return { error: sessionError, data: null };
           }
-          
-          console.log('Google sign in successful:', data.user?.email);
-          return { error: null, data };
+
+          console.log('Google sign in successful:', sessionData.user?.email);
+          return { error: null, data: sessionData };
         } else {
-          return { error: { message: 'No ID token present!' }, data: null };
+          console.log('No tokens found in redirect URL');
+          return { error: { message: 'Authentication failed - no tokens received' }, data: null };
         }
+      } else if (result.type === 'cancel') {
+        console.log('User cancelled Google sign in');
+        return { error: { message: 'Sign in cancelled by user' }, data: null };
+      } else {
+        console.log('Google sign in failed:', result);
+        return { error: { message: 'Sign in failed' }, data: null };
       }
     } catch (error: any) {
       console.log('Google sign in exception:', error);
-      return { error, data: null };
+      return { error: { message: error.message || 'An unexpected error occurred' }, data: null };
     }
   };
 
@@ -184,14 +214,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Sign out from Google if signed in
-      if (Platform.OS !== 'web') {
-        const isSignedIn = await GoogleSignin.isSignedIn();
-        if (isSignedIn) {
-          await GoogleSignin.signOut();
-        }
-      }
-      
       await supabase.auth.signOut();
       console.log('Sign out successful');
     } catch (error) {
@@ -216,3 +238,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
+
+// Helper function to extract parameters from URL
+function extractParamsFromUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+    const hash = parsedUrl.hash.substring(1); // Remove the leading '#'
+    const params = new URLSearchParams(hash);
+
+    return {
+      access_token: params.get('access_token'),
+      expires_in: parseInt(params.get('expires_in') || '0'),
+      refresh_token: params.get('refresh_token'),
+      token_type: params.get('token_type'),
+      provider_token: params.get('provider_token'),
+    };
+  } catch (error) {
+    console.log('Error parsing URL:', error);
+    return {
+      access_token: null,
+      expires_in: 0,
+      refresh_token: null,
+      token_type: null,
+      provider_token: null,
+    };
+  }
+}
