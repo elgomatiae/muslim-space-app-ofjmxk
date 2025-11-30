@@ -1,9 +1,9 @@
 
-# Google Sign-In Setup Guide for Muslim Space App
+# Google Sign-In Setup Guide for Muslim Space App (iOS Native)
 
 ## ✅ Google Provider is Now Enabled in Supabase!
 
-Great! You've enabled the Google OAuth provider in your Supabase project. The app now uses **Supabase's OAuth flow** which opens a browser window for Google Sign-In - no complex native configuration needed!
+Great! You've enabled the Google OAuth provider in your Supabase project. The app now uses **native iOS Google Sign-In** which provides a seamless, native experience for iOS users.
 
 ---
 
@@ -38,20 +38,16 @@ Great! You've enabled the Google OAuth provider in your Supabase project. The ap
 8. Click **Save and Continue** on Test users (you can add yourself for testing)
 9. Review and click **Back to Dashboard**
 
-### D. Create OAuth Client ID (Web Application)
-
-You only need to create **ONE** OAuth Client ID for web:
+### D. Create OAuth Client ID for iOS
 
 1. Go to **APIs & Services** → **Credentials**
 2. Click **Create Credentials** → **OAuth Client ID**
-3. Choose **Web application**
-4. Name: "Muslim Space Web"
-5. **Authorized JavaScript origins**:
-   - Add: `https://teemloiwfnwrogwnoxsa.supabase.co`
-6. **Authorized redirect URIs**:
-   - Add: `https://teemloiwfnwrogwnoxsa.supabase.co/auth/v1/callback`
+3. Choose **iOS**
+4. Name: "Muslim Space iOS"
+5. **Bundle ID**: Enter `com.anonymous.Natively` (this is your app's bundle ID from app.json)
+6. **App Store ID**: Leave blank for now (only needed when published)
 7. Click **Create**
-8. **IMPORTANT**: Copy and save the **Client ID** and **Client Secret** - you'll need these!
+8. **IMPORTANT**: Copy and save the **iOS Client ID** - you'll need this!
 
 ---
 
@@ -62,14 +58,42 @@ Now go back to your Supabase Dashboard:
 1. Go to **Authentication** → **Providers** → **Google**
 2. Make sure **"Enable Sign in with Google"** is toggled **ON**
 3. Fill in the fields:
-   - **Client ID (for OAuth)**: Paste your **Web Client ID** from Step 1D
-   - **Client Secret (for OAuth)**: Paste your **Web Client Secret** from Step 1D
-4. **Skip nonce check**: Leave this **OFF** (unchecked) for better security
+   - **Client ID (for OAuth)**: Paste your **iOS Client ID** from Step 1D
+   - **Client Secret (for OAuth)**: For iOS native sign-in, you can leave this blank or use a placeholder like "not-required-for-ios"
+4. **Skip nonce check**: You may need to enable this for iOS native sign-in (toggle **ON**)
 5. Click **Save**
 
 ---
 
-## 🚀 Step 3: Test It!
+## 📱 Step 3: Configure Your App
+
+### A. Update AuthContext with Your iOS Client ID
+
+1. Open `contexts/AuthContext.tsx`
+2. Find this line:
+   ```typescript
+   iosClientId: 'YOUR_IOS_CLIENT_ID_HERE',
+   ```
+3. Replace `'YOUR_IOS_CLIENT_ID_HERE'` with your actual iOS Client ID from Step 1D
+4. Save the file
+
+### B. Update app.json (if needed)
+
+Make sure your `app.json` has the correct bundle identifier:
+
+```json
+{
+  "expo": {
+    "ios": {
+      "bundleIdentifier": "com.anonymous.Natively"
+    }
+  }
+}
+```
+
+---
+
+## 🚀 Step 4: Test It!
 
 1. **Restart your Expo development server**:
    ```bash
@@ -80,44 +104,47 @@ Now go back to your Supabase Dashboard:
 2. **Clear the app cache** (optional but recommended):
    - Press `Shift + C` in the Expo terminal
 
-3. **Test the Google Sign-In**:
-   - Open your app
+3. **Test the Google Sign-In on iOS**:
+   - Open your app on an iOS device or simulator
    - Go to the Profile tab
    - Click "Continue with Google"
-   - A browser window should open with the Google Sign-In page
+   - The native iOS Google Sign-In sheet should appear
    - Sign in with your Google account
-   - The browser will redirect back to your app
    - You should be signed in successfully! 🎉
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Error: "Failed to get Google sign-in URL"
-- ✅ Make sure Google OAuth is enabled in Supabase Dashboard
-- ✅ Make sure you added the Client ID and Secret to Supabase
-- ✅ Click **Save** in Supabase Dashboard
-- ✅ Restart your Expo development server
+### Error: "Failed to get authentication token from Google"
+- ✅ Make sure you've replaced `YOUR_IOS_CLIENT_ID_HERE` with your actual iOS Client ID
+- ✅ Make sure the iOS Client ID is correct (no extra spaces)
+- ✅ Restart your Expo development server after making changes
 
-### Error: "Invalid client"
-- ✅ Check that the Web Client ID and Secret are correct in Supabase
-- ✅ Make sure there are no extra spaces in the credentials
-- ✅ Make sure you're using the **Web** Client ID, not Android or iOS
+### Error: "Sign in was cancelled"
+- ✅ This is normal if the user closes the sign-in sheet
+- ✅ Try signing in again
 
-### Error: "Redirect URI mismatch"
-- ✅ Make sure `https://teemloiwfnwrogwnoxsa.supabase.co/auth/v1/callback` is in Google Console's authorized redirect URIs
-- ✅ Make sure there are no trailing slashes
-- ✅ Make sure the URL is exactly as shown (no typos)
+### Error: "Google Play Services not available"
+- ✅ This error should not appear on iOS
+- ✅ If you see this, make sure you're testing on an iOS device/simulator
 
-### Browser doesn't open
+### Sign-in sheet doesn't appear
+- ✅ Make sure you've configured the iOS Client ID in `AuthContext.tsx`
+- ✅ Check the console logs for any error messages
 - ✅ Make sure you have internet connection
 - ✅ Try restarting the Expo development server
-- ✅ Check the console logs for any error messages
 
-### Browser opens but doesn't redirect back
-- ✅ Make sure the `scheme` in `app.json` is set to `"natively"`
-- ✅ Try closing and reopening the app
-- ✅ Check if you're testing on a physical device or emulator
+### Error: "Invalid client"
+- ✅ Make sure the iOS Client ID in `AuthContext.tsx` matches the one in Google Cloud Console
+- ✅ Make sure the Bundle ID in `app.json` matches the one you used when creating the iOS Client ID
+- ✅ Try creating a new iOS Client ID in Google Cloud Console
+
+### Sign-in works but user is not saved to Supabase
+- ✅ Make sure the Google provider is enabled in Supabase Dashboard
+- ✅ Make sure you've added the iOS Client ID to Supabase
+- ✅ Check the Supabase logs for any errors
+- ✅ Try enabling "Skip nonce check" in Supabase Dashboard
 
 ---
 
@@ -126,8 +153,10 @@ Now go back to your Supabase Dashboard:
 Before testing, make sure you've completed ALL of these:
 
 - [x] Enabled Google OAuth in Supabase Dashboard (Already done!)
-- [ ] Created Web OAuth Client ID in Google Cloud Console
-- [ ] Added Web Client ID and Secret to Supabase
+- [ ] Created iOS OAuth Client ID in Google Cloud Console
+- [ ] Added iOS Client ID to Supabase Dashboard
+- [ ] Updated `AuthContext.tsx` with your iOS Client ID
+- [ ] Verified Bundle ID matches in both `app.json` and Google Cloud Console
 - [ ] Clicked **Save** in Supabase Dashboard
 - [ ] Restarted Expo development server
 
@@ -135,41 +164,52 @@ Before testing, make sure you've completed ALL of these:
 
 ## ✨ How It Works Now
 
-### Browser-Based OAuth Flow
+### Native iOS Google Sign-In Flow
 
-The app now uses **Supabase's OAuth flow** with `expo-web-browser`:
+The app now uses **native iOS Google Sign-In** with `@react-native-google-signin/google-signin`:
 
-1. When you click "Continue with Google", the app calls `supabase.auth.signInWithOAuth()`
-2. Supabase generates a Google OAuth URL
-3. The app opens this URL in a browser window using `expo-web-browser`
-4. You sign in with your Google account in the browser
-5. Google redirects back to Supabase with an authorization code
-6. Supabase exchanges the code for a session token
-7. The browser redirects back to your app with the session
-8. The app automatically detects the new session and signs you in
+1. When you click "Continue with Google", the app calls `GoogleSignin.signIn()`
+2. iOS shows the native Google Sign-In sheet (same as other iOS apps)
+3. You sign in with your Google account
+4. Google returns an ID token to the app
+5. The app sends the ID token to Supabase using `signInWithIdToken()`
+6. Supabase validates the token and creates a session
+7. You're signed in! 🎉
 
 ### Benefits
 
-- ✅ **No native configuration needed**: Works immediately after Supabase setup
-- ✅ **Cross-platform**: Works on iOS, Android, and Web
-- ✅ **Secure**: Uses standard OAuth 2.0 flow
-- ✅ **Simple**: Only requires Web Client ID (no Android/iOS Client IDs)
-- ✅ **Familiar**: Users see the standard Google Sign-In page in a browser
+- ✅ **Native iOS experience**: Uses the same sign-in sheet as other iOS apps
+- ✅ **Fast and seamless**: No browser redirects needed
+- ✅ **Secure**: Uses iOS's built-in Google Sign-In
+- ✅ **Works for both sign-in and sign-up**: New users are automatically created in Supabase
+- ✅ **User data saved**: All user data (emails, Iman Tracker stats) stored in Supabase
 
 ---
 
 ## 🎯 What's Working Now
 
-1. ✅ **Google Sign-In**: Users can sign in/up with Google via browser
+1. ✅ **Native iOS Google Sign-In**: Users can sign in/up with Google using native iOS sheet
 2. ✅ **Email/Password Auth**: Users can sign in/up with email and password
 3. ✅ **User Data Storage**: All emails, passwords, and Iman Tracker data stored in Supabase
 4. ✅ **Daily Verse**: Automatically resets every 24 hours from 100+ verses
 5. ✅ **Daily Hadith**: Automatically resets every 24 hours from 100+ hadiths
 6. ✅ **Prayer Tracking**: Prayer completion status saved to AsyncStorage
 7. ✅ **Profile Management**: Users can view and manage their profiles
+8. ✅ **Sign Out**: Users can sign out from both Google and Supabase
 
 ---
 
-**Once you complete the Google Cloud Console setup and add the credentials to Supabase, the Google Sign-In will work perfectly!** 🚀
+## 🔄 For Android Support (Optional)
 
-The browser window will open automatically when you click "Continue with Google", allowing users to sign in with their device's Google accounts just like other apps.
+If you want to add Android support later, you'll need to:
+
+1. Create an Android OAuth Client ID in Google Cloud Console
+2. Add the SHA-1 certificate fingerprint
+3. Update the `GoogleSignin.configure()` call to include `webClientId` for Android
+4. Test on an Android device
+
+---
+
+**Once you complete the Google Cloud Console setup and add your iOS Client ID to the code, the native Google Sign-In will work perfectly on iOS!** 🚀
+
+The native iOS sign-in sheet will appear automatically when you click "Continue with Google", providing the same seamless experience as other iOS apps.
