@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "Muslim Space",
@@ -49,5 +48,6 @@
     "extra": {
       "router": {}
     }
-  }
+  },
+  "scheme": "Muslim Space"
 }
