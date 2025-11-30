@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
   user: User | null;
@@ -39,7 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isConfigured] = useState(isSupabaseConfigured());
 
   useEffect(() => {
-    if (!isConfigured) {
+    if (!isConfigured || !supabase) {
+      console.log('Supabase not configured, skipping auth initialization');
       setLoading(false);
       return;
     }
@@ -49,6 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Initial session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch((error) => {
+      console.log('Error getting session:', error);
       setLoading(false);
     });
 
@@ -63,8 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isConfigured]);
 
   const signUp = async (email: string, password: string) => {
-    if (!isConfigured) {
-      return { error: { message: 'Supabase is not configured' } };
+    if (!isConfigured || !supabase) {
+      return { error: { message: 'Supabase is not configured. Please enable Supabase to use authentication.' } };
     }
 
     try {
@@ -87,8 +90,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    if (!isConfigured) {
-      return { error: { message: 'Supabase is not configured' } };
+    if (!isConfigured || !supabase) {
+      return { error: { message: 'Supabase is not configured. Please enable Supabase to use authentication.' } };
     }
 
     try {
@@ -111,7 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    if (!isConfigured) {
+    if (!isConfigured || !supabase) {
+      console.log('Supabase not configured, cannot sign out');
       return;
     }
 

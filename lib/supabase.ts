@@ -1,5 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // These will be set by the user when they enable Supabase
@@ -32,16 +32,28 @@ const customStorage = {
   },
 };
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: customStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
-
 // Check if Supabase is configured
 export const isSupabaseConfigured = () => {
   return supabaseUrl !== '' && supabaseAnonKey !== '';
 };
+
+// Create a placeholder client that will be replaced if Supabase is configured
+let supabaseInstance: SupabaseClient | null = null;
+
+// Only create the client if Supabase is configured
+if (isSupabaseConfigured()) {
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      storage: customStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  });
+  console.log('Supabase client initialized successfully');
+} else {
+  console.log('Supabase is not configured. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY environment variables.');
+}
+
+// Export the supabase instance (will be null if not configured)
+export const supabase = supabaseInstance as SupabaseClient;
