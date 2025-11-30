@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 
 export default function ProfileScreen() {
-  const { user, signIn, signUp, signOut, loading, isConfigured } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,23 +44,36 @@ export default function ProfileScreen() {
 
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password);
+        const { error, data } = await signUp(email, password);
         if (error) {
           Alert.alert('Sign Up Error', error.message || 'Failed to create account');
         } else {
           Alert.alert(
             'Success',
-            'Account created! Please check your email to verify your account.',
-            [{ text: 'OK', onPress: () => setIsSignUp(false) }]
+            'Account created! Please check your email to verify your account before signing in.',
+            [{ text: 'OK', onPress: () => {
+              setIsSignUp(false);
+              setEmail('');
+              setPassword('');
+              setConfirmPassword('');
+            }}]
           );
-          setEmail('');
-          setPassword('');
-          setConfirmPassword('');
         }
       } else {
-        const { error } = await signIn(email, password);
+        const { error, data } = await signIn(email, password);
         if (error) {
-          Alert.alert('Sign In Error', error.message || 'Failed to sign in');
+          // Check for common error messages
+          if (error.message?.includes('Email not confirmed')) {
+            Alert.alert(
+              'Email Not Verified',
+              'Please verify your email address before signing in. Check your inbox for the verification link.',
+              [{ text: 'OK' }]
+            );
+          } else if (error.message?.includes('Invalid login credentials')) {
+            Alert.alert('Sign In Error', 'Invalid email or password. Please try again.');
+          } else {
+            Alert.alert('Sign In Error', error.message || 'Failed to sign in');
+          }
         } else {
           Alert.alert('Success', 'Signed in successfully!');
           setEmail('');
@@ -69,6 +82,23 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.log('Auth error:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setSubmitting(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        Alert.alert('Google Sign In Error', error.message || 'Failed to sign in with Google');
+      } else {
+        Alert.alert('Success', 'Signed in with Google successfully!');
+      }
+    } catch (error) {
+      console.log('Google sign in error:', error);
       Alert.alert('Error', 'An unexpected error occurred');
     } finally {
       setSubmitting(false);
@@ -377,6 +407,33 @@ export default function ProfileScreen() {
             )}
           </TouchableOpacity>
 
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.googleButton, submitting && styles.authButtonDisabled]}
+            onPress={handleGoogleSignIn}
+            disabled={submitting}
+            activeOpacity={0.8}
+          >
+            {submitting ? (
+              <ActivityIndicator color={colors.text} />
+            ) : (
+              <React.Fragment>
+                <IconSymbol
+                  ios_icon_name="globe"
+                  android_material_icon_name="language"
+                  size={20}
+                  color={colors.text}
+                />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </React.Fragment>
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.switchButton}
             onPress={() => {
@@ -648,6 +705,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.card,
+    marginLeft: 8,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginHorizontal: 12,
+    fontWeight: '600',
+  },
+  googleButton: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
     marginLeft: 8,
   },
   switchButton: {

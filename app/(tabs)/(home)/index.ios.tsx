@@ -8,6 +8,7 @@ import { calculatePrayerTimes, getNextPrayer, PrayerTime } from '@/utils/prayerT
 import { getDailyHadith, getDailyVerse } from '@/data/dailyContent';
 import ProgressRings from '@/components/ProgressRings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ProfileButton from '@/components/ProfileButton';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
@@ -164,6 +165,10 @@ export default function HomeScreen() {
       style={styles.container}
       imageStyle={styles.backgroundImageStyle}
     >
+      <View style={styles.profileButtonContainer}>
+        <ProfileButton />
+      </View>
+      
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Text style={styles.greeting}>As-salamu alaykum</Text>
@@ -301,6 +306,12 @@ const styles = StyleSheet.create({
   },
   backgroundImageStyle: {
     opacity: 1,
+  },
+  profileButtonContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    zIndex: 1000,
   },
   scrollView: {
     flex: 1,

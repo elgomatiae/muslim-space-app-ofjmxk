@@ -2,13 +2,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { Platform } from 'react-native';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: any; data?: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; data?: any }>;
+  signInWithGoogle: () => Promise<{ error: any; data?: any }>;
   signOut: () => Promise<void>;
   isConfigured: boolean;
 }
@@ -19,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signUp: async () => ({ error: null }),
   signIn: async () => ({ error: null }),
+  signInWithGoogle: async () => ({ error: null }),
   signOut: async () => {},
   isConfigured: false,
 });
@@ -42,6 +46,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Supabase not configured, skipping auth initialization');
       setLoading(false);
       return;
+    }
+
+    // Configure Google Sign-In
+    if (Platform.OS !== 'web') {
+      GoogleSignin.configure({
+        webClientId: 'YOUR_WEB_CLIENT_ID_FROM_GOOGLE_CONSOLE', // User needs to replace this
+        iosClientId: 'YOUR_IOS_CLIENT_ID_FROM_GOOGLE_CONSOLE', // Optional, for iOS
+      });
     }
 
     // Get initial session
@@ -74,18 +86,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: 'https://natively.dev/email-confirmed'
+        }
       });
 
       if (error) {
         console.log('Sign up error:', error);
-        return { error };
+        return { error, data: null };
       }
 
       console.log('Sign up successful:', data.user?.email);
-      return { error: null };
+      return { error: null, data };
     } catch (error) {
       console.log('Sign up exception:', error);
-      return { error };
+      return { error, data: null };
     }
   };
 
@@ -102,14 +117,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.log('Sign in error:', error);
-        return { error };
+        return { error, data: null };
       }
 
       console.log('Sign in successful:', data.user?.email);
-      return { error: null };
+      return { error: null, data };
     } catch (error) {
       console.log('Sign in exception:', error);
-      return { error };
+      return { error, data: null };
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    if (!isConfigured || !supabase) {
+      return { error: { message: 'Supabase is not configured. Please enable Supabase to use authentication.' } };
+    }
+
+    try {
+      if (Platform.OS === 'web') {
+        // Web OAuth flow
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: 'https://natively.dev/auth/callback'
+          }
+        });
+        
+        if (error) {
+          console.log('Google sign in error:', error);
+          return { error, data: null };
+        }
+        
+        return { error: null, data };
+      } else {
+        // Native Google Sign-In flow
+        await GoogleSignin.hasPlayServices();
+        const userInfo = await GoogleSignin.signIn();
+        
+        if (userInfo.data?.idToken) {
+          const { data, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: userInfo.data.idToken,
+          });
+          
+          if (error) {
+            console.log('Google sign in error:', error);
+            return { error, data: null };
+          }
+          
+          console.log('Google sign in successful:', data.user?.email);
+          return { error: null, data };
+        } else {
+          return { error: { message: 'No ID token present!' }, data: null };
+        }
+      }
+    } catch (error: any) {
+      console.log('Google sign in exception:', error);
+      return { error, data: null };
     }
   };
 
@@ -120,6 +184,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // Sign out from Google if signed in
+      if (Platform.OS !== 'web') {
+        const isSignedIn = await GoogleSignin.isSignedIn();
+        if (isSignedIn) {
+          await GoogleSignin.signOut();
+        }
+      }
+      
       await supabase.auth.signOut();
       console.log('Sign out successful');
     } catch (error) {
@@ -135,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         isConfigured,
       }}
