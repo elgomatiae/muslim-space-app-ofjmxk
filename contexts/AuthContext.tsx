@@ -3,7 +3,12 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Platform } from 'react-native';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
+
+// Complete the WebBrowser session on web platform
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   user: User | null;
@@ -40,17 +45,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfigured] = useState(isSupabaseConfigured());
-
-  useEffect(() => {
-    // Configure Google Sign-In for iOS
-    if (Platform.OS === 'ios') {
-      GoogleSignin.configure({
-        iosClientId: 'YOUR_IOS_CLIENT_ID_HERE', // Replace with your iOS Client ID from Google Cloud Console
-        scopes: ['openid', 'profile', 'email'],
-      });
-      console.log('Google Sign-In configured for iOS');
-    }
-  }, []);
 
   useEffect(() => {
     if (!isConfigured || !supabase) {
@@ -137,68 +131,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      console.log('Starting native Google Sign-In flow...');
+      console.log('Starting browser-based Google Sign-In flow...');
 
-      // Check if Google Play Services are available (iOS always returns true)
-      await GoogleSignin.hasPlayServices();
-      console.log('Play services available');
+      // Create a redirect URL for the current platform
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'muslimspace',
+        path: 'auth/callback',
+      });
+      console.log('Redirect URL:', redirectUrl);
 
-      // Sign in with Google
-      const userInfo = await GoogleSignin.signIn();
-      console.log('Google sign-in successful, user:', userInfo.data?.user?.email);
+      // Generate a random state value for security
+      const state = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        Math.random().toString()
+      );
 
-      // Get the ID token
-      const idToken = userInfo.data?.idToken;
-      
-      if (!idToken) {
-        console.log('No ID token received from Google');
+      // Start the OAuth flow with Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) {
+        console.log('OAuth initiation error:', error);
+        return { error, data: null };
+      }
+
+      if (!data.url) {
+        console.log('No OAuth URL returned');
         return { 
-          error: { message: 'Failed to get authentication token from Google' }, 
+          error: { message: 'Failed to get authentication URL' }, 
           data: null 
         };
       }
 
-      console.log('Got ID token, signing in to Supabase...');
+      console.log('Opening browser for authentication...');
 
-      // Sign in to Supabase with the ID token
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
+      // Open the browser for authentication
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectUrl
+      );
 
-      if (error) {
-        console.log('Supabase sign-in error:', error);
-        return { error, data: null };
-      }
+      console.log('Browser result:', result.type);
 
-      console.log('Successfully signed in to Supabase with Google:', data.user?.email);
-      return { error: null, data };
+      if (result.type === 'success') {
+        // Extract the URL from the result
+        const url = result.url;
+        console.log('Success URL:', url);
 
-    } catch (error: any) {
-      console.log('Google sign-in exception:', error);
+        // The session will be automatically set by the onAuthStateChange listener
+        // We just need to wait a moment for it to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Handle specific error codes
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        return { error: null, data: { url } };
+      } else if (result.type === 'cancel') {
         return { 
           error: { message: 'Sign in was cancelled' }, 
           data: null 
         };
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        return { 
-          error: { message: 'Sign in is already in progress' }, 
-          data: null 
-        };
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        return { 
-          error: { message: 'Google Play Services not available' }, 
-          data: null 
-        };
       } else {
         return { 
-          error: { message: error.message || 'An unexpected error occurred during Google sign in' }, 
+          error: { message: 'Authentication failed' }, 
           data: null 
         };
       }
+
+    } catch (error: any) {
+      console.log('Google sign-in exception:', error);
+      return { 
+        error: { message: error.message || 'An unexpected error occurred during Google sign in' }, 
+        data: null 
+      };
     }
   };
 
@@ -209,14 +220,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Sign out from Google if signed in
-      const isSignedIn = await GoogleSignin.isSignedIn();
-      if (isSignedIn) {
-        await GoogleSignin.signOut();
-        console.log('Signed out from Google');
-      }
-
-      // Sign out from Supabase
       await supabase.auth.signOut();
       console.log('Sign out successful');
     } catch (error) {

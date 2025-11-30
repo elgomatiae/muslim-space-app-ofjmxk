@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Muslim Space",
@@ -58,13 +59,12 @@
         }
       ]
     ],
-    "scheme": "natively",
+    "scheme": "muslimspace",
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "router": {}
     }
-  },
-  "scheme": "Muslim Space"
+  }
 }
