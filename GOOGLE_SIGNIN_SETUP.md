@@ -3,7 +3,7 @@
 
 ## ✅ Google Provider is Now Enabled in Supabase!
 
-Great! You've enabled the Google OAuth provider in your Supabase project. Now follow these steps to complete the setup.
+Great! You've enabled the Google OAuth provider in your Supabase project. The app now uses **Supabase's OAuth flow** which opens a browser window for Google Sign-In - no complex native configuration needed!
 
 ---
 
@@ -38,11 +38,9 @@ Great! You've enabled the Google OAuth provider in your Supabase project. Now fo
 8. Click **Save and Continue** on Test users (you can add yourself for testing)
 9. Review and click **Back to Dashboard**
 
-### D. Create OAuth Client IDs
+### D. Create OAuth Client ID (Web Application)
 
-You need to create **THREE** OAuth Client IDs (one for each platform):
-
-#### 1️⃣ Web Application (Required)
+You only need to create **ONE** OAuth Client ID for web:
 
 1. Go to **APIs & Services** → **Credentials**
 2. Click **Create Credentials** → **OAuth Client ID**
@@ -55,31 +53,6 @@ You need to create **THREE** OAuth Client IDs (one for each platform):
 7. Click **Create**
 8. **IMPORTANT**: Copy and save the **Client ID** and **Client Secret** - you'll need these!
 
-#### 2️⃣ Android Application
-
-1. Click **Create Credentials** → **OAuth Client ID** again
-2. Choose **Android**
-3. Name: "Muslim Space Android"
-4. **Package name**: `com.anonymous.Natively`
-5. **SHA-1 certificate fingerprint**: 
-   - For development, run this command in your terminal:
-     ```bash
-     keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-     ```
-   - Copy the SHA-1 fingerprint from the output
-   - Paste it into the Google Cloud Console
-6. Click **Create**
-7. **IMPORTANT**: Copy and save the **Client ID**
-
-#### 3️⃣ iOS Application
-
-1. Click **Create Credentials** → **OAuth Client ID** again
-2. Choose **iOS**
-3. Name: "Muslim Space iOS"
-4. **Bundle ID**: `com.anonymous.Natively`
-5. Click **Create**
-6. **IMPORTANT**: Copy and save the **Client ID**
-
 ---
 
 ## 🔐 Step 2: Configure Supabase with Google Credentials
@@ -89,39 +62,14 @@ Now go back to your Supabase Dashboard:
 1. Go to **Authentication** → **Providers** → **Google**
 2. Make sure **"Enable Sign in with Google"** is toggled **ON**
 3. Fill in the fields:
-   - **Client ID (for OAuth)**: Paste your **Web Client ID** from Step 1D-1
-   - **Client Secret (for OAuth)**: Paste your **Web Client Secret** from Step 1D-1
-   - **Authorized Client IDs**: Paste ALL THREE Client IDs separated by commas:
-     ```
-     <web-client-id>,<android-client-id>,<ios-client-id>
-     ```
-     Example:
-     ```
-     123456789-abc.apps.googleusercontent.com,123456789-def.apps.googleusercontent.com,123456789-ghi.apps.googleusercontent.com
-     ```
+   - **Client ID (for OAuth)**: Paste your **Web Client ID** from Step 1D
+   - **Client Secret (for OAuth)**: Paste your **Web Client Secret** from Step 1D
 4. **Skip nonce check**: Leave this **OFF** (unchecked) for better security
 5. Click **Save**
 
 ---
 
-## 📱 Step 3: Update Your App Code
-
-Open `contexts/AuthContext.tsx` and find this line (around line 52):
-
-```typescript
-webClientId: 'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com',
-```
-
-Replace `'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com'` with your actual **Web Client ID** from Step 1D-1.
-
-Example:
-```typescript
-webClientId: '123456789-abc.apps.googleusercontent.com',
-```
-
----
-
-## 🚀 Step 4: Test It!
+## 🚀 Step 3: Test It!
 
 1. **Restart your Expo development server**:
    ```bash
@@ -136,35 +84,40 @@ webClientId: '123456789-abc.apps.googleusercontent.com',
    - Open your app
    - Go to the Profile tab
    - Click "Continue with Google"
-   - You should see the native Google Sign-In screen
+   - A browser window should open with the Google Sign-In page
    - Sign in with your Google account
+   - The browser will redirect back to your app
    - You should be signed in successfully! 🎉
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Error: "No ID token received from Google"
-- ✅ Make sure you replaced `'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com'` in `AuthContext.tsx`
-- ✅ Make sure the Web Client ID is correct
+### Error: "Failed to get Google sign-in URL"
+- ✅ Make sure Google OAuth is enabled in Supabase Dashboard
+- ✅ Make sure you added the Client ID and Secret to Supabase
+- ✅ Click **Save** in Supabase Dashboard
 - ✅ Restart your Expo development server
 
 ### Error: "Invalid client"
-- ✅ Check that all THREE Client IDs are added to Supabase's "Authorized Client IDs" field
-- ✅ Make sure there are no extra spaces in the Client IDs
-- ✅ Make sure the Client IDs are separated by commas
+- ✅ Check that the Web Client ID and Secret are correct in Supabase
+- ✅ Make sure there are no extra spaces in the credentials
+- ✅ Make sure you're using the **Web** Client ID, not Android or iOS
 
 ### Error: "Redirect URI mismatch"
 - ✅ Make sure `https://teemloiwfnwrogwnoxsa.supabase.co/auth/v1/callback` is in Google Console's authorized redirect URIs
 - ✅ Make sure there are no trailing slashes
+- ✅ Make sure the URL is exactly as shown (no typos)
 
-### Android: "Google Play Services not available"
-- ✅ Make sure you're testing on a real device or an emulator with Google Play Services
-- ✅ Update Google Play Services on your device
+### Browser doesn't open
+- ✅ Make sure you have internet connection
+- ✅ Try restarting the Expo development server
+- ✅ Check the console logs for any error messages
 
-### iOS: Sign-in doesn't work
-- ✅ Make sure the iOS Client ID is correct
-- ✅ Make sure the Bundle ID matches: `com.anonymous.Natively`
+### Browser opens but doesn't redirect back
+- ✅ Make sure the `scheme` in `app.json` is set to `"natively"`
+- ✅ Try closing and reopening the app
+- ✅ Check if you're testing on a physical device or emulator
 
 ---
 
@@ -174,43 +127,40 @@ Before testing, make sure you've completed ALL of these:
 
 - [x] Enabled Google OAuth in Supabase Dashboard (Already done!)
 - [ ] Created Web OAuth Client ID in Google Cloud Console
-- [ ] Created Android OAuth Client ID in Google Cloud Console
-- [ ] Created iOS OAuth Client ID in Google Cloud Console
 - [ ] Added Web Client ID and Secret to Supabase
-- [ ] Added all THREE Client IDs to "Authorized Client IDs" in Supabase
 - [ ] Clicked **Save** in Supabase Dashboard
-- [ ] Replaced `'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com'` in `contexts/AuthContext.tsx`
 - [ ] Restarted Expo development server
 
 ---
 
-## ✨ New Features Implemented
+## ✨ How It Works Now
 
-### 1. Google Sign-In
-- Users can now sign in with their Google accounts
-- All user data (emails, passwords, Iman Tracker stats) are stored in Supabase
-- Native Google Sign-In experience on both iOS and Android
+### Browser-Based OAuth Flow
 
-### 2. Daily Verse & Hadith from Database
-- **100+ Quran verses** stored in the database
-- **100+ Hadiths** stored in the database
-- Daily content automatically resets every 24 hours
-- Content is selected using a date-based algorithm for consistency
-- Edge Function handles the daily selection
-- Fallback data available if database is unavailable
+The app now uses **Supabase's OAuth flow** with `expo-web-browser`:
 
-### 3. Database Tables Created
-- `quran_verses`: Stores 102 Quran verses with Arabic, translation, and reference
-- `hadiths`: Stores 100 Hadiths with Arabic, translation, and reference
-- `daily_content`: Tracks which verse/hadith is shown each day
-- All tables have Row Level Security (RLS) enabled
-- Public read access for all users
+1. When you click "Continue with Google", the app calls `supabase.auth.signInWithOAuth()`
+2. Supabase generates a Google OAuth URL
+3. The app opens this URL in a browser window using `expo-web-browser`
+4. You sign in with your Google account in the browser
+5. Google redirects back to Supabase with an authorization code
+6. Supabase exchanges the code for a session token
+7. The browser redirects back to your app with the session
+8. The app automatically detects the new session and signs you in
+
+### Benefits
+
+- ✅ **No native configuration needed**: Works immediately after Supabase setup
+- ✅ **Cross-platform**: Works on iOS, Android, and Web
+- ✅ **Secure**: Uses standard OAuth 2.0 flow
+- ✅ **Simple**: Only requires Web Client ID (no Android/iOS Client IDs)
+- ✅ **Familiar**: Users see the standard Google Sign-In page in a browser
 
 ---
 
 ## 🎯 What's Working Now
 
-1. ✅ **Google Sign-In**: Users can sign in/up with Google
+1. ✅ **Google Sign-In**: Users can sign in/up with Google via browser
 2. ✅ **Email/Password Auth**: Users can sign in/up with email and password
 3. ✅ **User Data Storage**: All emails, passwords, and Iman Tracker data stored in Supabase
 4. ✅ **Daily Verse**: Automatically resets every 24 hours from 100+ verses
@@ -220,4 +170,6 @@ Before testing, make sure you've completed ALL of these:
 
 ---
 
-**Once you complete the Google Cloud Console setup and update the Web Client ID in the code, everything will work perfectly!** 🚀
+**Once you complete the Google Cloud Console setup and add the credentials to Supabase, the Google Sign-In will work perfectly!** 🚀
+
+The browser window will open automatically when you click "Continue with Google", allowing users to sign in with their device's Google accounts just like other apps.

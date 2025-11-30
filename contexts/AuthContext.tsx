@@ -3,7 +3,11 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Platform } from 'react-native';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+// Required for expo-web-browser to work properly
+WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   user: User | null;
@@ -47,14 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
       return;
     }
-
-    // Configure Google Sign-In
-    // IMPORTANT: Replace with your actual Web Client ID from Google Cloud Console
-    // Get it from: https://console.cloud.google.com/apis/credentials
-    GoogleSignin.configure({
-      webClientId: 'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com',
-      offlineAccess: false,
-    });
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -134,69 +130,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      console.log('Starting native Google sign in flow...');
+      console.log('Starting Google OAuth sign in flow...');
       
-      // Check if Google Play Services are available (Android only)
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      // Get the redirect URL for the current platform
+      const redirectUrl = Linking.createURL('/');
+      console.log('Redirect URL:', redirectUrl);
+
+      // Start the OAuth flow with Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false,
+        },
+      });
+
+      if (error) {
+        console.log('Error starting OAuth flow:', error);
+        return { error, data: null };
       }
 
-      // Sign in with Google
-      const userInfo = await GoogleSignin.signIn();
-      console.log('Google sign in successful, got user info');
-
-      // Get the ID token
-      const idToken = userInfo.data?.idToken;
-      
-      if (!idToken) {
-        console.log('No ID token received from Google');
+      if (!data?.url) {
+        console.log('No OAuth URL received from Supabase');
         return { 
-          error: { message: 'No ID token received from Google. Please try again.' }, 
+          error: { message: 'Failed to get Google sign-in URL. Please try again.' }, 
           data: null 
         };
       }
 
-      console.log('Got ID token, signing in with Supabase...');
+      console.log('Opening Google sign-in browser with URL:', data.url);
 
-      // Sign in to Supabase with the ID token
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
+      // Open the OAuth URL in a browser
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectUrl
+      );
 
-      if (error) {
-        console.log('Error signing in with Supabase:', error);
-        return { error, data: null };
-      }
+      console.log('Browser result:', result);
 
-      console.log('Successfully signed in with Google:', data.user?.email);
-      return { error: null, data };
+      if (result.type === 'success') {
+        // Extract the URL from the result
+        const url = result.url;
+        console.log('OAuth success, got URL:', url);
 
-    } catch (error: any) {
-      console.log('Google sign in exception:', error);
+        // Parse the URL to get the session
+        const parsedUrl = Linking.parse(url);
+        console.log('Parsed URL:', parsedUrl);
 
-      // Handle specific error codes
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // The session will be automatically set by Supabase's onAuthStateChange listener
+        // We just need to wait a moment for it to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        return { error: null, data: { url } };
+      } else if (result.type === 'cancel') {
+        console.log('User cancelled Google sign in');
         return { 
           error: { message: 'Sign in was cancelled' }, 
           data: null 
         };
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        return { 
-          error: { message: 'Sign in is already in progress' }, 
-          data: null 
-        };
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        return { 
-          error: { message: 'Google Play Services not available or outdated' }, 
-          data: null 
-        };
       } else {
+        console.log('Google sign in failed:', result);
         return { 
-          error: { message: error.message || 'An unexpected error occurred during Google sign in' }, 
+          error: { message: 'Failed to complete Google sign in' }, 
           data: null 
         };
       }
+
+    } catch (error: any) {
+      console.log('Google sign in exception:', error);
+      return { 
+        error: { message: error.message || 'An unexpected error occurred during Google sign in' }, 
+        data: null 
+      };
     }
   };
 
@@ -207,13 +212,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Sign out from Google
-      const isSignedIn = await GoogleSignin.isSignedIn();
-      if (isSignedIn) {
-        await GoogleSignin.signOut();
-      }
-
-      // Sign out from Supabase
       await supabase.auth.signOut();
       console.log('Sign out successful');
     } catch (error) {
