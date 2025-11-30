@@ -203,15 +203,13 @@ export default function HomeScreen() {
             )}
           </View>
           {nextPrayer && (
-            <React.Fragment>
-              <View style={styles.nextPrayerContent}>
-                <View>
-                  <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
-                  <Text style={styles.countdown}>in {timeUntilNext}</Text>
-                </View>
-                <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
+            <View style={styles.nextPrayerContent}>
+              <View>
+                <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
+                <Text style={styles.countdown}>in {timeUntilNext}</Text>
               </View>
-            </React.Fragment>
+              <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
+            </View>
           )}
         </View>
 
@@ -268,7 +266,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Prayer Times</Text>
           {prayers.map((prayer, index) => (
             <TouchableOpacity
-              key={index}
+              key={`prayer-${prayer.name}-${index}`}
               style={[styles.prayerCard, prayer.completed && styles.prayerCardCompleted]}
               onPress={() => togglePrayer(index)}
               activeOpacity={0.7}
