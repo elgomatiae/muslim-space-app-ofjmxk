@@ -5,7 +5,7 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import * as Location from 'expo-location';
 import { calculatePrayerTimes, getNextPrayer, PrayerTime } from '@/utils/prayerTimes';
-import { getDailyHadith, getDailyVerse } from '@/data/dailyContent';
+import { getDailyContent, DailyHadith, DailyVerse } from '@/data/dailyContent';
 import ProgressRings from '@/components/ProgressRings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProfileButton from '@/components/ProfileButton';
@@ -34,14 +34,34 @@ export default function HomeScreen() {
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationError, setLocationError] = useState(false);
 
-  const dailyHadith = getDailyHadith();
-  const dailyVerse = getDailyVerse();
+  const [dailyHadith, setDailyHadith] = useState<DailyHadith | null>(null);
+  const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
+  const [loadingDailyContent, setLoadingDailyContent] = useState(true);
 
   const [trackerData] = useState({
     prayers: { completed: 3, total: 5 },
     dhikr: { count: 150, goal: 300 },
     quran: { pages: 2, goal: 5 },
   });
+
+  // Load daily content
+  useEffect(() => {
+    loadDailyContent();
+  }, []);
+
+  const loadDailyContent = async () => {
+    try {
+      console.log('Loading daily content...');
+      const content = await getDailyContent();
+      setDailyVerse(content.verse);
+      setDailyHadith(content.hadith);
+      console.log('Daily content loaded successfully');
+    } catch (error) {
+      console.error('Error loading daily content:', error);
+    } finally {
+      setLoadingDailyContent(false);
+    }
+  };
 
   // Load prayer completion status from storage
   useEffect(() => {
@@ -211,41 +231,43 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <View style={styles.dailyContentRow}>
-          <View style={styles.dailyCardVertical}>
-            <View style={styles.dailyCardHeader}>
-              <View style={styles.dailyIconCircle}>
-                <IconSymbol
-                  ios_icon_name="book.fill"
-                  android_material_icon_name="menu-book"
-                  size={22}
-                  color={colors.card}
-                />
+        {!loadingDailyContent && dailyVerse && dailyHadith && (
+          <View style={styles.dailyContentRow}>
+            <View style={styles.dailyCardVertical}>
+              <View style={styles.dailyCardHeader}>
+                <View style={styles.dailyIconCircle}>
+                  <IconSymbol
+                    ios_icon_name="book.fill"
+                    android_material_icon_name="menu-book"
+                    size={22}
+                    color={colors.card}
+                  />
+                </View>
+                <Text style={styles.dailyCardTitle}>Daily Verse</Text>
               </View>
-              <Text style={styles.dailyCardTitle}>Daily Verse</Text>
+              <Text style={styles.dailyArabic}>{dailyVerse.arabic}</Text>
+              <Text style={styles.dailyTranslation}>{dailyVerse.translation}</Text>
+              <Text style={styles.dailyReference}>{dailyVerse.reference}</Text>
             </View>
-            <Text style={styles.dailyArabic}>{dailyVerse.arabic}</Text>
-            <Text style={styles.dailyTranslation}>{dailyVerse.translation}</Text>
-            <Text style={styles.dailyReference}>{dailyVerse.reference}</Text>
-          </View>
 
-          <View style={styles.dailyCardVertical}>
-            <View style={styles.dailyCardHeader}>
-              <View style={[styles.dailyIconCircle, { backgroundColor: colors.secondary }]}>
-                <IconSymbol
-                  ios_icon_name="text.quote"
-                  android_material_icon_name="format-quote"
-                  size={22}
-                  color={colors.card}
-                />
+            <View style={styles.dailyCardVertical}>
+              <View style={styles.dailyCardHeader}>
+                <View style={[styles.dailyIconCircle, { backgroundColor: colors.secondary }]}>
+                  <IconSymbol
+                    ios_icon_name="text.quote"
+                    android_material_icon_name="format-quote"
+                    size={22}
+                    color={colors.card}
+                  />
+                </View>
+                <Text style={styles.dailyCardTitle}>Daily Hadith</Text>
               </View>
-              <Text style={styles.dailyCardTitle}>Daily Hadith</Text>
+              <Text style={styles.dailyArabic}>{dailyHadith.arabic}</Text>
+              <Text style={styles.dailyTranslation}>{dailyHadith.translation}</Text>
+              <Text style={styles.dailyReference}>{dailyHadith.reference}</Text>
             </View>
-            <Text style={styles.dailyArabic}>{dailyHadith.arabic}</Text>
-            <Text style={styles.dailyTranslation}>{dailyHadith.translation}</Text>
-            <Text style={styles.dailyReference}>{dailyHadith.reference}</Text>
           </View>
-        </View>
+        )}
 
         <View style={styles.trackerCard}>
           <ProgressRings

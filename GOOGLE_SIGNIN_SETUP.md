@@ -1,26 +1,13 @@
 
 # Google Sign-In Setup Guide for Muslim Space App
 
-## ⚠️ IMPORTANT: You're getting the "provider is not enabled" error
+## ✅ Google Provider is Now Enabled in Supabase!
 
-This means the Google OAuth provider is **NOT enabled** in your Supabase project. Follow these steps to fix it.
-
----
-
-## 🔧 Step 1: Enable Google Provider in Supabase Dashboard
-
-1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/teemloiwfnwrogwnoxsa
-2. Click on **Authentication** in the left sidebar
-3. Click on **Providers**
-4. Find **Google** in the list of providers
-5. Click on **Google** to expand the settings
-6. Toggle **"Enable Sign in with Google"** to **ON** ✅
-
-**Don't save yet!** You need to add the Client ID and Secret first (from Step 2).
+Great! You've enabled the Google OAuth provider in your Supabase project. Now follow these steps to complete the setup.
 
 ---
 
-## 🌐 Step 2: Set Up Google Cloud Console
+## 🌐 Step 1: Set Up Google Cloud Console
 
 ### A. Create/Select a Google Cloud Project
 
@@ -44,9 +31,9 @@ This means the Google OAuth provider is **NOT enabled** in your Supabase project
 4. Click **Save and Continue**
 5. On the **Scopes** page, click **Add or Remove Scopes**
 6. Add these scopes:
-   - `openid` (you may need to add this manually)
-   - `.../auth/userinfo.email` (should be there by default)
-   - `.../auth/userinfo.profile` (should be there by default)
+   - `openid`
+   - `.../auth/userinfo.email`
+   - `.../auth/userinfo.profile`
 7. Click **Save and Continue**
 8. Click **Save and Continue** on Test users (you can add yourself for testing)
 9. Review and click **Back to Dashboard**
@@ -95,15 +82,15 @@ You need to create **THREE** OAuth Client IDs (one for each platform):
 
 ---
 
-## 🔐 Step 3: Configure Supabase with Google Credentials
+## 🔐 Step 2: Configure Supabase with Google Credentials
 
 Now go back to your Supabase Dashboard:
 
 1. Go to **Authentication** → **Providers** → **Google**
 2. Make sure **"Enable Sign in with Google"** is toggled **ON**
 3. Fill in the fields:
-   - **Client ID (for OAuth)**: Paste your **Web Client ID** from Step 2D-1
-   - **Client Secret (for OAuth)**: Paste your **Web Client Secret** from Step 2D-1
+   - **Client ID (for OAuth)**: Paste your **Web Client ID** from Step 1D-1
+   - **Client Secret (for OAuth)**: Paste your **Web Client Secret** from Step 1D-1
    - **Authorized Client IDs**: Paste ALL THREE Client IDs separated by commas:
      ```
      <web-client-id>,<android-client-id>,<ios-client-id>
@@ -117,15 +104,15 @@ Now go back to your Supabase Dashboard:
 
 ---
 
-## 📱 Step 4: Update Your App Code
+## 📱 Step 3: Update Your App Code
 
 Open `contexts/AuthContext.tsx` and find this line (around line 52):
 
 ```typescript
-webClientId: 'YOUR_WEB_CLIENT_ID', // This is the Web Client ID from Google Cloud Console
+webClientId: 'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com',
 ```
 
-Replace `'YOUR_WEB_CLIENT_ID'` with your actual **Web Client ID** from Step 2D-1.
+Replace `'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com'` with your actual **Web Client ID** from Step 1D-1.
 
 Example:
 ```typescript
@@ -134,7 +121,7 @@ webClientId: '123456789-abc.apps.googleusercontent.com',
 
 ---
 
-## 🚀 Step 5: Test It!
+## 🚀 Step 4: Test It!
 
 1. **Restart your Expo development server**:
    ```bash
@@ -157,12 +144,8 @@ webClientId: '123456789-abc.apps.googleusercontent.com',
 
 ## 🐛 Troubleshooting
 
-### Error: "provider is not enabled"
-- ✅ Make sure Google OAuth is toggled **ON** in Supabase Dashboard
-- ✅ Make sure you clicked **Save** in Supabase after entering the credentials
-
 ### Error: "No ID token received from Google"
-- ✅ Make sure you replaced `'YOUR_WEB_CLIENT_ID'` in `AuthContext.tsx`
+- ✅ Make sure you replaced `'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com'` in `AuthContext.tsx`
 - ✅ Make sure the Web Client ID is correct
 - ✅ Restart your Expo development server
 
@@ -189,48 +172,52 @@ webClientId: '123456789-abc.apps.googleusercontent.com',
 
 Before testing, make sure you've completed ALL of these:
 
-- [ ] Enabled Google OAuth in Supabase Dashboard
+- [x] Enabled Google OAuth in Supabase Dashboard (Already done!)
 - [ ] Created Web OAuth Client ID in Google Cloud Console
 - [ ] Created Android OAuth Client ID in Google Cloud Console
 - [ ] Created iOS OAuth Client ID in Google Cloud Console
 - [ ] Added Web Client ID and Secret to Supabase
 - [ ] Added all THREE Client IDs to "Authorized Client IDs" in Supabase
 - [ ] Clicked **Save** in Supabase Dashboard
-- [ ] Replaced `'YOUR_WEB_CLIENT_ID'` in `contexts/AuthContext.tsx`
+- [ ] Replaced `'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com'` in `contexts/AuthContext.tsx`
 - [ ] Restarted Expo development server
 
 ---
 
-## 🎯 What Changed in the Code?
+## ✨ New Features Implemented
 
-The app now uses **native Google Sign-In** instead of the web-based OAuth flow. This provides:
+### 1. Google Sign-In
+- Users can now sign in with their Google accounts
+- All user data (emails, passwords, Iman Tracker stats) are stored in Supabase
+- Native Google Sign-In experience on both iOS and Android
 
-- ✅ Better user experience (native Google account picker)
-- ✅ Faster sign-in process
-- ✅ More secure (uses device's Google account)
-- ✅ Works offline (after initial sign-in)
+### 2. Daily Verse & Hadith from Database
+- **100+ Quran verses** stored in the database
+- **100+ Hadiths** stored in the database
+- Daily content automatically resets every 24 hours
+- Content is selected using a date-based algorithm for consistency
+- Edge Function handles the daily selection
+- Fallback data available if database is unavailable
 
-The flow is:
-1. User clicks "Continue with Google"
-2. Native Google Sign-In screen appears
-3. User selects their Google account
-4. Google returns an ID token
-5. App sends ID token to Supabase
-6. Supabase validates and creates a session
-7. User is signed in! 🎉
-
----
-
-## 🆘 Still Having Issues?
-
-If you're still experiencing problems:
-
-1. Check the Expo logs for detailed error messages
-2. Check Supabase Auth logs: Dashboard → Logs → Auth
-3. Make sure all URLs match exactly (no trailing slashes, correct protocols)
-4. Try signing in with a different Google account
-5. Clear the app cache and restart
+### 3. Database Tables Created
+- `quran_verses`: Stores 102 Quran verses with Arabic, translation, and reference
+- `hadiths`: Stores 100 Hadiths with Arabic, translation, and reference
+- `daily_content`: Tracks which verse/hadith is shown each day
+- All tables have Row Level Security (RLS) enabled
+- Public read access for all users
 
 ---
 
-**Once you complete all the steps above, the "Continue with Google" button will work perfectly!** 🚀
+## 🎯 What's Working Now
+
+1. ✅ **Google Sign-In**: Users can sign in/up with Google
+2. ✅ **Email/Password Auth**: Users can sign in/up with email and password
+3. ✅ **User Data Storage**: All emails, passwords, and Iman Tracker data stored in Supabase
+4. ✅ **Daily Verse**: Automatically resets every 24 hours from 100+ verses
+5. ✅ **Daily Hadith**: Automatically resets every 24 hours from 100+ hadiths
+6. ✅ **Prayer Tracking**: Prayer completion status saved to AsyncStorage
+7. ✅ **Profile Management**: Users can view and manage their profiles
+
+---
+
+**Once you complete the Google Cloud Console setup and update the Web Client ID in the code, everything will work perfectly!** 🚀

@@ -49,9 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // Configure Google Sign-In
-    // IMPORTANT: Replace 'YOUR_WEB_CLIENT_ID' with your actual Web Client ID from Google Cloud Console
+    // IMPORTANT: Replace with your actual Web Client ID from Google Cloud Console
+    // Get it from: https://console.cloud.google.com/apis/credentials
     GoogleSignin.configure({
-      webClientId: 'YOUR_WEB_CLIENT_ID', // This is the Web Client ID from Google Cloud Console
+      webClientId: 'YOUR_WEB_CLIENT_ID_HERE.apps.googleusercontent.com',
       offlineAccess: false,
     });
 
