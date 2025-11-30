@@ -7,12 +7,16 @@ import * as Location from 'expo-location';
 import { calculatePrayerTimes, getNextPrayer, PrayerTime } from '@/utils/prayerTimes';
 import { getDailyHadith, getDailyVerse } from '@/data/dailyContent';
 import ProgressRings from '@/components/ProgressRings';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
 }
 
 const { width } = Dimensions.get('window');
+
+const PRAYER_STORAGE_KEY = '@prayer_completion';
+const PRAYER_DATE_KEY = '@prayer_date';
 
 export default function HomeScreen() {
   const [prayers, setPrayers] = useState<Prayer[]>([
@@ -38,6 +42,11 @@ export default function HomeScreen() {
     quran: { pages: 2, goal: 5 },
   });
 
+  // Load prayer completion status from storage
+  useEffect(() => {
+    loadPrayerStatus();
+  }, []);
+
   useEffect(() => {
     requestLocationPermission();
     const timer = setInterval(() => {
@@ -50,7 +59,13 @@ export default function HomeScreen() {
   useEffect(() => {
     if (location) {
       const prayerTimes = calculatePrayerTimes(location, currentTime);
-      setPrayers(prayerTimes.map(pt => ({ ...pt, completed: false })));
+      // Preserve completion status when updating prayer times
+      setPrayers(prevPrayers => {
+        return prayerTimes.map((pt, index) => ({
+          ...pt,
+          completed: prevPrayers[index]?.completed || false
+        }));
+      });
     }
   }, [location]);
 
@@ -61,6 +76,53 @@ export default function HomeScreen() {
       setTimeUntilNext(result.timeUntil);
     }
   }, [currentTime, prayers]);
+
+  const getTodayDateString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+  };
+
+  const loadPrayerStatus = async () => {
+    try {
+      const savedDate = await AsyncStorage.getItem(PRAYER_DATE_KEY);
+      const todayDate = getTodayDateString();
+
+      // Check if it's a new day
+      if (savedDate !== todayDate) {
+        console.log('New day detected, resetting prayer status');
+        // Reset prayer status for new day
+        await AsyncStorage.setItem(PRAYER_DATE_KEY, todayDate);
+        await AsyncStorage.removeItem(PRAYER_STORAGE_KEY);
+        return;
+      }
+
+      // Load saved prayer status
+      const savedStatus = await AsyncStorage.getItem(PRAYER_STORAGE_KEY);
+      if (savedStatus) {
+        const completionStatus = JSON.parse(savedStatus);
+        console.log('Loaded prayer status:', completionStatus);
+        setPrayers(prevPrayers =>
+          prevPrayers.map((prayer, index) => ({
+            ...prayer,
+            completed: completionStatus[index] || false
+          }))
+        );
+      }
+    } catch (error) {
+      console.log('Error loading prayer status:', error);
+    }
+  };
+
+  const savePrayerStatus = async (updatedPrayers: Prayer[]) => {
+    try {
+      const completionStatus = updatedPrayers.map(p => p.completed);
+      await AsyncStorage.setItem(PRAYER_STORAGE_KEY, JSON.stringify(completionStatus));
+      await AsyncStorage.setItem(PRAYER_DATE_KEY, getTodayDateString());
+      console.log('Saved prayer status:', completionStatus);
+    } catch (error) {
+      console.log('Error saving prayer status:', error);
+    }
+  };
 
   const requestLocationPermission = async () => {
     try {
@@ -91,6 +153,7 @@ export default function HomeScreen() {
     const newPrayers = [...prayers];
     newPrayers[index].completed = !newPrayers[index].completed;
     setPrayers(newPrayers);
+    savePrayerStatus(newPrayers);
   };
 
   const completedCount = prayers.filter(p => p.completed).length;
