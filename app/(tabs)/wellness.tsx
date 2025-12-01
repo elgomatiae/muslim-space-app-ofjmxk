@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ImageBackground, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ImageBackground, Modal, Alert } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 type TabType = 'mental' | 'physical';
 type EmotionType = 'anxious' | 'sad' | 'angry' | 'stressed' | 'grateful' | 'hopeful';
@@ -23,11 +25,39 @@ interface CardioTracker {
   minutes: number;
 }
 
+interface GratitudeEntry {
+  id: string;
+  entry_date: string;
+  entry_text: string;
+  prompt_used: string | null;
+  created_at: string;
+}
+
+const gratitudePrompts = [
+  'What made you smile today?',
+  'Who are you grateful for and why?',
+  'What blessing from Allah are you most thankful for today?',
+  'What challenge helped you grow today?',
+  'What act of kindness did you witness or receive?',
+  'What aspect of your health are you grateful for?',
+  'What opportunity are you thankful for?',
+  'What lesson did you learn today?',
+  'What comfort or ease did Allah provide you today?',
+  'What relationship are you grateful for?',
+  'What ability or skill are you thankful to have?',
+  'What moment of peace did you experience today?',
+];
+
 export default function WellnessScreen() {
+  const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState<TabType>('mental');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
   const [journalEntry, setJournalEntry] = useState('');
+  const [currentPrompt, setCurrentPrompt] = useState('');
   const [showProphetStory, setShowProphetStory] = useState(false);
+  const [showJournalHistory, setShowJournalHistory] = useState(false);
+  const [journalEntries, setJournalEntries] = useState<GratitudeEntry[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Physical trackers
   const [waterGlasses, setWaterGlasses] = useState(0);
@@ -38,7 +68,113 @@ export default function WellnessScreen() {
 
   useEffect(() => {
     loadDailyProgress();
+    loadTodayJournalEntry();
+    generateRandomPrompt();
   }, []);
+
+  const generateRandomPrompt = () => {
+    const randomIndex = Math.floor(Math.random() * gratitudePrompts.length);
+    setCurrentPrompt(gratitudePrompts[randomIndex]);
+  };
+
+  const loadTodayJournalEntry = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (user && isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('gratitude_journal')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('entry_date', today)
+          .single();
+
+        if (data && !error) {
+          setJournalEntry(data.entry_text);
+          if (data.prompt_used) {
+            setCurrentPrompt(data.prompt_used);
+          }
+        }
+      } catch (error) {
+        console.log('Error loading journal entry:', error);
+      }
+    } else {
+      // Load from local storage if not logged in
+      const savedEntry = await AsyncStorage.getItem(`@journal_${today}`);
+      if (savedEntry) {
+        setJournalEntry(savedEntry);
+      }
+    }
+  };
+
+  const saveJournalEntry = async () => {
+    if (!journalEntry.trim()) {
+      Alert.alert('Empty Entry', 'Please write something before saving.');
+      return;
+    }
+
+    setIsSaving(true);
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      if (user && isSupabaseConfigured()) {
+        const { error } = await supabase
+          .from('gratitude_journal')
+          .upsert({
+            user_id: user.id,
+            entry_date: today,
+            entry_text: journalEntry,
+            prompt_used: currentPrompt,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id,entry_date'
+          });
+
+        if (error) {
+          console.error('Error saving journal entry:', error);
+          Alert.alert('Error', 'Failed to save your entry. Please try again.');
+        } else {
+          Alert.alert('Saved!', 'Your gratitude entry has been saved.');
+        }
+      } else {
+        // Save to local storage if not logged in
+        await AsyncStorage.setItem(`@journal_${today}`, journalEntry);
+        Alert.alert('Saved!', 'Your gratitude entry has been saved locally.');
+      }
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+      Alert.alert('Error', 'Failed to save your entry. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const loadJournalHistory = async () => {
+    if (!user || !isSupabaseConfigured()) {
+      Alert.alert('Sign In Required', 'Please sign in to view your journal history.');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('gratitude_journal')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('entry_date', { ascending: false })
+        .limit(30);
+
+      if (error) {
+        console.error('Error loading journal history:', error);
+        Alert.alert('Error', 'Failed to load journal history.');
+      } else {
+        setJournalEntries(data || []);
+        setShowJournalHistory(true);
+      }
+    } catch (error) {
+      console.error('Error loading journal history:', error);
+      Alert.alert('Error', 'Failed to load journal history.');
+    }
+  };
 
   const loadDailyProgress = async () => {
     try {
@@ -285,6 +421,16 @@ export default function WellnessScreen() {
     return content[emotion];
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
   return (
     <ImageBackground
       source={{ uri: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iY2FsbGlncmFwaHkiIHg9IjAiIHk9IjAiIHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48dGV4dCB4PSI1MCIgeT0iMTAwIiBmb250LXNpemU9IjgwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtinINmE2YTZhzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjI1MCIgZm9udC1zaXplPSI2MCIgb3BhY2l0eT0iMC4wMyIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMDAwMDAwIj7Yp9mE2K3ZhdivINmE2YTZhzwvdGV4dD48dGV4dCB4PSI1MCIgeT0iMzUwIiBmb250LXNpemU9IjcwIiBvcGFjaXR5PSIwLjAzIiBmb250LWZhbWlseT0iQXJpYWwiIGZpbGw9IiMwMDAwMDAiPtiz2KjYrdin2YY8L3RleHQ+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0idXJsKCNjYWxsaWdyYXBoeSkiLz48L3N2Zz4=' }}
@@ -449,7 +595,7 @@ export default function WellnessScreen() {
               </View>
             )}
 
-            {/* Gratitude Journal */}
+            {/* Enhanced Gratitude Journal */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -461,16 +607,83 @@ export default function WellnessScreen() {
                 <Text style={styles.cardTitle}>Gratitude Journal</Text>
               </View>
               <Text style={styles.cardDescription}>
-                List three things you&apos;re grateful for today
+                Reflect on your blessings and express gratitude to Allah
               </Text>
+
+              {/* Prompt Section */}
+              <View style={styles.promptCard}>
+                <View style={styles.promptHeader}>
+                  <IconSymbol
+                    ios_icon_name="lightbulb.fill"
+                    android_material_icon_name="lightbulb"
+                    size={20}
+                    color={colors.warning}
+                  />
+                  <Text style={styles.promptLabel}>Today&apos;s Prompt:</Text>
+                  <TouchableOpacity onPress={generateRandomPrompt}>
+                    <IconSymbol
+                      ios_icon_name="arrow.clockwise"
+                      android_material_icon_name="refresh"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.promptText}>{currentPrompt}</Text>
+              </View>
+
               <TextInput
                 style={styles.textInput}
-                placeholder="What are you grateful for?"
+                placeholder="Write your gratitude entry here..."
                 placeholderTextColor={colors.textSecondary}
                 value={journalEntry}
                 onChangeText={setJournalEntry}
                 multiline
+                numberOfLines={6}
               />
+
+              <View style={styles.journalActions}>
+                <TouchableOpacity 
+                  style={styles.journalButton}
+                  onPress={saveJournalEntry}
+                  disabled={isSaving}
+                >
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.card}
+                  />
+                  <Text style={styles.journalButtonText}>
+                    {isSaving ? 'Saving...' : 'Save Entry'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.journalButtonSecondary}
+                  onPress={loadJournalHistory}
+                >
+                  <IconSymbol
+                    ios_icon_name="book.fill"
+                    android_material_icon_name="history"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.journalButtonSecondaryText}>View History</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.journalTip}>
+                <IconSymbol
+                  ios_icon_name="info.circle"
+                  android_material_icon_name="info"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.journalTipText}>
+                  {user ? 'Your entries are saved to your profile' : 'Sign in to sync entries across devices'}
+                </Text>
+              </View>
             </View>
 
             {/* Stress Relief Dhikr */}
@@ -798,6 +1011,45 @@ export default function WellnessScreen() {
         </View>
       </Modal>
 
+      {/* Journal History Modal */}
+      <Modal
+        visible={showJournalHistory}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowJournalHistory(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Journal History</Text>
+              <TouchableOpacity onPress={() => setShowJournalHistory(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={28}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {journalEntries.length === 0 ? (
+                <Text style={styles.emptyText}>No journal entries yet. Start writing today!</Text>
+              ) : (
+                journalEntries.map((entry, index) => (
+                  <View key={`entry-${index}`} style={styles.historyEntry}>
+                    <Text style={styles.historyDate}>{formatDate(entry.entry_date)}</Text>
+                    {entry.prompt_used && (
+                      <Text style={styles.historyPrompt}>Prompt: {entry.prompt_used}</Text>
+                    )}
+                    <Text style={styles.historyText}>{entry.entry_text}</Text>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Workout Modal */}
       <Modal
         visible={showWorkoutModal}
@@ -1101,16 +1353,94 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
+  promptCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  promptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  promptLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  promptText: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
   textInput: {
     backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
     color: colors.text,
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: colors.border,
+    marginBottom: 16,
+  },
+  journalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  journalButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  journalButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  journalButtonSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.background,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  journalButtonSecondaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  journalTip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  journalTipText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 16,
   },
   dhikrList: {
     gap: 16,
@@ -1227,6 +1557,38 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 22,
     marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 40,
+    fontStyle: 'italic',
+  },
+  historyEntry: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.secondary,
+  },
+  historyDate: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 6,
+  },
+  historyPrompt: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  historyText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   quickModal: {
     backgroundColor: colors.card,

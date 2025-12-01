@@ -99,7 +99,13 @@ export default function TrackerScreen() {
           <ProgressRings
             prayers={trackerData.prayers}
             dhikr={trackerData.dhikr}
-            quran={{ pages: trackerData.quran.pages, goal: trackerData.quran.goal, streak: trackerData.quran.streak }}
+            quran={{ 
+              pages: trackerData.quran.pages, 
+              goal: trackerData.quran.goal, 
+              streak: trackerData.quran.streak,
+              versesMemorized: trackerData.quran.versesMemorized,
+              versesGoal: trackerData.quran.versesGoal
+            }}
           />
         </View>
 
@@ -229,7 +235,7 @@ export default function TrackerScreen() {
               />
               <View style={styles.quranHeaderInfo}>
                 <Text style={styles.quranTitle}>Daily Goals</Text>
-                <Text style={styles.quranSubtitle}>Track your Quran progress</Text>
+                <Text style={styles.quranSubtitle}>Complete both goals for full progress</Text>
               </View>
             </View>
 
@@ -398,38 +404,47 @@ export default function TrackerScreen() {
         <TouchableOpacity 
           style={styles.modalOverlay} 
           activeOpacity={1}
-          onPress={() => setShowGoalModal(false)}
+          onPress={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowGoalModal(false);
+            }
+          }}
         >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Set {goalType === 'dhikr' ? 'Tasbih' : goalType === 'quran-pages' ? 'Pages' : 'Verses'} Goal
-            </Text>
-            <Text style={styles.modalSubtitle}>
-              How many {goalType === 'dhikr' ? 'dhikr counts' : goalType === 'quran-pages' ? 'pages' : 'verses'} do you want to complete daily?
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              value={goalValue}
-              onChangeText={setGoalValue}
-              keyboardType="number-pad"
-              placeholder="Enter goal"
-              placeholderTextColor={colors.textSecondary}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => setShowGoalModal(false)}
-              >
-                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonSave]}
-                onPress={saveGoal}
-              >
-                <Text style={styles.modalButtonTextSave}>Save</Text>
-              </TouchableOpacity>
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                Set {goalType === 'dhikr' ? 'Tasbih' : goalType === 'quran-pages' ? 'Pages' : 'Verses'} Goal
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                How many {goalType === 'dhikr' ? 'dhikr counts' : goalType === 'quran-pages' ? 'pages' : 'verses'} do you want to complete daily?
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={goalValue}
+                onChangeText={setGoalValue}
+                keyboardType="number-pad"
+                placeholder="Enter goal"
+                placeholderTextColor={colors.textSecondary}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  onPress={() => setShowGoalModal(false)}
+                >
+                  <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.modalButtonSave]}
+                  onPress={saveGoal}
+                >
+                  <Text style={styles.modalButtonTextSave}>Save</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -830,7 +845,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 16,
     padding: 24,
-    width: '100%',
+    width: 320,
     maxWidth: 400,
   },
   modalTitle: {
