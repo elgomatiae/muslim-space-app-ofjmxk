@@ -30,10 +30,10 @@ export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsPr
   const prayersProgress = prayers.total > 0 ? prayers.completed / prayers.total : 0;
   const dhikrProgress = dhikr.goal > 0 ? Math.min(dhikr.count / dhikr.goal, 1) : 0;
   
-  // Both pages and verses must be completed for full Quran progress
+  // Calculate Quran progress as 50% pages + 50% verses
   const pagesProgress = quran.goal > 0 ? Math.min(quran.pages / quran.goal, 1) : 0;
   const versesProgress = quran.versesGoal > 0 ? Math.min(quran.versesMemorized / quran.versesGoal, 1) : 0;
-  const quranProgress = Math.min(pagesProgress, versesProgress); // Use the minimum of both
+  const quranProgress = (pagesProgress * 0.5) + (versesProgress * 0.5); // 50% each
 
   const prayersOffset = circumference1 - prayersProgress * circumference1;
   const dhikrOffset = circumference2 - dhikrProgress * circumference2;
@@ -116,7 +116,7 @@ export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsPr
       </Svg>
 
       <View style={styles.centerContent}>
-        <Text style={styles.centerTitle}>Daily Progress</Text>
+        <Text style={styles.centerTitle}>Faith Tracker</Text>
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <View style={[styles.statDot, { backgroundColor: getProgressColor(prayersProgress) }]} />
@@ -131,11 +131,9 @@ export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsPr
             <Text style={styles.statText}>Quran: {Math.round(quranProgress * 100)}%</Text>
           </View>
         </View>
-        {quranProgress < 1 && (pagesProgress < 1 || versesProgress < 1) && (
-          <Text style={styles.quranNote}>
-            Complete both reading and memorization goals
-          </Text>
-        )}
+        <Text style={styles.quranNote}>
+          Pages: {Math.round(pagesProgress * 100)}% • Verses: {Math.round(versesProgress * 100)}%
+        </Text>
       </View>
     </View>
   );
@@ -181,7 +179,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
-    fontStyle: 'italic',
     maxWidth: 180,
   },
 });
