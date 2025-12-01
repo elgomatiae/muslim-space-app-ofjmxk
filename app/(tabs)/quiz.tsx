@@ -1,16 +1,37 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Modal, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { quizBanks, getRandomQuestions, QuizQuestion } from '@/data/quizData';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+
+interface QuizQuestion {
+  id: string;
+  question_id: string;
+  question: string;
+  options: string[];
+  correct_answer: number;
+  explanation: string;
+  order_index: number;
+}
+
+interface Quiz {
+  id: string;
+  quiz_id: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  color: string;
+}
 
 export default function QuizScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const quizId = params.quizId as string;
 
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -18,18 +39,56 @@ export default function QuizScreen() {
   const [score, setScore] = useState(0);
   const [answeredQuestions, setAnsweredQuestions] = useState<boolean[]>([]);
   const [showResults, setShowResults] = useState(false);
-
-  const quiz = quizBanks.find(q => q.id === quizId);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (quizId) {
-      const randomQuestions = getRandomQuestions(quizId);
-      setQuestions(randomQuestions);
-      setAnsweredQuestions(new Array(randomQuestions.length).fill(false));
+      fetchQuizData();
     }
   }, [quizId]);
 
-  if (!quiz || questions.length === 0) {
+  const fetchQuizData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch quiz details
+      const { data: quizData, error: quizError } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('quiz_id', quizId)
+        .single();
+
+      if (quizError) throw quizError;
+      setQuiz(quizData);
+
+      // Fetch all questions for this quiz
+      const { data: questionsData, error: questionsError } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .eq('quiz_id', quizId)
+        .order('order_index', { ascending: true });
+
+      if (questionsError) throw questionsError;
+
+      setAllQuestions(questionsData || []);
+
+      // Select 10 random questions
+      const randomQuestions = selectRandomQuestions(questionsData || [], 10);
+      setQuestions(randomQuestions);
+      setAnsweredQuestions(new Array(randomQuestions.length).fill(false));
+    } catch (error) {
+      console.error('Error fetching quiz data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectRandomQuestions = (allQs: QuizQuestion[], count: number): QuizQuestion[] => {
+    const shuffled = [...allQs].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(count, allQs.length));
+  };
+
+  if (loading || !quiz || questions.length === 0) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -42,6 +101,10 @@ export default function QuizScreen() {
             />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Loading...</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading quiz...</Text>
         </View>
       </View>
     );
@@ -59,7 +122,7 @@ export default function QuizScreen() {
     newAnsweredQuestions[currentQuestionIndex] = true;
     setAnsweredQuestions(newAnsweredQuestions);
 
-    if (answerIndex === currentQuestion.correctAnswer) {
+    if (answerIndex === currentQuestion.correct_answer) {
       setScore(score + 1);
     }
   };
@@ -75,7 +138,7 @@ export default function QuizScreen() {
   };
 
   const handleRestart = () => {
-    const randomQuestions = getRandomQuestions(quizId);
+    const randomQuestions = selectRandomQuestions(allQuestions, 10);
     setQuestions(randomQuestions);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
@@ -134,7 +197,7 @@ export default function QuizScreen() {
         <View style={styles.optionsContainer}>
           {currentQuestion.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
-            const isCorrect = index === currentQuestion.correctAnswer;
+            const isCorrect = index === currentQuestion.correct_answer;
             const showCorrect = showExplanation && isCorrect;
             const showIncorrect = showExplanation && isSelected && !isCorrect;
 
@@ -195,19 +258,19 @@ export default function QuizScreen() {
         {showExplanation && (
           <View style={[
             styles.explanationCard,
-            selectedAnswer === currentQuestion.correctAnswer 
+            selectedAnswer === currentQuestion.correct_answer 
               ? styles.explanationCardCorrect 
               : styles.explanationCardIncorrect
           ]}>
             <View style={styles.explanationHeader}>
               <IconSymbol
-                ios_icon_name={selectedAnswer === currentQuestion.correctAnswer ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
-                android_material_icon_name={selectedAnswer === currentQuestion.correctAnswer ? 'check-circle' : 'cancel'}
+                ios_icon_name={selectedAnswer === currentQuestion.correct_answer ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                android_material_icon_name={selectedAnswer === currentQuestion.correct_answer ? 'check-circle' : 'cancel'}
                 size={32}
-                color={selectedAnswer === currentQuestion.correctAnswer ? colors.success : colors.error}
+                color={selectedAnswer === currentQuestion.correct_answer ? colors.success : colors.error}
               />
               <Text style={styles.explanationTitle}>
-                {selectedAnswer === currentQuestion.correctAnswer ? 'Correct!' : 'Incorrect'}
+                {selectedAnswer === currentQuestion.correct_answer ? 'Correct!' : 'Incorrect'}
               </Text>
             </View>
             <Text style={styles.explanationText}>{currentQuestion.explanation}</Text>
@@ -380,6 +443,17 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
     paddingBottom: 120,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   questionCard: {
     backgroundColor: colors.card,

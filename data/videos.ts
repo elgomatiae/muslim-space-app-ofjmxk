@@ -42,7 +42,7 @@ export interface Quiz {
 
 export const videoCategories: VideoCategory[] = [
   {
-    id: '1',
+    id: 'quran-tafsir',
     title: 'Quran & Tafsir',
     icon: 'book',
     videos: [
@@ -81,7 +81,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '2',
+    id: 'seerah',
     title: 'Seerah',
     icon: 'person',
     videos: [
@@ -112,7 +112,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '3',
+    id: 'aqeedah',
     title: 'Aqeedah',
     icon: 'star',
     videos: [
@@ -135,7 +135,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '4',
+    id: 'fiqh',
     title: 'Fiqh',
     icon: 'gavel',
     videos: [
@@ -158,7 +158,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '5',
+    id: 'motivational',
     title: 'Motivational',
     icon: 'favorite',
     videos: [
@@ -189,7 +189,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '6',
+    id: 'debates',
     title: 'Debates & Apologetics',
     icon: 'forum',
     videos: [
@@ -212,7 +212,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '7',
+    id: 'youth',
     title: 'Youth Lectures',
     icon: 'school',
     videos: [
@@ -235,7 +235,7 @@ export const videoCategories: VideoCategory[] = [
     ],
   },
   {
-    id: '8',
+    id: 'short-clips',
     title: 'Short Clips',
     icon: 'timer',
     videos: [
@@ -269,7 +269,7 @@ export const videoCategories: VideoCategory[] = [
 
 export const quranRecitations: RecitationCategory[] = [
   {
-    id: 'short',
+    id: 'short-surahs',
     title: 'Short Surahs',
     icon: 'music-note',
     recitations: [
@@ -308,7 +308,7 @@ export const quranRecitations: RecitationCategory[] = [
     ],
   },
   {
-    id: 'long',
+    id: 'long-surahs',
     title: 'Long Surahs',
     icon: 'library-music',
     recitations: [
@@ -393,7 +393,7 @@ export const quranRecitations: RecitationCategory[] = [
     ],
   },
   {
-    id: 'juz',
+    id: 'juz-amma',
     title: 'Juz Amma',
     icon: 'collections-bookmark',
     recitations: [

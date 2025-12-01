@@ -4,7 +4,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, 
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import * as Linking from 'expo-linking';
-import { quizBanks } from '@/data/quizData';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
@@ -29,6 +28,16 @@ interface Recitation {
   duration: string;
   video_url: string;
   thumbnail_url: string;
+  order_index: number;
+}
+
+interface Quiz {
+  id: string;
+  quiz_id: string;
+  title: string;
+  description: string;
+  difficulty: string;
+  color: string;
   order_index: number;
 }
 
@@ -67,6 +76,7 @@ export default function LearningScreen() {
   const [selectedTab, setSelectedTab] = useState<TabType>('lectures');
   const [lectureCategories, setLectureCategories] = useState<VideoCategory[]>([]);
   const [recitationCategories, setRecitationCategories] = useState<RecitationCategory[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -75,8 +85,8 @@ export default function LearningScreen() {
       fetchLectures();
     } else if (selectedTab === 'recitations') {
       fetchRecitations();
-    } else {
-      setLoading(false);
+    } else if (selectedTab === 'quizzes') {
+      fetchQuizzes();
     }
   }, [selectedTab]);
 
@@ -147,6 +157,24 @@ export default function LearningScreen() {
       }
     } catch (error) {
       console.error('Error fetching recitations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchQuizzes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+
+      setQuizzes(data || []);
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
     } finally {
       setLoading(false);
     }
@@ -346,56 +374,71 @@ export default function LearningScreen() {
 
             {selectedTab === 'quizzes' && (
               <React.Fragment>
-                <View style={styles.quizzesGrid}>
-                  {quizBanks.map((quiz, quizIndex) => (
-                    <TouchableOpacity 
-                      key={`quiz-${quizIndex}-${quiz.title}`} 
-                      style={styles.quizCard}
-                      onPress={() => openQuiz(quiz.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
-                        <IconSymbol
-                          ios_icon_name="questionmark.circle.fill"
-                          android_material_icon_name="quiz"
-                          size={32}
-                          color={colors.card}
-                        />
-                      </View>
-                      <View style={styles.quizInfo}>
-                        <Text style={styles.quizTitle}>{quiz.title}</Text>
-                        <Text style={styles.quizDescription}>{quiz.description}</Text>
-                        <View style={styles.quizMeta}>
-                          <View style={styles.quizMetaItem}>
-                            <IconSymbol
-                              ios_icon_name="list.bullet"
-                              android_material_icon_name="list"
-                              size={14}
-                              color={colors.textSecondary}
-                            />
-                            <Text style={styles.quizMetaText}>10 questions</Text>
-                          </View>
-                          <Text style={styles.quizMetaText}>•</Text>
-                          <View style={styles.quizMetaItem}>
-                            <IconSymbol
-                              ios_icon_name="chart.bar.fill"
-                              android_material_icon_name="bar-chart"
-                              size={14}
-                              color={colors.textSecondary}
-                            />
-                            <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
+                {quizzes.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <IconSymbol
+                      ios_icon_name="questionmark.circle"
+                      android_material_icon_name="quiz"
+                      size={64}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.emptyStateTitle}>No Quizzes Yet</Text>
+                    <Text style={styles.emptyStateText}>
+                      Quizzes will appear here once they are added to the database.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.quizzesGrid}>
+                    {quizzes.map((quiz, quizIndex) => (
+                      <TouchableOpacity 
+                        key={`quiz-${quizIndex}-${quiz.quiz_id}`} 
+                        style={styles.quizCard}
+                        onPress={() => openQuiz(quiz.quiz_id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
+                          <IconSymbol
+                            ios_icon_name="questionmark.circle.fill"
+                            android_material_icon_name="quiz"
+                            size={32}
+                            color={colors.card}
+                          />
+                        </View>
+                        <View style={styles.quizInfo}>
+                          <Text style={styles.quizTitle}>{quiz.title}</Text>
+                          <Text style={styles.quizDescription}>{quiz.description}</Text>
+                          <View style={styles.quizMeta}>
+                            <View style={styles.quizMetaItem}>
+                              <IconSymbol
+                                ios_icon_name="list.bullet"
+                                android_material_icon_name="list"
+                                size={14}
+                                color={colors.textSecondary}
+                              />
+                              <Text style={styles.quizMetaText}>10 questions</Text>
+                            </View>
+                            <Text style={styles.quizMetaText}>•</Text>
+                            <View style={styles.quizMetaItem}>
+                              <IconSymbol
+                                ios_icon_name="chart.bar.fill"
+                                android_material_icon_name="bar-chart"
+                                size={14}
+                                color={colors.textSecondary}
+                              />
+                              <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                      <IconSymbol
-                        ios_icon_name="chevron.right"
-                        android_material_icon_name="chevron-right"
-                        size={24}
-                        color={colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                        <IconSymbol
+                          ios_icon_name="chevron.right"
+                          android_material_icon_name="chevron-right"
+                          size={24}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </React.Fragment>
             )}
           </React.Fragment>
