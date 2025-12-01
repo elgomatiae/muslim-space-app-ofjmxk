@@ -117,23 +117,6 @@ export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsPr
 
       <View style={styles.centerContent}>
         <Text style={styles.centerTitle}>Faith Tracker</Text>
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: getProgressColor(prayersProgress) }]} />
-            <Text style={styles.statText}>Prayers: {Math.round(prayersProgress * 100)}%</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: colors.secondary }]} />
-            <Text style={styles.statText}>Dhikr: {Math.round(dhikrProgress * 100)}%</Text>
-          </View>
-          <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: colors.accent }]} />
-            <Text style={styles.statText}>Quran: {Math.round(quranProgress * 100)}%</Text>
-          </View>
-        </View>
-        <Text style={styles.quranNote}>
-          Pages: {Math.round(pagesProgress * 100)}% • Verses: {Math.round(versesProgress * 100)}%
-        </Text>
       </View>
     </View>
   );
@@ -151,34 +134,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centerTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
-  },
-  statsContainer: {
-    gap: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  statText: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  quranNote: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 8,
-    textAlign: 'center',
-    maxWidth: 180,
   },
 });
