@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { miracleCategories } from '@/data/miracles';
+
+const { height } = Dimensions.get('window');
 
 export default function DawahScreen() {
   const [selectedTab, setSelectedTab] = useState('scientific');
@@ -22,42 +24,44 @@ export default function DawahScreen() {
         <Text style={styles.headerSubtitle}>Share Islam with confidence</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsScroll}
-        contentContainerStyle={styles.tabsContent}
-      >
-        {miracleCategories.map((category, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.tabButton,
-              selectedTab === category.id && styles.tabButtonActive,
-              { borderColor: category.color },
-              selectedTab === category.id && { backgroundColor: category.color },
-            ]}
-            onPress={() => {
-              setSelectedTab(category.id);
-              setExpandedMiracle(null);
-            }}
-          >
-            <IconSymbol
-              ios_icon_name={category.icon as any}
-              android_material_icon_name={category.icon as any}
-              size={14}
-              color={selectedTab === category.id ? colors.card : category.color}
-            />
-            <Text style={[
-              styles.tabButtonText,
-              selectedTab === category.id && styles.tabButtonTextActive,
-              { color: selectedTab === category.id ? colors.card : category.color }
-            ]}>
-              {category.title}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={[styles.tabsContainer, { maxHeight: height * 0.25 }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScroll}
+          contentContainerStyle={styles.tabsContent}
+        >
+          {miracleCategories.map((category, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.tabButton,
+                selectedTab === category.id && styles.tabButtonActive,
+                { borderColor: category.color },
+                selectedTab === category.id && { backgroundColor: category.color },
+              ]}
+              onPress={() => {
+                setSelectedTab(category.id);
+                setExpandedMiracle(null);
+              }}
+            >
+              <IconSymbol
+                ios_icon_name={category.icon as any}
+                android_material_icon_name={category.icon as any}
+                size={14}
+                color={selectedTab === category.id ? colors.card : category.color}
+              />
+              <Text style={[
+                styles.tabButtonText,
+                selectedTab === category.id && styles.tabButtonTextActive,
+                { color: selectedTab === category.id ? colors.card : category.color }
+              ]}>
+                {category.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedCategory && (
@@ -198,10 +202,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  tabsScroll: {
+  tabsContainer: {
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  tabsScroll: {
+    flexGrow: 0,
   },
   tabsContent: {
     paddingHorizontal: 16,

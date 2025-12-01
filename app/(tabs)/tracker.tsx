@@ -1,15 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import ProgressRings from '@/components/ProgressRings';
-
-interface TrackerData {
-  prayers: { completed: number; total: number; streak: number };
-  dhikr: { count: number; goal: number; streak: number };
-  quran: { pages: number; goal: number; streak: number };
-}
+import { useTracker } from '@/contexts/TrackerContext';
 
 const dhikrPhrases = [
   { id: 'subhanallah', arabic: 'سُبْحَانَ ٱللَّٰهِ', transliteration: 'SubhanAllah', translation: 'Glory be to Allah' },
@@ -21,63 +16,46 @@ const dhikrPhrases = [
 ];
 
 export default function TrackerScreen() {
-  const [trackerData, setTrackerData] = useState<TrackerData>({
-    prayers: { completed: 3, total: 5, streak: 7 },
-    dhikr: { count: 150, goal: 300, streak: 5 },
-    quran: { pages: 2, goal: 5, streak: 12 },
-  });
+  const { trackerData, updateDhikr, updateQuran } = useTracker();
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showDhikrModal, setShowDhikrModal] = useState(false);
-  const [showQuranGoalModal, setShowQuranGoalModal] = useState(false);
   const [goalType, setGoalType] = useState<'dhikr' | 'quran-pages' | 'quran-verses'>('dhikr');
   const [goalValue, setGoalValue] = useState('');
   const [selectedDhikr, setSelectedDhikr] = useState(dhikrPhrases[0]);
   const [tasbihCount, setTasbihCount] = useState(0);
-  
-  // New Quran tracking state
-  const [pagesRead, setPagesRead] = useState(0);
-  const [pagesGoal, setPagesGoal] = useState(5);
-  const [versesMemorized, setVersesMemorized] = useState(0);
-  const [versesGoal, setVersesGoal] = useState(3);
 
   const openGoalModal = (type: 'dhikr' | 'quran-pages' | 'quran-verses') => {
     setGoalType(type);
     if (type === 'dhikr') {
       setGoalValue(trackerData.dhikr.goal.toString());
     } else if (type === 'quran-pages') {
-      setGoalValue(pagesGoal.toString());
+      setGoalValue(trackerData.quran.goal.toString());
     } else {
-      setGoalValue(versesGoal.toString());
+      setGoalValue(trackerData.quran.versesGoal.toString());
     }
     setShowGoalModal(true);
   };
 
-  const saveGoal = () => {
+  const saveGoal = async () => {
     const value = parseInt(goalValue);
     if (isNaN(value) || value <= 0) {
       return;
     }
 
     if (goalType === 'dhikr') {
-      setTrackerData({
-        ...trackerData,
-        dhikr: { ...trackerData.dhikr, goal: value },
-      });
+      await updateDhikr(trackerData.dhikr.count, value);
     } else if (goalType === 'quran-pages') {
-      setPagesGoal(value);
+      await updateQuran(trackerData.quran.pages, value, trackerData.quran.versesMemorized, trackerData.quran.versesGoal);
     } else {
-      setVersesGoal(value);
+      await updateQuran(trackerData.quran.pages, trackerData.quran.goal, trackerData.quran.versesMemorized, value);
     }
     setShowGoalModal(false);
   };
 
-  const incrementTasbih = () => {
+  const incrementTasbih = async () => {
     setTasbihCount(tasbihCount + 1);
-    setTrackerData({
-      ...trackerData,
-      dhikr: { ...trackerData.dhikr, count: trackerData.dhikr.count + 1 },
-    });
+    await updateDhikr(trackerData.dhikr.count + 1, trackerData.dhikr.goal);
   };
 
   const resetTasbih = () => {
@@ -89,23 +67,23 @@ export default function TrackerScreen() {
     setShowDhikrModal(false);
   };
 
-  const incrementPages = () => {
-    setPagesRead(pagesRead + 1);
+  const incrementPages = async () => {
+    await updateQuran(trackerData.quran.pages + 1, trackerData.quran.goal, trackerData.quran.versesMemorized, trackerData.quran.versesGoal);
   };
 
-  const decrementPages = () => {
-    if (pagesRead > 0) {
-      setPagesRead(pagesRead - 1);
+  const decrementPages = async () => {
+    if (trackerData.quran.pages > 0) {
+      await updateQuran(trackerData.quran.pages - 1, trackerData.quran.goal, trackerData.quran.versesMemorized, trackerData.quran.versesGoal);
     }
   };
 
-  const incrementVerses = () => {
-    setVersesMemorized(versesMemorized + 1);
+  const incrementVerses = async () => {
+    await updateQuran(trackerData.quran.pages, trackerData.quran.goal, trackerData.quran.versesMemorized + 1, trackerData.quran.versesGoal);
   };
 
-  const decrementVerses = () => {
-    if (versesMemorized > 0) {
-      setVersesMemorized(versesMemorized - 1);
+  const decrementVerses = async () => {
+    if (trackerData.quran.versesMemorized > 0) {
+      await updateQuran(trackerData.quran.pages, trackerData.quran.goal, trackerData.quran.versesMemorized - 1, trackerData.quran.versesGoal);
     }
   };
 
@@ -121,7 +99,7 @@ export default function TrackerScreen() {
           <ProgressRings
             prayers={trackerData.prayers}
             dhikr={trackerData.dhikr}
-            quran={{ pages: pagesRead, goal: pagesGoal, streak: trackerData.quran.streak }}
+            quran={{ pages: trackerData.quran.pages, goal: trackerData.quran.goal, streak: trackerData.quran.streak }}
           />
         </View>
 
@@ -278,13 +256,13 @@ export default function TrackerScreen() {
 
               <View style={styles.quranProgress}>
                 <Text style={styles.quranProgressText}>
-                  {pagesRead} / {pagesGoal} pages
+                  {trackerData.quran.pages} / {trackerData.quran.goal} pages
                 </Text>
                 <View style={styles.quranProgressBar}>
                   <View 
                     style={[
                       styles.quranProgressFill, 
-                      { width: `${Math.min((pagesRead / pagesGoal) * 100, 100)}%`, backgroundColor: colors.accent }
+                      { width: `${Math.min((trackerData.quran.pages / trackerData.quran.goal) * 100, 100)}%`, backgroundColor: colors.accent }
                     ]} 
                   />
                 </View>
@@ -344,13 +322,13 @@ export default function TrackerScreen() {
 
               <View style={styles.quranProgress}>
                 <Text style={styles.quranProgressText}>
-                  {versesMemorized} / {versesGoal} verses
+                  {trackerData.quran.versesMemorized} / {trackerData.quran.versesGoal} verses
                 </Text>
                 <View style={styles.quranProgressBar}>
                   <View 
                     style={[
                       styles.quranProgressFill, 
-                      { width: `${Math.min((versesMemorized / versesGoal) * 100, 100)}%`, backgroundColor: colors.accent }
+                      { width: `${Math.min((trackerData.quran.versesMemorized / trackerData.quran.versesGoal) * 100, 100)}%`, backgroundColor: colors.accent }
                     ]} 
                   />
                 </View>

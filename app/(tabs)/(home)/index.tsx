@@ -9,6 +9,7 @@ import { getDailyContent, DailyHadith, DailyVerse } from '@/data/dailyContent';
 import ProgressRings from '@/components/ProgressRings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProfileButton from '@/components/ProfileButton';
+import { useTracker } from '@/contexts/TrackerContext';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
@@ -20,6 +21,8 @@ const PRAYER_STORAGE_KEY = '@prayer_completion';
 const PRAYER_DATE_KEY = '@prayer_date';
 
 export default function HomeScreen() {
+  const { trackerData, updatePrayers } = useTracker();
+  
   const [prayers, setPrayers] = useState<Prayer[]>([
     { name: 'Fajr', time: '05:30', completed: false },
     { name: 'Dhuhr', time: '12:45', completed: false },
@@ -37,12 +40,6 @@ export default function HomeScreen() {
   const [dailyHadith, setDailyHadith] = useState<DailyHadith | null>(null);
   const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
   const [loadingDailyContent, setLoadingDailyContent] = useState(true);
-
-  const [trackerData] = useState({
-    prayers: { completed: 3, total: 5 },
-    dhikr: { count: 150, goal: 300 },
-    quran: { pages: 2, goal: 5 },
-  });
 
   // Load daily content
   useEffect(() => {
@@ -140,6 +137,10 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(PRAYER_STORAGE_KEY, JSON.stringify(completionStatus));
       await AsyncStorage.setItem(PRAYER_DATE_KEY, getTodayDateString());
       console.log('Saved prayer status:', completionStatus);
+      
+      // Update tracker context
+      const completedCount = updatedPrayers.filter(p => p.completed).length;
+      await updatePrayers(completedCount, updatedPrayers.length);
     } catch (error) {
       console.log('Error saving prayer status:', error);
     }
@@ -273,7 +274,7 @@ export default function HomeScreen() {
           <ProgressRings
             prayers={trackerData.prayers}
             dhikr={trackerData.dhikr}
-            quran={trackerData.quran}
+            quran={{ pages: trackerData.quran.pages, goal: trackerData.quran.goal, streak: trackerData.quran.streak }}
           />
         </View>
 

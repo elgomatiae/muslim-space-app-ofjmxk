@@ -14,15 +14,74 @@ import {
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTracker } from '@/contexts/TrackerContext';
 import { router } from 'expo-router';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function ProfileScreen() {
   const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
+  const { trackerData } = useTracker();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [weeklyStats, setWeeklyStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  useEffect(() => {
+    if (user && isSupabaseConfigured()) {
+      loadWeeklyStats();
+    }
+  }, [user]);
+
+  const loadWeeklyStats = async () => {
+    if (!user || !isSupabaseConfigured()) return;
+
+    setLoadingStats(true);
+    try {
+      const today = new Date();
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(today.getDate() - 7);
+
+      const { data, error } = await supabase
+        .from('iman_tracker')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+        .lte('date', today.toISOString().split('T')[0]);
+
+      if (error) {
+        console.error('Error loading weekly stats:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const totalPrayers = data.reduce((sum, day) => sum + (day.prayers_completed || 0), 0);
+        const totalDhikr = data.reduce((sum, day) => sum + (day.dhikr_count || 0), 0);
+        const totalQuranPages = data.reduce((sum, day) => sum + (day.quran_pages || 0), 0);
+        const totalQuranVerses = data.reduce((sum, day) => sum + (day.quran_verses_memorized || 0), 0);
+        const maxPrayerStreak = Math.max(...data.map(day => day.prayers_streak || 0));
+        const maxDhikrStreak = Math.max(...data.map(day => day.dhikr_streak || 0));
+        const maxQuranStreak = Math.max(...data.map(day => day.quran_streak || 0));
+
+        setWeeklyStats({
+          totalPrayers,
+          totalDhikr,
+          totalQuranPages,
+          totalQuranVerses,
+          maxPrayerStreak,
+          maxDhikrStreak,
+          maxQuranStreak,
+          daysTracked: data.length,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading weekly stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -221,6 +280,147 @@ export default function ProfileScreen() {
             <Text style={styles.emailText}>{user.email}</Text>
             <Text style={styles.userIdText}>User ID: {user.id.substring(0, 8)}...</Text>
           </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Today&apos;s Progress</Text>
+            
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <IconSymbol
+                  ios_icon_name="hands.sparkles.fill"
+                  android_material_icon_name="favorite"
+                  size={28}
+                  color={colors.primary}
+                />
+                <Text style={styles.statValue}>{trackerData.prayers.completed}/{trackerData.prayers.total}</Text>
+                <Text style={styles.statLabel}>Prayers</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <IconSymbol
+                  ios_icon_name="sparkles"
+                  android_material_icon_name="auto-awesome"
+                  size={28}
+                  color={colors.secondary}
+                />
+                <Text style={styles.statValue}>{trackerData.dhikr.count}</Text>
+                <Text style={styles.statLabel}>Dhikr</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <IconSymbol
+                  ios_icon_name="book.fill"
+                  android_material_icon_name="menu-book"
+                  size={28}
+                  color={colors.accent}
+                />
+                <Text style={styles.statValue}>{trackerData.quran.pages}</Text>
+                <Text style={styles.statLabel}>Pages</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <IconSymbol
+                  ios_icon_name="brain.head.profile"
+                  android_material_icon_name="psychology"
+                  size={28}
+                  color={colors.accent}
+                />
+                <Text style={styles.statValue}>{trackerData.quran.versesMemorized}</Text>
+                <Text style={styles.statLabel}>Verses</Text>
+              </View>
+            </View>
+          </View>
+
+          {weeklyStats && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Last 7 Days</Text>
+              
+              <View style={styles.weeklyCard}>
+                <View style={styles.weeklyRow}>
+                  <View style={styles.weeklyItem}>
+                    <IconSymbol
+                      ios_icon_name="hands.sparkles.fill"
+                      android_material_icon_name="favorite"
+                      size={20}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.weeklyValue}>{weeklyStats.totalPrayers}</Text>
+                    <Text style={styles.weeklyLabel}>Total Prayers</Text>
+                  </View>
+                  <View style={styles.weeklyItem}>
+                    <IconSymbol
+                      ios_icon_name="sparkles"
+                      android_material_icon_name="auto-awesome"
+                      size={20}
+                      color={colors.secondary}
+                    />
+                    <Text style={styles.weeklyValue}>{weeklyStats.totalDhikr}</Text>
+                    <Text style={styles.weeklyLabel}>Total Dhikr</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.weeklyRow}>
+                  <View style={styles.weeklyItem}>
+                    <IconSymbol
+                      ios_icon_name="book.fill"
+                      android_material_icon_name="menu-book"
+                      size={20}
+                      color={colors.accent}
+                    />
+                    <Text style={styles.weeklyValue}>{weeklyStats.totalQuranPages}</Text>
+                    <Text style={styles.weeklyLabel}>Pages Read</Text>
+                  </View>
+                  <View style={styles.weeklyItem}>
+                    <IconSymbol
+                      ios_icon_name="brain.head.profile"
+                      android_material_icon_name="psychology"
+                      size={20}
+                      color={colors.accent}
+                    />
+                    <Text style={styles.weeklyValue}>{weeklyStats.totalQuranVerses}</Text>
+                    <Text style={styles.weeklyLabel}>Verses Memorized</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.streaksRow}>
+                  <Text style={styles.streaksTitle}>Best Streaks</Text>
+                  <View style={styles.streaksList}>
+                    <View style={styles.streakItem}>
+                      <IconSymbol
+                        ios_icon_name="flame.fill"
+                        android_material_icon_name="local-fire-department"
+                        size={16}
+                        color={colors.warning}
+                      />
+                      <Text style={styles.streakText}>Prayers: {weeklyStats.maxPrayerStreak} days</Text>
+                    </View>
+                    <View style={styles.streakItem}>
+                      <IconSymbol
+                        ios_icon_name="flame.fill"
+                        android_material_icon_name="local-fire-department"
+                        size={16}
+                        color={colors.warning}
+                      />
+                      <Text style={styles.streakText}>Dhikr: {weeklyStats.maxDhikrStreak} days</Text>
+                    </View>
+                    <View style={styles.streakItem}>
+                      <IconSymbol
+                        ios_icon_name="flame.fill"
+                        android_material_icon_name="local-fire-department"
+                        size={16}
+                        color={colors.warning}
+                      />
+                      <Text style={styles.streakText}>Quran: {weeklyStats.maxQuranStreak} days</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account Settings</Text>
@@ -578,6 +778,86 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 12,
   },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  weeklyCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  weeklyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  weeklyItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  weeklyValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  weeklyLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 16,
+  },
+  streaksRow: {
+    marginTop: 8,
+  },
+  streaksTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  streaksList: {
+    gap: 8,
+  },
+  streakItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  streakText: {
+    fontSize: 14,
+    color: colors.text,
+  },
   settingCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
@@ -706,11 +986,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.card,
     marginLeft: 8,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
   },
   dividerLine: {
     flex: 1,

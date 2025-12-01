@@ -24,16 +24,16 @@ export default function TabLayout() {
       label: 'Dawah',
     },
     {
+      name: 'wellness',
+      route: '/(tabs)/wellness',
+      icon: 'favorite',
+      label: 'Wellness',
+    },
+    {
       name: 'tracker',
       route: '/(tabs)/tracker',
       icon: 'bar-chart',
       label: 'Track',
-    },
-    {
-      name: 'duas',
-      route: '/(tabs)/duas',
-      icon: 'favorite',
-      label: 'Duas',
     },
   ];
 
