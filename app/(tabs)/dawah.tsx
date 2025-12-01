@@ -1,15 +1,110 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { miracleCategories } from '@/data/miracles';
+import { supabase } from '@/lib/supabase';
 
 const { height } = Dimensions.get('window');
+
+interface QuranVerse {
+  surah: number;
+  verse: number;
+  arabic: string;
+  translation: string;
+  order_index: number;
+}
+
+interface Hadith {
+  source: string;
+  text: string;
+  order_index: number;
+}
+
+interface Miracle {
+  id: string;
+  category_id: string;
+  title: string;
+  description: string;
+  details: string;
+  explanation: string;
+  reference: string;
+  image_url: string;
+  order_index: number;
+  quran_verses: QuranVerse[];
+  hadiths: Hadith[];
+}
+
+interface MiracleCategory {
+  id: string;
+  title: string;
+  icon: string;
+  color: string;
+}
+
+const miracleCategories: MiracleCategory[] = [
+  { id: 'scientific', title: 'Scientific', icon: 'flask', color: '#3F51B5' },
+  { id: 'linguistic', title: 'Linguistic', icon: 'text-format', color: '#E91E63' },
+  { id: 'historical', title: 'Historical', icon: 'history', color: '#03A9F4' },
+  { id: 'mathematical', title: 'Mathematical', icon: 'calculate', color: '#FF9800' },
+  { id: 'prophetic', title: 'Prophetic', icon: 'star', color: '#9C27B0' },
+];
 
 export default function DawahScreen() {
   const [selectedTab, setSelectedTab] = useState('scientific');
   const [expandedMiracle, setExpandedMiracle] = useState<string | null>(null);
+  const [miracles, setMiracles] = useState<Miracle[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMiracles();
+  }, [selectedTab]);
+
+  const fetchMiracles = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch miracles for the selected category
+      const { data: miraclesData, error: miraclesError } = await supabase
+        .from('miracles')
+        .select('*')
+        .eq('category_id', selectedTab)
+        .order('order_index', { ascending: true });
+
+      if (miraclesError) throw miraclesError;
+
+      if (miraclesData) {
+        // Fetch verses and hadiths for each miracle
+        const miraclesWithDetails = await Promise.all(
+          miraclesData.map(async (miracle) => {
+            const { data: verses } = await supabase
+              .from('miracle_quran_verses')
+              .select('*')
+              .eq('miracle_id', miracle.id)
+              .order('order_index', { ascending: true });
+
+            const { data: hadiths } = await supabase
+              .from('miracle_hadiths')
+              .select('*')
+              .eq('miracle_id', miracle.id)
+              .order('order_index', { ascending: true });
+
+            return {
+              ...miracle,
+              quran_verses: verses || [],
+              hadiths: hadiths || [],
+            };
+          })
+        );
+
+        setMiracles(miraclesWithDetails);
+      }
+    } catch (error) {
+      console.error('Error fetching miracles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const selectedCategory = miracleCategories.find(cat => cat.id === selectedTab);
 
@@ -76,165 +171,188 @@ export default function DawahScreen() {
               <View style={styles.categoryHeaderText}>
                 <Text style={styles.categoryHeaderTitle}>{selectedCategory.title} Miracles</Text>
                 <Text style={styles.categoryHeaderSubtitle}>
-                  {selectedCategory.miracles.length} miracles
+                  {miracles.length} miracles
                 </Text>
               </View>
             </View>
 
-            <View style={styles.miraclesGrid}>
-              {selectedCategory.miracles.map((miracle, index) => {
-                const isExpanded = expandedMiracle === miracle.id;
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.miracleCard}
-                    onPress={() => toggleMiracle(miracle.id)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.miracleImageContainer}>
-                      <Image
-                        source={{ uri: miracle.image }}
-                        style={styles.miracleImage}
-                        resizeMode="cover"
-                      />
-                      <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
-                        <Text style={styles.miracleNumberText}>{index + 1}</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={selectedCategory.color} />
+                <Text style={styles.loadingText}>Loading miracles...</Text>
+              </View>
+            ) : (
+              <View style={styles.miraclesGrid}>
+                {miracles.map((miracle, index) => {
+                  const isExpanded = expandedMiracle === miracle.id;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.miracleCard}
+                      onPress={() => toggleMiracle(miracle.id)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.miracleImageContainer}>
+                        <Image
+                          source={{ uri: miracle.image_url }}
+                          style={styles.miracleImage}
+                          resizeMode="cover"
+                        />
+                        <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
+                          <Text style={styles.miracleNumberText}>{index + 1}</Text>
+                        </View>
                       </View>
-                    </View>
-                    
-                    <View style={styles.miracleContent}>
-                      <Text style={styles.miracleTitle} numberOfLines={isExpanded ? undefined : 2}>
-                        {miracle.title}
-                      </Text>
                       
-                      <Text style={styles.miracleDescription} numberOfLines={isExpanded ? undefined : 3}>
-                        {miracle.description}
-                      </Text>
-                      
-                      {isExpanded && (
-                        <React.Fragment>
-                          <View style={styles.divider} />
-                          
-                          <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
+                      <View style={styles.miracleContent}>
+                        <Text style={styles.miracleTitle} numberOfLines={isExpanded ? undefined : 2}>
+                          {miracle.title}
+                        </Text>
+                        
+                        <Text style={styles.miracleDescription} numberOfLines={isExpanded ? undefined : 3}>
+                          {miracle.description}
+                        </Text>
+                        
+                        {isExpanded && (
+                          <React.Fragment>
+                            {/* Quran Verses Section - Displayed First and Prominently */}
+                            {miracle.quran_verses && miracle.quran_verses.length > 0 && (
+                              <React.Fragment>
+                                <View style={styles.divider} />
+                                <View style={styles.section}>
+                                  <View style={[styles.sectionHeaderProminent, { backgroundColor: selectedCategory.color }]}>
+                                    <IconSymbol
+                                      ios_icon_name="book.fill"
+                                      android_material_icon_name="menu-book"
+                                      size={20}
+                                      color={colors.card}
+                                    />
+                                    <Text style={styles.sectionTitleProminent}>
+                                      Quranic Evidence
+                                    </Text>
+                                  </View>
+                                  {miracle.quran_verses.map((verse, i) => (
+                                    <View key={i} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
+                                      <View style={[styles.verseReference, { backgroundColor: selectedCategory.color }]}>
+                                        <IconSymbol
+                                          ios_icon_name="book.closed.fill"
+                                          android_material_icon_name="auto-stories"
+                                          size={14}
+                                          color={colors.card}
+                                        />
+                                        <Text style={styles.verseReferenceText}>
+                                          Surah {verse.surah}:{verse.verse}
+                                        </Text>
+                                      </View>
+                                      {verse.arabic && (
+                                        <View style={styles.verseArabicContainer}>
+                                          <Text style={styles.verseArabic}>{verse.arabic}</Text>
+                                        </View>
+                                      )}
+                                      <Text style={styles.verseTranslation}>{verse.translation}</Text>
+                                    </View>
+                                  ))}
+                                </View>
+                              </React.Fragment>
+                            )}
+
+                            {/* Details Section */}
+                            <View style={styles.divider} />
+                            <View style={styles.section}>
+                              <View style={styles.sectionHeader}>
+                                <IconSymbol
+                                  ios_icon_name="doc.text.fill"
+                                  android_material_icon_name="description"
+                                  size={18}
+                                  color={selectedCategory.color}
+                                />
+                                <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                  The Miracle Explained
+                                </Text>
+                              </View>
+                              <Text style={styles.miracleDetails}>{miracle.details}</Text>
+                            </View>
+
+                            {/* Why This Is Miraculous Section */}
+                            {miracle.explanation && (
+                              <React.Fragment>
+                                <View style={styles.divider} />
+                                <View style={styles.section}>
+                                  <View style={styles.sectionHeader}>
+                                    <IconSymbol
+                                      ios_icon_name="lightbulb.fill"
+                                      android_material_icon_name="lightbulb"
+                                      size={18}
+                                      color={selectedCategory.color}
+                                    />
+                                    <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                      Why This Is Miraculous
+                                    </Text>
+                                  </View>
+                                  <Text style={styles.miracleDetails}>{miracle.explanation}</Text>
+                                </View>
+                              </React.Fragment>
+                            )}
+
+                            {/* Hadiths Section */}
+                            {miracle.hadiths && miracle.hadiths.length > 0 && (
+                              <React.Fragment>
+                                <View style={styles.divider} />
+                                <View style={styles.section}>
+                                  <View style={styles.sectionHeader}>
+                                    <IconSymbol
+                                      ios_icon_name="text.book.closed.fill"
+                                      android_material_icon_name="auto-stories"
+                                      size={18}
+                                      color={selectedCategory.color}
+                                    />
+                                    <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                      Supporting Hadiths
+                                    </Text>
+                                  </View>
+                                  {miracle.hadiths.map((hadith, i) => (
+                                    <View key={i} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
+                                      <View style={[styles.hadithSource, { backgroundColor: selectedCategory.color }]}>
+                                        <Text style={styles.hadithSourceText}>{hadith.source}</Text>
+                                      </View>
+                                      <Text style={styles.hadithText}>{hadith.text}</Text>
+                                    </View>
+                                  ))}
+                                </View>
+                              </React.Fragment>
+                            )}
+
+                            {/* Reference Footer */}
+                            <View style={styles.miracleFooter}>
                               <IconSymbol
-                                ios_icon_name="doc.text.fill"
-                                android_material_icon_name="description"
-                                size={16}
+                                ios_icon_name="link"
+                                android_material_icon_name="link"
+                                size={14}
                                 color={selectedCategory.color}
                               />
-                              <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
-                                Details
+                              <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
+                                {miracle.reference}
                               </Text>
                             </View>
-                            <Text style={styles.miracleDetails}>{miracle.details}</Text>
-                          </View>
+                          </React.Fragment>
+                        )}
 
-                          {miracle.explanation && (
-                            <React.Fragment>
-                              <View style={styles.divider} />
-                              <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                  <IconSymbol
-                                    ios_icon_name="lightbulb.fill"
-                                    android_material_icon_name="lightbulb"
-                                    size={16}
-                                    color={selectedCategory.color}
-                                  />
-                                  <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
-                                    Why This Is Miraculous
-                                  </Text>
-                                </View>
-                                <Text style={styles.miracleDetails}>{miracle.explanation}</Text>
-                              </View>
-                            </React.Fragment>
-                          )}
-
-                          {miracle.quranVerses && miracle.quranVerses.length > 0 && (
-                            <React.Fragment>
-                              <View style={styles.divider} />
-                              <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                  <IconSymbol
-                                    ios_icon_name="book.fill"
-                                    android_material_icon_name="menu-book"
-                                    size={16}
-                                    color={selectedCategory.color}
-                                  />
-                                  <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
-                                    Quran Verses
-                                  </Text>
-                                </View>
-                                {miracle.quranVerses.map((verse, i) => (
-                                  <View key={i} style={styles.verseContainer}>
-                                    <Text style={styles.verseReference}>
-                                      Surah {verse.surah}:{verse.verse}
-                                    </Text>
-                                    {verse.arabic && (
-                                      <Text style={styles.verseArabic}>{verse.arabic}</Text>
-                                    )}
-                                    <Text style={styles.verseTranslation}>{verse.translation}</Text>
-                                  </View>
-                                ))}
-                              </View>
-                            </React.Fragment>
-                          )}
-
-                          {miracle.hadiths && miracle.hadiths.length > 0 && (
-                            <React.Fragment>
-                              <View style={styles.divider} />
-                              <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                  <IconSymbol
-                                    ios_icon_name="text.book.closed.fill"
-                                    android_material_icon_name="auto-stories"
-                                    size={16}
-                                    color={selectedCategory.color}
-                                  />
-                                  <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
-                                    Hadiths
-                                  </Text>
-                                </View>
-                                {miracle.hadiths.map((hadith, i) => (
-                                  <View key={i} style={styles.hadithContainer}>
-                                    <Text style={styles.hadithSource}>{hadith.source}</Text>
-                                    <Text style={styles.hadithText}>{hadith.text}</Text>
-                                  </View>
-                                ))}
-                              </View>
-                            </React.Fragment>
-                          )}
-
-                          <View style={styles.miracleFooter}>
-                            <IconSymbol
-                              ios_icon_name="link"
-                              android_material_icon_name="link"
-                              size={14}
-                              color={selectedCategory.color}
-                            />
-                            <Text style={[styles.miracleReference, { color: selectedCategory.color }]}>
-                              {miracle.reference}
-                            </Text>
-                          </View>
-                        </React.Fragment>
-                      )}
-
-                      <View style={styles.expandButton}>
-                        <Text style={[styles.expandButtonText, { color: selectedCategory.color }]}>
-                          {isExpanded ? 'Show Less' : 'Read More'}
-                        </Text>
-                        <IconSymbol
-                          ios_icon_name={isExpanded ? 'chevron.up' : 'chevron.down'}
-                          android_material_icon_name={isExpanded ? 'expand-less' : 'expand-more'}
-                          size={16}
-                          color={selectedCategory.color}
-                        />
+                        <View style={styles.expandButton}>
+                          <Text style={[styles.expandButtonText, { color: selectedCategory.color }]}>
+                            {isExpanded ? 'Show Less' : 'Read More'}
+                          </Text>
+                          <IconSymbol
+                            ios_icon_name={isExpanded ? 'chevron.up' : 'chevron.down'}
+                            android_material_icon_name={isExpanded ? 'expand-less' : 'expand-more'}
+                            size={16}
+                            color={selectedCategory.color}
+                          />
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </React.Fragment>
         )}
 
@@ -359,6 +477,16 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.9,
   },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   miraclesGrid: {
     gap: 12,
   },
@@ -427,55 +555,90 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
+  },
+  sectionHeaderProminent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+  },
+  sectionTitleProminent: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.card,
   },
   miracleDetails: {
     fontSize: 14,
     color: colors.text,
     lineHeight: 22,
   },
-  verseContainer: {
+  verseContainerProminent: {
     backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  verseReference: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  verseReferenceText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  verseArabicContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  verseReference: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 8,
   },
   verseArabic: {
-    fontSize: 18,
+    fontSize: 20,
     color: colors.text,
-    lineHeight: 32,
+    lineHeight: 36,
     textAlign: 'right',
-    marginBottom: 8,
     fontWeight: '600',
   },
   verseTranslation: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    lineHeight: 22,
+    lineHeight: 24,
     fontStyle: 'italic',
   },
   hadithContainer: {
     backgroundColor: colors.background,
-    padding: 12,
+    padding: 14,
     borderRadius: 8,
     marginBottom: 12,
     borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
   },
   hadithSource: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 5,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  hadithSourceText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.accent,
-    marginBottom: 8,
+    color: colors.card,
   },
   hadithText: {
     fontSize: 14,
