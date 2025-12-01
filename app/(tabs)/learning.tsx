@@ -7,7 +7,7 @@ import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-type TabType = 'lectures' | 'recitations' | 'quizzes';
+type TabType = 'lectures' | 'recitations' | 'quizzes' | 'duas';
 
 interface Video {
   id: string;
@@ -41,6 +41,19 @@ interface Quiz {
   order_index: number;
 }
 
+interface Dua {
+  id: string;
+  category_id: string;
+  category_title: string;
+  category_icon: string;
+  category_color: string;
+  arabic: string;
+  transliteration: string;
+  translation: string;
+  reference: string;
+  order_index: number;
+}
+
 interface VideoCategory {
   id: string;
   title: string;
@@ -51,6 +64,14 @@ interface RecitationCategory {
   id: string;
   title: string;
   recitations: Recitation[];
+}
+
+interface DuaCategory {
+  id: string;
+  title: string;
+  icon: string;
+  color: string;
+  count: number;
 }
 
 const lectureCategoryTitles: { [key: string]: string } = {
@@ -77,6 +98,9 @@ export default function LearningScreen() {
   const [lectureCategories, setLectureCategories] = useState<VideoCategory[]>([]);
   const [recitationCategories, setRecitationCategories] = useState<RecitationCategory[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [duaCategories, setDuaCategories] = useState<DuaCategory[]>([]);
+  const [selectedDuaCategory, setSelectedDuaCategory] = useState<string | null>(null);
+  const [categoryDuas, setCategoryDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -87,6 +111,8 @@ export default function LearningScreen() {
       fetchRecitations();
     } else if (selectedTab === 'quizzes') {
       fetchQuizzes();
+    } else if (selectedTab === 'duas') {
+      fetchDuaCategories();
     }
   }, [selectedTab]);
 
@@ -102,7 +128,6 @@ export default function LearningScreen() {
       if (error) throw error;
 
       if (data) {
-        // Group by category
         const grouped: { [key: string]: Video[] } = {};
         data.forEach((lecture) => {
           if (!grouped[lecture.category_id]) {
@@ -138,7 +163,6 @@ export default function LearningScreen() {
       if (error) throw error;
 
       if (data) {
-        // Group by category
         const grouped: { [key: string]: Recitation[] } = {};
         data.forEach((recitation) => {
           if (!grouped[recitation.category_id]) {
@@ -180,12 +204,75 @@ export default function LearningScreen() {
     }
   };
 
+  const fetchDuaCategories = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('duas')
+        .select('category_id, category_title, category_icon, category_color');
+
+      if (error) throw error;
+
+      if (data) {
+        // Group by category and count
+        const categoryMap: { [key: string]: DuaCategory } = {};
+        data.forEach((dua) => {
+          if (!categoryMap[dua.category_id]) {
+            categoryMap[dua.category_id] = {
+              id: dua.category_id,
+              title: dua.category_title,
+              icon: dua.category_icon,
+              color: dua.category_color,
+              count: 0,
+            };
+          }
+          categoryMap[dua.category_id].count++;
+        });
+
+        setDuaCategories(Object.values(categoryMap));
+      }
+    } catch (error) {
+      console.error('Error fetching dua categories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategoryDuas = async (categoryId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('duas')
+        .select('*')
+        .eq('category_id', categoryId)
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+
+      setCategoryDuas(data || []);
+    } catch (error) {
+      console.error('Error fetching category duas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openVideo = (url: string) => {
     Linking.openURL(url);
   };
 
   const openQuiz = (quizId: string) => {
     router.push(`/quiz?quizId=${quizId}` as any);
+  };
+
+  const openDuaCategory = (categoryId: string) => {
+    setSelectedDuaCategory(categoryId);
+    fetchCategoryDuas(categoryId);
+  };
+
+  const closeDuaCategory = () => {
+    setSelectedDuaCategory(null);
+    setCategoryDuas([]);
   };
 
   return (
@@ -203,7 +290,7 @@ export default function LearningScreen() {
           <IconSymbol
             ios_icon_name="play.rectangle.fill"
             android_material_icon_name="play-circle"
-            size={24}
+            size={20}
             color={selectedTab === 'lectures' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, selectedTab === 'lectures' && styles.tabTextActive]}>
@@ -218,7 +305,7 @@ export default function LearningScreen() {
           <IconSymbol
             ios_icon_name="book.fill"
             android_material_icon_name="menu-book"
-            size={24}
+            size={20}
             color={selectedTab === 'recitations' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, selectedTab === 'recitations' && styles.tabTextActive]}>
@@ -233,11 +320,26 @@ export default function LearningScreen() {
           <IconSymbol
             ios_icon_name="questionmark.circle.fill"
             android_material_icon_name="quiz"
-            size={24}
+            size={20}
             color={selectedTab === 'quizzes' ? colors.primary : colors.textSecondary}
           />
           <Text style={[styles.tabText, selectedTab === 'quizzes' && styles.tabTextActive]}>
             Quizzes
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'duas' && styles.tabActive]}
+          onPress={() => setSelectedTab('duas')}
+        >
+          <IconSymbol
+            ios_icon_name="hands.sparkles.fill"
+            android_material_icon_name="volunteer-activism"
+            size={20}
+            color={selectedTab === 'duas' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.tabText, selectedTab === 'duas' && styles.tabTextActive]}>
+            Duas
           </Text>
         </TouchableOpacity>
       </View>
@@ -441,6 +543,93 @@ export default function LearningScreen() {
                 )}
               </React.Fragment>
             )}
+
+            {selectedTab === 'duas' && (
+              <React.Fragment>
+                {!selectedDuaCategory ? (
+                  <React.Fragment>
+                    {duaCategories.length === 0 ? (
+                      <View style={styles.emptyState}>
+                        <IconSymbol
+                          ios_icon_name="hands.sparkles"
+                          android_material_icon_name="volunteer-activism"
+                          size={64}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.emptyStateTitle}>No Duas Yet</Text>
+                        <Text style={styles.emptyStateText}>
+                          Duas will appear here once they are added to the database.
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.duaCategoriesGrid}>
+                        {duaCategories.map((category, index) => (
+                          <TouchableOpacity
+                            key={`dua-cat-${index}`}
+                            style={[styles.duaCategoryCard, { backgroundColor: category.color }]}
+                            onPress={() => openDuaCategory(category.id)}
+                            activeOpacity={0.8}
+                          >
+                            <IconSymbol
+                              ios_icon_name={category.icon as any}
+                              android_material_icon_name={category.icon as any}
+                              size={32}
+                              color={colors.card}
+                            />
+                            <Text style={styles.duaCategoryTitle}>{category.title}</Text>
+                            <Text style={styles.duaCategoryCount}>{category.count} duas</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <TouchableOpacity
+                      style={styles.backButton}
+                      onPress={closeDuaCategory}
+                    >
+                      <IconSymbol
+                        ios_icon_name="chevron.left"
+                        android_material_icon_name="chevron-left"
+                        size={24}
+                        color={colors.text}
+                      />
+                      <Text style={styles.backButtonText}>Back to Categories</Text>
+                    </TouchableOpacity>
+
+                    {categoryDuas.length > 0 && (
+                      <React.Fragment>
+                        <View style={[styles.duaCategoryBanner, { backgroundColor: categoryDuas[0].category_color }]}>
+                          <IconSymbol
+                            ios_icon_name={categoryDuas[0].category_icon as any}
+                            android_material_icon_name={categoryDuas[0].category_icon as any}
+                            size={36}
+                            color={colors.card}
+                          />
+                          <View style={styles.duaCategoryBannerText}>
+                            <Text style={styles.duaCategoryBannerTitle}>{categoryDuas[0].category_title} Duas</Text>
+                            <Text style={styles.duaCategoryBannerSubtitle}>{categoryDuas.length} supplications</Text>
+                          </View>
+                        </View>
+
+                        {categoryDuas.map((dua, index) => (
+                          <View key={`dua-${index}`} style={styles.duaCard}>
+                            <View style={[styles.duaNumber, { backgroundColor: dua.category_color }]}>
+                              <Text style={styles.duaNumberText}>{index + 1}</Text>
+                            </View>
+                            <Text style={styles.duaArabic}>{dua.arabic}</Text>
+                            <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
+                            <Text style={styles.duaTranslation}>{dua.translation}</Text>
+                            <Text style={styles.duaReference}>{dua.reference}</Text>
+                          </View>
+                        ))}
+                      </React.Fragment>
+                    )}
+                  </React.Fragment>
+                )}
+              </React.Fragment>
+            )}
           </React.Fragment>
         )}
       </ScrollView>
@@ -476,15 +665,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
+    paddingVertical: 14,
+    gap: 6,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
@@ -492,7 +681,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -636,5 +825,123 @@ const styles = StyleSheet.create({
   quizMetaText: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  duaCategoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  duaCategoryCard: {
+    width: '48%',
+    aspectRatio: 1,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+    elevation: 4,
+  },
+  duaCategoryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  duaCategoryCount: {
+    fontSize: 13,
+    color: colors.card,
+    marginTop: 4,
+    opacity: 0.9,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    marginBottom: 16,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.08)',
+    elevation: 1,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginLeft: 8,
+  },
+  duaCategoryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 20,
+    gap: 16,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
+    elevation: 4,
+  },
+  duaCategoryBannerText: {
+    flex: 1,
+  },
+  duaCategoryBannerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.card,
+    marginBottom: 4,
+  },
+  duaCategoryBannerSubtitle: {
+    fontSize: 14,
+    color: colors.card,
+    opacity: 0.9,
+  },
+  duaCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
+  },
+  duaNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  duaNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  duaArabic: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'right',
+    marginBottom: 16,
+    lineHeight: 40,
+  },
+  duaTransliteration: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  duaTranslation: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 23,
+    marginBottom: 16,
+  },
+  duaReference: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
 });

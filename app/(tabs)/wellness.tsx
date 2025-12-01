@@ -331,6 +331,35 @@ export default function WellnessScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedTab === 'mental' && (
           <React.Fragment>
+            {/* Prophet Muhammad's Mental Health - MOVED TO TOP */}
+            <TouchableOpacity 
+              style={styles.prophetCard}
+              onPress={() => setShowProphetStory(true)}
+            >
+              <View style={styles.prophetCardHeader}>
+                <IconSymbol
+                  ios_icon_name="book.closed.fill"
+                  android_material_icon_name="menu-book"
+                  size={32}
+                  color={colors.primary}
+                />
+                <View style={styles.prophetCardText}>
+                  <Text style={styles.prophetCardTitle}>
+                    The Prophet ﷺ and Mental Health
+                  </Text>
+                  <Text style={styles.prophetCardSubtitle}>
+                    Learn how the Prophet ﷺ dealt with hardships
+                  </Text>
+                </View>
+                <IconSymbol
+                  ios_icon_name="chevron.right"
+                  android_material_icon_name="chevron-right"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </View>
+            </TouchableOpacity>
+
             {/* Emotion Selector */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
@@ -419,35 +448,6 @@ export default function WellnessScreen() {
                 </View>
               </View>
             )}
-
-            {/* Prophet Muhammad's Mental Health */}
-            <TouchableOpacity 
-              style={styles.prophetCard}
-              onPress={() => setShowProphetStory(true)}
-            >
-              <View style={styles.prophetCardHeader}>
-                <IconSymbol
-                  ios_icon_name="book.closed.fill"
-                  android_material_icon_name="menu-book"
-                  size={32}
-                  color={colors.primary}
-                />
-                <View style={styles.prophetCardText}>
-                  <Text style={styles.prophetCardTitle}>
-                    The Prophet ﷺ and Mental Health
-                  </Text>
-                  <Text style={styles.prophetCardSubtitle}>
-                    Learn how the Prophet ﷺ dealt with hardships
-                  </Text>
-                </View>
-                <IconSymbol
-                  ios_icon_name="chevron.right"
-                  android_material_icon_name="chevron-right"
-                  size={24}
-                  color={colors.textSecondary}
-                />
-              </View>
-            </TouchableOpacity>
 
             {/* Gratitude Journal */}
             <View style={styles.card}>
