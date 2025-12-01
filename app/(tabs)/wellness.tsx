@@ -1,15 +1,289 @@
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ImageBackground } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, TextInput, ImageBackground, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type TabType = 'mental' | 'physical';
+type EmotionType = 'anxious' | 'sad' | 'angry' | 'stressed' | 'grateful' | 'hopeful';
+
+interface WaterTracker {
+  date: string;
+  glasses: number;
+}
+
+interface WorkoutTracker {
+  date: string;
+  workouts: string[];
+}
+
+interface CardioTracker {
+  date: string;
+  minutes: number;
+}
 
 export default function WellnessScreen() {
   const [selectedTab, setSelectedTab] = useState<TabType>('mental');
+  const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
   const [journalEntry, setJournalEntry] = useState('');
-  const [gratitudeItems, setGratitudeItems] = useState<string[]>([]);
+  const [showProphetStory, setShowProphetStory] = useState(false);
+  
+  // Physical trackers
+  const [waterGlasses, setWaterGlasses] = useState(0);
+  const [workoutMinutes, setWorkoutMinutes] = useState(0);
+  const [cardioMinutes, setCardioMinutes] = useState(0);
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+  const [showCardioModal, setShowCardioModal] = useState(false);
+
+  useEffect(() => {
+    loadDailyProgress();
+  }, []);
+
+  const loadDailyProgress = async () => {
+    try {
+      const today = new Date().toDateString();
+      const waterData = await AsyncStorage.getItem('waterTracker');
+      const workoutData = await AsyncStorage.getItem('workoutTracker');
+      const cardioData = await AsyncStorage.getItem('cardioTracker');
+
+      if (waterData) {
+        const parsed: WaterTracker = JSON.parse(waterData);
+        if (parsed.date === today) {
+          setWaterGlasses(parsed.glasses);
+        }
+      }
+
+      if (workoutData) {
+        const parsed: WorkoutTracker = JSON.parse(workoutData);
+        if (parsed.date === today) {
+          setWorkoutMinutes(parsed.workouts.length * 30);
+        }
+      }
+
+      if (cardioData) {
+        const parsed: CardioTracker = JSON.parse(cardioData);
+        if (parsed.date === today) {
+          setCardioMinutes(parsed.minutes);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading daily progress:', error);
+    }
+  };
+
+  const addWaterGlass = async () => {
+    const newCount = Math.min(waterGlasses + 1, 8);
+    setWaterGlasses(newCount);
+    try {
+      const today = new Date().toDateString();
+      await AsyncStorage.setItem('waterTracker', JSON.stringify({ date: today, glasses: newCount }));
+    } catch (error) {
+      console.error('Error saving water tracker:', error);
+    }
+  };
+
+  const removeWaterGlass = async () => {
+    const newCount = Math.max(waterGlasses - 1, 0);
+    setWaterGlasses(newCount);
+    try {
+      const today = new Date().toDateString();
+      await AsyncStorage.setItem('waterTracker', JSON.stringify({ date: today, glasses: newCount }));
+    } catch (error) {
+      console.error('Error saving water tracker:', error);
+    }
+  };
+
+  const addWorkout = async (minutes: number) => {
+    const newMinutes = workoutMinutes + minutes;
+    setWorkoutMinutes(newMinutes);
+    try {
+      const today = new Date().toDateString();
+      const workoutData = await AsyncStorage.getItem('workoutTracker');
+      let workouts: string[] = [];
+      if (workoutData) {
+        const parsed: WorkoutTracker = JSON.parse(workoutData);
+        if (parsed.date === today) {
+          workouts = parsed.workouts;
+        }
+      }
+      workouts.push(`${minutes} min workout`);
+      await AsyncStorage.setItem('workoutTracker', JSON.stringify({ date: today, workouts }));
+    } catch (error) {
+      console.error('Error saving workout tracker:', error);
+    }
+    setShowWorkoutModal(false);
+  };
+
+  const addCardio = async (minutes: number) => {
+    const newMinutes = cardioMinutes + minutes;
+    setCardioMinutes(newMinutes);
+    try {
+      const today = new Date().toDateString();
+      await AsyncStorage.setItem('cardioTracker', JSON.stringify({ date: today, minutes: newMinutes }));
+    } catch (error) {
+      console.error('Error saving cardio tracker:', error);
+    }
+    setShowCardioModal(false);
+  };
+
+  const emotions = [
+    { id: 'anxious' as EmotionType, label: 'Anxious', icon: 'exclamationmark.triangle', androidIcon: 'warning', color: '#FF9800' },
+    { id: 'sad' as EmotionType, label: 'Sad', icon: 'cloud.rain', androidIcon: 'cloud', color: '#2196F3' },
+    { id: 'angry' as EmotionType, label: 'Angry', icon: 'flame', androidIcon: 'local-fire-department', color: '#F44336' },
+    { id: 'stressed' as EmotionType, label: 'Stressed', icon: 'bolt', androidIcon: 'flash-on', color: '#9C27B0' },
+    { id: 'grateful' as EmotionType, label: 'Grateful', icon: 'heart.fill', androidIcon: 'favorite', color: '#E91E63' },
+    { id: 'hopeful' as EmotionType, label: 'Hopeful', icon: 'sun.max', androidIcon: 'wb-sunny', color: '#4CAF50' },
+  ];
+
+  const getEmotionContent = (emotion: EmotionType) => {
+    const content = {
+      anxious: {
+        title: 'Dealing with Anxiety',
+        verses: [
+          {
+            arabic: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
+            translation: 'Verily, in the remembrance of Allah do hearts find rest.',
+            reference: 'Quran 13:28'
+          }
+        ],
+        hadiths: [
+          {
+            text: 'If any distress befalls a Muslim and he says: "Inna lillahi wa inna ilayhi raji\'un, Allahumma ujurni fi musibati wakhluf li khayran minha (Truly, to Allah we belong and truly, to Him we shall return. O Allah, reward me for my affliction and compensate me with something better)", Allah will compensate him with something better.',
+            reference: 'Sahih Muslim 918'
+          }
+        ],
+        tips: [
+          'Perform Wudu - it brings calmness',
+          'Pray two Rakats of Salat al-Hajah',
+          'Recite Ayat al-Kursi',
+          'Make Dhikr: "La ilaha illa Allah"',
+          'Trust in Allah\'s plan (Tawakkul)'
+        ]
+      },
+      sad: {
+        title: 'Overcoming Sadness',
+        verses: [
+          {
+            arabic: 'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا',
+            translation: 'For indeed, with hardship comes ease.',
+            reference: 'Quran 94:5-6'
+          }
+        ],
+        hadiths: [
+          {
+            text: 'The Prophet ﷺ said: "How wonderful is the affair of the believer, for his affairs are all good. If something good happens to him, he gives thanks for it and that is good for him; if something bad happens to him, he bears it with patience, and that is good for him."',
+            reference: 'Sahih Muslim 2999'
+          }
+        ],
+        tips: [
+          'Remember that sadness is temporary',
+          'Connect with family and friends',
+          'Engage in acts of worship',
+          'Help others - it brings joy',
+          'Reflect on Allah\'s blessings'
+        ]
+      },
+      angry: {
+        title: 'Managing Anger',
+        verses: [
+          {
+            arabic: 'وَالْكَاظِمِينَ الْغَيْظَ وَالْعَافِينَ عَنِ النَّاسِ',
+            translation: 'Those who restrain their anger and pardon people - Allah loves the doers of good.',
+            reference: 'Quran 3:134'
+          }
+        ],
+        hadiths: [
+          {
+            text: 'The Prophet ﷺ said: "The strong person is not the one who can overpower others, rather the strong person is the one who controls himself when he is angry."',
+            reference: 'Sahih al-Bukhari 6114'
+          },
+          {
+            text: 'A man said to the Prophet ﷺ: "Advise me." He said: "Do not get angry." The man repeated his request several times, and he said: "Do not get angry."',
+            reference: 'Sahih al-Bukhari 6116'
+          }
+        ],
+        tips: [
+          'Seek refuge in Allah from Shaytan',
+          'Change your position (sit if standing)',
+          'Perform Wudu',
+          'Stay silent',
+          'Leave the situation if possible'
+        ]
+      },
+      stressed: {
+        title: 'Relieving Stress',
+        verses: [
+          {
+            arabic: 'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا',
+            translation: 'Allah does not burden a soul beyond that it can bear.',
+            reference: 'Quran 2:286'
+          }
+        ],
+        hadiths: [
+          {
+            text: 'The Prophet ﷺ used to say when distressed: "La ilaha illa Allah al-Azim al-Halim, la ilaha illa Allah Rabb al-\'arsh al-azim, la ilaha illa Allah Rabb as-samawat wa Rabb al-ard wa Rabb al-\'arsh al-karim."',
+            reference: 'Sahih al-Bukhari 6345'
+          }
+        ],
+        tips: [
+          'Break tasks into smaller steps',
+          'Prioritize what\'s important',
+          'Take breaks for prayer',
+          'Practice deep breathing',
+          'Delegate when possible'
+        ]
+      },
+      grateful: {
+        title: 'Expressing Gratitude',
+        verses: [
+          {
+            arabic: 'لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ',
+            translation: 'If you are grateful, I will surely increase you [in favor].',
+            reference: 'Quran 14:7'
+          }
+        ],
+        hadiths: [
+          {
+            text: 'The Prophet ﷺ said: "He who does not thank people, does not thank Allah."',
+            reference: 'Sunan Abi Dawud 4811'
+          }
+        ],
+        tips: [
+          'Keep a gratitude journal',
+          'Say Alhamdulillah often',
+          'Thank people around you',
+          'Reflect on your blessings',
+          'Give Sadaqah as thanks'
+        ]
+      },
+      hopeful: {
+        title: 'Maintaining Hope',
+        verses: [
+          {
+            arabic: 'وَلَا تَيْأَسُوا مِن رَّوْحِ اللَّهِ',
+            translation: 'And do not despair of the mercy of Allah.',
+            reference: 'Quran 12:87'
+          }
+        ],
+        hadiths: [
+          {
+            text: 'The Prophet ﷺ said: "Allah says: \'I am as My servant thinks I am.\'"',
+            reference: 'Sahih al-Bukhari 7405'
+          }
+        ],
+        tips: [
+          'Make Dua with certainty',
+          'Remember Allah\'s past favors',
+          'Read stories of the Prophets',
+          'Surround yourself with positive people',
+          'Set achievable goals'
+        ]
+      }
+    };
+
+    return content[emotion];
+  };
 
   return (
     <ImageBackground
@@ -57,6 +331,125 @@ export default function WellnessScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedTab === 'mental' && (
           <React.Fragment>
+            {/* Emotion Selector */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <IconSymbol
+                  ios_icon_name="face.smiling"
+                  android_material_icon_name="sentiment-satisfied"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text style={styles.cardTitle}>How are you feeling?</Text>
+              </View>
+              <Text style={styles.cardDescription}>
+                Select an emotion to get Islamic guidance and support
+              </Text>
+              <View style={styles.emotionsGrid}>
+                {emotions.map((emotion, index) => (
+                  <TouchableOpacity
+                    key={`emotion-${index}`}
+                    style={[
+                      styles.emotionButton,
+                      selectedEmotion === emotion.id && { backgroundColor: emotion.color, borderColor: emotion.color }
+                    ]}
+                    onPress={() => setSelectedEmotion(emotion.id)}
+                  >
+                    <IconSymbol
+                      ios_icon_name={emotion.icon}
+                      android_material_icon_name={emotion.androidIcon}
+                      size={24}
+                      color={selectedEmotion === emotion.id ? colors.card : emotion.color}
+                    />
+                    <Text style={[
+                      styles.emotionLabel,
+                      selectedEmotion === emotion.id && { color: colors.card }
+                    ]}>
+                      {emotion.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Emotion-specific content */}
+            {selectedEmotion && (
+              <View style={styles.card}>
+                <Text style={styles.emotionContentTitle}>
+                  {getEmotionContent(selectedEmotion).title}
+                </Text>
+                
+                {/* Quranic Verses */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Quranic Guidance</Text>
+                  {getEmotionContent(selectedEmotion).verses.map((verse, index) => (
+                    <View key={`verse-${index}`} style={styles.verseCard}>
+                      <Text style={styles.verseArabic}>{verse.arabic}</Text>
+                      <Text style={styles.verseTranslation}>{verse.translation}</Text>
+                      <Text style={styles.verseReference}>{verse.reference}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Hadiths */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Prophetic Wisdom</Text>
+                  {getEmotionContent(selectedEmotion).hadiths.map((hadith, index) => (
+                    <View key={`hadith-${index}`} style={styles.hadithCard}>
+                      <Text style={styles.hadithText}>{hadith.text}</Text>
+                      <Text style={styles.hadithReference}>{hadith.reference}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Practical Tips */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Practical Steps</Text>
+                  {getEmotionContent(selectedEmotion).tips.map((tip, index) => (
+                    <View key={`tip-${index}`} style={styles.tipItem}>
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check-circle"
+                        size={20}
+                        color={colors.success}
+                      />
+                      <Text style={styles.tipText}>{tip}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Prophet Muhammad's Mental Health */}
+            <TouchableOpacity 
+              style={styles.prophetCard}
+              onPress={() => setShowProphetStory(true)}
+            >
+              <View style={styles.prophetCardHeader}>
+                <IconSymbol
+                  ios_icon_name="book.closed.fill"
+                  android_material_icon_name="menu-book"
+                  size={32}
+                  color={colors.primary}
+                />
+                <View style={styles.prophetCardText}>
+                  <Text style={styles.prophetCardTitle}>
+                    The Prophet ﷺ and Mental Health
+                  </Text>
+                  <Text style={styles.prophetCardSubtitle}>
+                    Learn how the Prophet ﷺ dealt with hardships
+                  </Text>
+                </View>
+                <IconSymbol
+                  ios_icon_name="chevron.right"
+                  android_material_icon_name="chevron-right"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {/* Gratitude Journal */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -80,35 +473,7 @@ export default function WellnessScreen() {
               />
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <IconSymbol
-                  ios_icon_name="sparkles"
-                  android_material_icon_name="auto-awesome"
-                  size={24}
-                  color={colors.accent}
-                />
-                <Text style={styles.cardTitle}>Reflection Prompts</Text>
-              </View>
-              <View style={styles.promptsList}>
-                <View style={styles.promptItem}>
-                  <Text style={styles.promptText}>
-                    What act of worship brought you closest to Allah today?
-                  </Text>
-                </View>
-                <View style={styles.promptItem}>
-                  <Text style={styles.promptText}>
-                    How did you show kindness to others today?
-                  </Text>
-                </View>
-                <View style={styles.promptItem}>
-                  <Text style={styles.promptText}>
-                    What challenge did you face and how did your faith help?
-                  </Text>
-                </View>
-              </View>
-            </View>
-
+            {/* Stress Relief Dhikr */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -139,50 +504,7 @@ export default function WellnessScreen() {
 
         {selectedTab === 'physical' && (
           <React.Fragment>
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <IconSymbol
-                  ios_icon_name="figure.walk"
-                  android_material_icon_name="directions-run"
-                  size={24}
-                  color={colors.primary}
-                />
-                <Text style={styles.cardTitle}>Daily Movement</Text>
-              </View>
-              <Text style={styles.cardDescription}>
-                The Prophet (ﷺ) said: &quot;Your body has a right over you&quot;
-              </Text>
-              <View style={styles.exerciseList}>
-                <View style={styles.exerciseItem}>
-                  <IconSymbol
-                    ios_icon_name="figure.walk"
-                    android_material_icon_name="directions-walk"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.exerciseText}>Morning walk (20 min)</Text>
-                </View>
-                <View style={styles.exerciseItem}>
-                  <IconSymbol
-                    ios_icon_name="figure.strengthtraining.traditional"
-                    android_material_icon_name="fitness-center"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.exerciseText}>Light stretching (10 min)</Text>
-                </View>
-                <View style={styles.exerciseItem}>
-                  <IconSymbol
-                    ios_icon_name="figure.yoga"
-                    android_material_icon_name="self-improvement"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.exerciseText}>Gentle yoga (15 min)</Text>
-                </View>
-              </View>
-            </View>
-
+            {/* Water Tracker */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -191,25 +513,132 @@ export default function WellnessScreen() {
                   size={24}
                   color={colors.accent}
                 />
-                <Text style={styles.cardTitle}>Hydration Reminder</Text>
+                <Text style={styles.cardTitle}>Water Tracker</Text>
               </View>
               <Text style={styles.cardDescription}>
-                Stay hydrated throughout the day. Aim for 8 glasses of water.
+                Stay hydrated throughout the day. Goal: 8 glasses
               </Text>
+              <View style={styles.trackerProgress}>
+                <Text style={styles.trackerCount}>{waterGlasses} / 8 glasses</Text>
+                <View style={styles.progressBarContainer}>
+                  <View style={[styles.progressBar, { width: `${(waterGlasses / 8) * 100}%` }]} />
+                </View>
+              </View>
               <View style={styles.waterTracker}>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((glass, index) => (
-                  <View key={index} style={styles.waterGlass}>
+                  <TouchableOpacity
+                    key={`water-${index}`}
+                    style={[
+                      styles.waterGlass,
+                      index < waterGlasses && styles.waterGlassFilled
+                    ]}
+                    onPress={() => {
+                      if (index < waterGlasses) {
+                        removeWaterGlass();
+                      } else {
+                        addWaterGlass();
+                      }
+                    }}
+                  >
                     <IconSymbol
-                      ios_icon_name="drop.fill"
+                      ios_icon_name={index < waterGlasses ? 'drop.fill' : 'drop'}
                       android_material_icon_name="water-drop"
                       size={24}
-                      color={colors.accent}
+                      color={index < waterGlasses ? colors.card : colors.accent}
                     />
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
 
+            {/* Workout Tracker */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <IconSymbol
+                  ios_icon_name="figure.strengthtraining.traditional"
+                  android_material_icon_name="fitness-center"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text style={styles.cardTitle}>Workout Tracker</Text>
+              </View>
+              <Text style={styles.cardDescription}>
+                Track your strength training and exercises
+              </Text>
+              <View style={styles.trackerProgress}>
+                <Text style={styles.trackerCount}>{workoutMinutes} minutes today</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowWorkoutModal(true)}
+              >
+                <IconSymbol
+                  ios_icon_name="plus.circle.fill"
+                  android_material_icon_name="add-circle"
+                  size={24}
+                  color={colors.card}
+                />
+                <Text style={styles.addButtonText}>Log Workout</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Cardio Tracker */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <IconSymbol
+                  ios_icon_name="heart.fill"
+                  android_material_icon_name="favorite"
+                  size={24}
+                  color={colors.error}
+                />
+                <Text style={styles.cardTitle}>Cardio Tracker</Text>
+              </View>
+              <Text style={styles.cardDescription}>
+                Track your cardio activities (running, walking, cycling)
+              </Text>
+              <View style={styles.trackerProgress}>
+                <Text style={styles.trackerCount}>{cardioMinutes} minutes today</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowCardioModal(true)}
+              >
+                <IconSymbol
+                  ios_icon_name="plus.circle.fill"
+                  android_material_icon_name="add-circle"
+                  size={24}
+                  color={colors.card}
+                />
+                <Text style={styles.addButtonText}>Log Cardio</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Islamic Perspective on Physical Health */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <IconSymbol
+                  ios_icon_name="book.fill"
+                  android_material_icon_name="menu-book"
+                  size={24}
+                  color={colors.secondary}
+                />
+                <Text style={styles.cardTitle}>Islamic Perspective</Text>
+              </View>
+              <View style={styles.hadithCard}>
+                <Text style={styles.hadithText}>
+                  The Prophet ﷺ said: &quot;Your body has a right over you.&quot;
+                </Text>
+                <Text style={styles.hadithReference}>Sahih al-Bukhari 5199</Text>
+              </View>
+              <View style={styles.hadithCard}>
+                <Text style={styles.hadithText}>
+                  &quot;A strong believer is better and more beloved to Allah than a weak believer, while there is good in both.&quot;
+                </Text>
+                <Text style={styles.hadithReference}>Sahih Muslim 2664</Text>
+              </View>
+            </View>
+
+            {/* Sleep & Rest */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -224,15 +653,242 @@ export default function WellnessScreen() {
                 Quality sleep is essential for physical and spiritual well-being
               </Text>
               <View style={styles.tipsList}>
-                <Text style={styles.tipText}>• Sleep early and wake for Fajr</Text>
-                <Text style={styles.tipText}>• Recite Ayat al-Kursi before sleep</Text>
-                <Text style={styles.tipText}>• Avoid screens 1 hour before bed</Text>
-                <Text style={styles.tipText}>• Make wudu before sleeping</Text>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Sleep early and wake for Fajr</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Recite Ayat al-Kursi before sleep</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Avoid screens 1 hour before bed</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Make wudu before sleeping</Text>
+                </View>
               </View>
             </View>
           </React.Fragment>
         )}
       </ScrollView>
+
+      {/* Prophet Story Modal */}
+      <Modal
+        visible={showProphetStory}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowProphetStory(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>The Prophet ﷺ and Mental Health</Text>
+              <TouchableOpacity onPress={() => setShowProphetStory(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={28}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalSectionTitle}>The Prophet&apos;s Struggles</Text>
+              <Text style={styles.modalText}>
+                The Prophet Muhammad ﷺ faced immense hardships throughout his life. He lost his parents at a young age, endured persecution in Makkah, lost his beloved wife Khadijah and uncle Abu Talib in the Year of Sorrow, and faced the loss of his children. Despite these trials, he remained steadfast and showed us how to cope with grief and hardship.
+              </Text>
+
+              <Text style={styles.modalSectionTitle}>Quranic Comfort</Text>
+              <View style={styles.verseCard}>
+                <Text style={styles.verseArabic}>أَلَمْ نَشْرَحْ لَكَ صَدْرَكَ</Text>
+                <Text style={styles.verseTranslation}>
+                  Have We not expanded for you your breast? And We removed from you your burden which had weighed upon your back.
+                </Text>
+                <Text style={styles.verseReference}>Quran 94:1-3</Text>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Prophetic Guidance</Text>
+              <View style={styles.hadithCard}>
+                <Text style={styles.hadithText}>
+                  When the Prophet ﷺ was distressed, he would say: &quot;O Ever-Living, O Sustainer, by Your mercy I seek help.&quot;
+                </Text>
+                <Text style={styles.hadithReference}>Sunan al-Tirmidhi 3524</Text>
+              </View>
+
+              <View style={styles.hadithCard}>
+                <Text style={styles.hadithText}>
+                  The Prophet ﷺ said: &quot;No fatigue, nor disease, nor sorrow, nor sadness, nor hurt, nor distress befalls a Muslim, even if it were the prick he receives from a thorn, but that Allah expiates some of his sins for that.&quot;
+                </Text>
+                <Text style={styles.hadithReference}>Sahih al-Bukhari 5641</Text>
+              </View>
+
+              <Text style={styles.modalSectionTitle}>Lessons for Us</Text>
+              <View style={styles.tipsList}>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>It&apos;s okay to feel sad and grieve</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Turn to Allah in times of distress</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Seek support from loved ones</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Remember that hardship is temporary</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Professional help is encouraged in Islam</Text>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Workout Modal */}
+      <Modal
+        visible={showWorkoutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWorkoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.quickModal}>
+            <Text style={styles.quickModalTitle}>Log Workout</Text>
+            <View style={styles.quickModalButtons}>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addWorkout(15)}
+              >
+                <Text style={styles.quickModalButtonText}>15 min</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addWorkout(30)}
+              >
+                <Text style={styles.quickModalButtonText}>30 min</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addWorkout(45)}
+              >
+                <Text style={styles.quickModalButtonText}>45 min</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addWorkout(60)}
+              >
+                <Text style={styles.quickModalButtonText}>60 min</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.quickModalCancel}
+              onPress={() => setShowWorkoutModal(false)}
+            >
+              <Text style={styles.quickModalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Cardio Modal */}
+      <Modal
+        visible={showCardioModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCardioModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.quickModal}>
+            <Text style={styles.quickModalTitle}>Log Cardio</Text>
+            <View style={styles.quickModalButtons}>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addCardio(15)}
+              >
+                <Text style={styles.quickModalButtonText}>15 min</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addCardio(30)}
+              >
+                <Text style={styles.quickModalButtonText}>30 min</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addCardio(45)}
+              >
+                <Text style={styles.quickModalButtonText}>45 min</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickModalButton}
+                onPress={() => addCardio(60)}
+              >
+                <Text style={styles.quickModalButtonText}>60 min</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.quickModalCancel}
+              onPress={() => setShowCardioModal(false)}
+            >
+              <Text style={styles.quickModalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -323,6 +979,128 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
+  emotionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  emotionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  emotionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  emotionContentTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  verseCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  verseArabic: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'right',
+    marginBottom: 8,
+    lineHeight: 28,
+  },
+  verseTranslation: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  verseReference: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  hadithCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  hadithText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  hadithReference: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  tipsList: {
+    gap: 12,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  prophetCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  prophetCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  prophetCardText: {
+    flex: 1,
+  },
+  prophetCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  prophetCardSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
   textInput: {
     backgroundColor: colors.background,
     borderRadius: 8,
@@ -333,21 +1111,6 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  promptsList: {
-    gap: 12,
-  },
-  promptItem: {
-    backgroundColor: colors.background,
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  promptText: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
   },
   dhikrList: {
     gap: 16,
@@ -370,42 +1133,137 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 18,
   },
-  exerciseList: {
-    gap: 12,
+  trackerProgress: {
+    marginBottom: 16,
   },
-  exerciseItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    padding: 12,
-    borderRadius: 8,
-    gap: 12,
-  },
-  exerciseText: {
-    fontSize: 14,
-    fontWeight: '600',
+  trackerCount: {
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.text,
+    marginBottom: 8,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: colors.accent,
+    borderRadius: 4,
   },
   waterTracker: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginTop: 8,
   },
   waterGlass: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
   },
-  tipsList: {
+  waterGlassFilled: {
+    backgroundColor: colors.accent,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 8,
   },
-  tipText: {
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    width: '100%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalScroll: {
+    padding: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  modalText: {
     fontSize: 14,
     color: colors.text,
     lineHeight: 22,
+    marginBottom: 16,
+  },
+  quickModal: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 300,
+  },
+  quickModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  quickModalButtons: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  quickModalButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  quickModalButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  quickModalCancel: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  quickModalCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });
