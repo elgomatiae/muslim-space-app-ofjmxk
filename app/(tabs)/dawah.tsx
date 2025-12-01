@@ -107,18 +107,108 @@ export default function DawahScreen() {
                         {miracle.title}
                       </Text>
                       
-                      <Text style={styles.miracleDescription} numberOfLines={isExpanded ? undefined : 2}>
+                      <Text style={styles.miracleDescription} numberOfLines={isExpanded ? undefined : 3}>
                         {miracle.description}
                       </Text>
                       
                       {isExpanded && (
                         <React.Fragment>
                           <View style={styles.divider} />
-                          <Text style={styles.miracleDetails}>{miracle.details}</Text>
+                          
+                          <View style={styles.section}>
+                            <View style={styles.sectionHeader}>
+                              <IconSymbol
+                                ios_icon_name="doc.text.fill"
+                                android_material_icon_name="description"
+                                size={16}
+                                color={selectedCategory.color}
+                              />
+                              <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                Details
+                              </Text>
+                            </View>
+                            <Text style={styles.miracleDetails}>{miracle.details}</Text>
+                          </View>
+
+                          {miracle.explanation && (
+                            <React.Fragment>
+                              <View style={styles.divider} />
+                              <View style={styles.section}>
+                                <View style={styles.sectionHeader}>
+                                  <IconSymbol
+                                    ios_icon_name="lightbulb.fill"
+                                    android_material_icon_name="lightbulb"
+                                    size={16}
+                                    color={selectedCategory.color}
+                                  />
+                                  <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                    Why This Is Miraculous
+                                  </Text>
+                                </View>
+                                <Text style={styles.miracleDetails}>{miracle.explanation}</Text>
+                              </View>
+                            </React.Fragment>
+                          )}
+
+                          {miracle.quranVerses && miracle.quranVerses.length > 0 && (
+                            <React.Fragment>
+                              <View style={styles.divider} />
+                              <View style={styles.section}>
+                                <View style={styles.sectionHeader}>
+                                  <IconSymbol
+                                    ios_icon_name="book.fill"
+                                    android_material_icon_name="menu-book"
+                                    size={16}
+                                    color={selectedCategory.color}
+                                  />
+                                  <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                    Quran Verses
+                                  </Text>
+                                </View>
+                                {miracle.quranVerses.map((verse, i) => (
+                                  <View key={i} style={styles.verseContainer}>
+                                    <Text style={styles.verseReference}>
+                                      Surah {verse.surah}:{verse.verse}
+                                    </Text>
+                                    {verse.arabic && (
+                                      <Text style={styles.verseArabic}>{verse.arabic}</Text>
+                                    )}
+                                    <Text style={styles.verseTranslation}>{verse.translation}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </React.Fragment>
+                          )}
+
+                          {miracle.hadiths && miracle.hadiths.length > 0 && (
+                            <React.Fragment>
+                              <View style={styles.divider} />
+                              <View style={styles.section}>
+                                <View style={styles.sectionHeader}>
+                                  <IconSymbol
+                                    ios_icon_name="text.book.closed.fill"
+                                    android_material_icon_name="auto-stories"
+                                    size={16}
+                                    color={selectedCategory.color}
+                                  />
+                                  <Text style={[styles.sectionTitle, { color: selectedCategory.color }]}>
+                                    Hadiths
+                                  </Text>
+                                </View>
+                                {miracle.hadiths.map((hadith, i) => (
+                                  <View key={i} style={styles.hadithContainer}>
+                                    <Text style={styles.hadithSource}>{hadith.source}</Text>
+                                    <Text style={styles.hadithText}>{hadith.text}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            </React.Fragment>
+                          )}
+
                           <View style={styles.miracleFooter}>
                             <IconSymbol
-                              ios_icon_name="book.fill"
-                              android_material_icon_name="menu-book"
+                              ios_icon_name="link"
+                              android_material_icon_name="link"
                               size={14}
                               color={selectedCategory.color}
                             />
@@ -166,6 +256,8 @@ export default function DawahScreen() {
               'Be patient and respectful at all times',
               'Focus on the beauty and wisdom of Islam',
               'Share personal experiences and transformations',
+              'Use these miracles as conversation starters',
+              'Always maintain good character - it\'s the best Dawah',
             ].map((tip, index) => (
               <View key={index} style={styles.tipItem}>
                 <View style={styles.tipBullet} />
@@ -280,7 +372,7 @@ const styles = StyleSheet.create({
   miracleImageContainer: {
     position: 'relative',
     width: '100%',
-    height: 140,
+    height: 160,
   },
   miracleImage: {
     width: '100%',
@@ -289,55 +381,115 @@ const styles = StyleSheet.create({
   },
   miracleNumber: {
     position: 'absolute',
-    top: 10,
-    left: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    top: 12,
+    left: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
     elevation: 3,
   },
   miracleNumberText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.card,
   },
   miracleContent: {
-    padding: 14,
+    padding: 16,
   },
   miracleTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 8,
   },
   miracleDescription: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 19,
+    lineHeight: 20,
     marginBottom: 10,
   },
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginVertical: 12,
+    marginVertical: 16,
+  },
+  section: {
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   miracleDetails: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 22,
+  },
+  verseContainer: {
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  verseReference: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  verseArabic: {
+    fontSize: 18,
+    color: colors.text,
+    lineHeight: 32,
+    textAlign: 'right',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  verseTranslation: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  hadithContainer: {
+    backgroundColor: colors.background,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+  },
+  hadithSource: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.accent,
+    marginBottom: 8,
+  },
+  hadithText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
+    fontStyle: 'italic',
   },
   miracleFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    marginBottom: 8,
+    marginTop: 12,
     gap: 6,
   },
   miracleReference: {
@@ -348,11 +500,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
+    marginTop: 8,
     gap: 4,
   },
   expandButtonText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   tipsCard: {
@@ -386,7 +539,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.card,
-    marginTop: 6,
+    marginTop: 7,
     marginRight: 10,
   },
   tipText: {
