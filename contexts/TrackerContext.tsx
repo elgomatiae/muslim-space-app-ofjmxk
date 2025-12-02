@@ -186,11 +186,23 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         totalQuranVerses: 0,
         lecturesWatched: 0,
         workoutsCompleted: 0,
+        wellnessStreak: 0,
       };
 
-      stats.totalDhikr = (stats.totalDhikr || 0) + data.dhikr.count;
-      stats.totalQuranPages = (stats.totalQuranPages || 0) + data.quran.pages;
-      stats.totalQuranVerses = (stats.totalQuranVerses || 0) + data.quran.versesMemorized;
+      // Accumulate lifetime stats
+      const previousData = await AsyncStorage.getItem(TRACKER_STORAGE_KEY);
+      const previous = previousData ? JSON.parse(previousData) : null;
+
+      if (previous) {
+        // Only add the difference to avoid double counting
+        stats.totalDhikr += Math.max(0, data.dhikr.count - previous.dhikr.count);
+        stats.totalQuranPages += Math.max(0, data.quran.pages - previous.quran.pages);
+        stats.totalQuranVerses += Math.max(0, data.quran.versesMemorized - previous.quran.versesMemorized);
+      } else {
+        stats.totalDhikr += data.dhikr.count;
+        stats.totalQuranPages += data.quran.pages;
+        stats.totalQuranVerses += data.quran.versesMemorized;
+      }
 
       await AsyncStorage.setItem(LIFETIME_STATS_KEY, JSON.stringify(stats));
       console.log('Updated lifetime stats:', stats);
@@ -206,11 +218,12 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
       let weeklyStats;
       if (savedWeekStart !== weekStart) {
+        // New week, reset stats
         weeklyStats = {
           weekStart,
-          dhikrCount: 0,
-          quranPages: 0,
-          prayerDays: 0,
+          dhikrCount: data.dhikr.count,
+          quranPages: data.quran.pages,
+          prayerDays: data.prayers.completed === data.prayers.total ? 1 : 0,
         };
       } else {
         const savedStats = await AsyncStorage.getItem(WEEKLY_STATS_KEY);
@@ -220,12 +233,24 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           quranPages: 0,
           prayerDays: 0,
         };
-      }
 
-      weeklyStats.dhikrCount += data.dhikr.count;
-      weeklyStats.quranPages += data.quran.pages;
-      if (data.prayers.completed === data.prayers.total) {
-        weeklyStats.prayerDays += 1;
+        // Get previous day's data to calculate increments
+        const previousData = await AsyncStorage.getItem(TRACKER_STORAGE_KEY);
+        const previous = previousData ? JSON.parse(previousData) : null;
+
+        if (previous) {
+          // Add only the difference
+          weeklyStats.dhikrCount += Math.max(0, data.dhikr.count - previous.dhikr.count);
+          weeklyStats.quranPages += Math.max(0, data.quran.pages - previous.quran.pages);
+        } else {
+          weeklyStats.dhikrCount += data.dhikr.count;
+          weeklyStats.quranPages += data.quran.pages;
+        }
+
+        // Check if all prayers completed today
+        if (data.prayers.completed === data.prayers.total && (!previous || previous.prayers.completed < previous.prayers.total)) {
+          weeklyStats.prayerDays += 1;
+        }
       }
 
       await AsyncStorage.setItem(WEEKLY_STATS_KEY, JSON.stringify(weeklyStats));
@@ -245,6 +270,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         totalQuranVerses: 0,
         lecturesWatched: 0,
         workoutsCompleted: 0,
+        wellnessStreak: 0,
       };
     } catch (error) {
       console.error('Error getting lifetime stats:', error);
@@ -254,6 +280,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         totalQuranVerses: 0,
         lecturesWatched: 0,
         workoutsCompleted: 0,
+        wellnessStreak: 0,
       };
     }
   };

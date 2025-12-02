@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { useTracker } from './TrackerContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { achievements, Achievement } from '@/data/achievements';
@@ -16,6 +15,7 @@ interface AchievementContextType {
   incrementLectureCount: () => Promise<void>;
   incrementWorkoutDay: () => Promise<void>;
   loadWeeklyChallenges: () => Promise<void>;
+  syncWeeklyChallengesWithStats: (prayers: number, quranPages: number, dhikrCount: number) => Promise<void>;
 }
 
 const AchievementContext = createContext<AchievementContextType | undefined>(undefined);
@@ -24,10 +24,11 @@ const ACHIEVEMENTS_STORAGE_KEY = '@achievements';
 const WEEKLY_CHALLENGES_STORAGE_KEY = '@weekly_challenges';
 const WEEKLY_CHALLENGES_DATE_KEY = '@weekly_challenges_date';
 const POINTS_STORAGE_KEY = '@total_points';
+const LECTURES_WATCHED_KEY = '@lectures_watched_week';
+const LECTURES_WATCHED_DATE_KEY = '@lectures_watched_week_date';
 
 export function AchievementProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { trackerData } = useTracker();
   const [userAchievements, setUserAchievements] = useState<Achievement[]>(achievements);
   const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -59,6 +60,10 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
         setWeeklyChallenges(newChallenges);
         await AsyncStorage.setItem(WEEKLY_CHALLENGES_DATE_KEY, weekStart);
         await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(newChallenges));
+        
+        // Reset lecture count for new week
+        await AsyncStorage.setItem(LECTURES_WATCHED_KEY, '0');
+        await AsyncStorage.setItem(LECTURES_WATCHED_DATE_KEY, weekStart);
         
         if (user && isSupabaseConfigured()) {
           await supabase
@@ -106,6 +111,23 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error loading weekly challenges:', error);
+    }
+  };
+
+  const syncWeeklyChallengesWithStats = async (prayerDays: number, quranPages: number, dhikrCount: number) => {
+    try {
+      console.log('Syncing weekly challenges with stats:', { prayerDays, quranPages, dhikrCount });
+      
+      // Update prayer challenge
+      await updateChallengeProgress('weekly-prayer-streak', prayerDays);
+      
+      // Update Quran challenge
+      await updateChallengeProgress('weekly-quran-35-pages', quranPages);
+      
+      // Update dhikr challenge
+      await updateChallengeProgress('weekly-dhikr-2000', dhikrCount);
+    } catch (error) {
+      console.error('Error syncing weekly challenges:', error);
     }
   };
 
@@ -158,16 +180,22 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
 
   const incrementLectureCount = async () => {
     try {
+      const weekStart = getWeekStartDate();
+      const savedWeekStart = await AsyncStorage.getItem(LECTURES_WATCHED_DATE_KEY);
+      
+      let currentCount = 0;
+      if (savedWeekStart === weekStart) {
+        const savedCount = await AsyncStorage.getItem(LECTURES_WATCHED_KEY);
+        currentCount = savedCount ? parseInt(savedCount) : 0;
+      }
+      
+      const newCount = currentCount + 1;
+      await AsyncStorage.setItem(LECTURES_WATCHED_KEY, newCount.toString());
+      await AsyncStorage.setItem(LECTURES_WATCHED_DATE_KEY, weekStart);
+      
+      console.log('Incremented lecture count to:', newCount);
+      
       if (user && isSupabaseConfigured()) {
-        const { data: stats } = await supabase
-          .from('user_stats')
-          .select('lectures_watched')
-          .eq('user_id', user.id)
-          .single();
-
-        const currentCount = stats?.lectures_watched || 0;
-        const newCount = currentCount + 1;
-
         await supabase
           .from('user_stats')
           .upsert({
@@ -177,15 +205,9 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
           }, {
             onConflict: 'user_id'
           });
-
-        await updateChallengeProgress('weekly-lectures-5', newCount);
-      } else {
-        const savedCount = await AsyncStorage.getItem('@lectures_watched');
-        const currentCount = savedCount ? parseInt(savedCount) : 0;
-        const newCount = currentCount + 1;
-        await AsyncStorage.setItem('@lectures_watched', newCount.toString());
-        await updateChallengeProgress('weekly-lectures-5', newCount);
       }
+
+      await updateChallengeProgress('weekly-lectures-5', newCount);
     } catch (error) {
       console.error('Error incrementing lecture count:', error);
     }
@@ -203,6 +225,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
       if (!workoutDays.includes(today)) {
         workoutDays.push(today);
         await AsyncStorage.setItem(storageKey, JSON.stringify(workoutDays));
+        console.log('Incremented workout days to:', workoutDays.length);
         await updateChallengeProgress('weekly-wellness', workoutDays.length);
       }
     } catch (error) {
@@ -307,11 +330,17 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
           case 'prayer-streak-30':
             shouldUnlock = currentTrackerData.prayers.streak >= 30;
             break;
+          case 'prayer-streak-100':
+            shouldUnlock = currentTrackerData.prayers.streak >= 100;
+            break;
           case 'dhikr-1000':
             shouldUnlock = lifetimeStats.totalDhikr >= 1000;
             break;
           case 'dhikr-10000':
             shouldUnlock = lifetimeStats.totalDhikr >= 10000;
+            break;
+          case 'dhikr-streak-30':
+            shouldUnlock = currentTrackerData.dhikr.streak >= 30;
             break;
           case 'quran-juz':
             shouldUnlock = lifetimeStats.totalQuranPages >= 20;
@@ -319,18 +348,30 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
           case 'quran-complete':
             shouldUnlock = lifetimeStats.totalQuranPages >= 604;
             break;
-          case 'knowledge-seeker':
+          case 'quran-memorize-50':
+            shouldUnlock = lifetimeStats.totalQuranVerses >= 50;
+            break;
+          case 'quran-streak-7':
+            shouldUnlock = currentTrackerData.quran.streak >= 7;
+            break;
+          case 'learning-10-lectures':
             shouldUnlock = lifetimeStats.lecturesWatched >= 10;
             break;
-          case 'fitness-warrior':
+          case 'learning-50-lectures':
+            shouldUnlock = lifetimeStats.lecturesWatched >= 50;
+            break;
+          case 'wellness-workout-30':
             shouldUnlock = lifetimeStats.workoutsCompleted >= 30;
+            break;
+          case 'wellness-streak-7':
+            shouldUnlock = lifetimeStats.wellnessStreak >= 7;
             break;
         }
 
         if (shouldUnlock) {
           updatedAchievements[i] = { ...achievement, unlocked: true };
           hasNewAchievement = true;
-          await addPoints(achievement.points);
+          await addPoints(achievement.points || 100);
 
           if (user && isSupabaseConfigured()) {
             await supabase
@@ -364,6 +405,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
         incrementLectureCount,
         incrementWorkoutDay,
         loadWeeklyChallenges,
+        syncWeeklyChallengesWithStats,
       }}
     >
       {children}
