@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTracker } from '@/contexts/TrackerContext';
 import { router } from 'expo-router';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { importIslamicLectures, importQuranRecitations, importAllVideos } from '@/utils/importYouTubeVideos';
+import { importIslamicLectures, importQuranRecitations, importAllVideos, cleanupBrokenVideos } from '@/utils/importYouTubeVideos';
 
 export default function ProfileScreen() {
   const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
   const handleImportLectures = async () => {
     Alert.alert(
       'Import Islamic Lectures',
-      'This will fetch the first 100 Islamic lecture videos from YouTube and import them into the database. This may take a few minutes. Continue?',
+      'This will fetch the first 100 Islamic lecture videos from YouTube and import them into the database.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take a few minutes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -111,9 +111,12 @@ export default function ProfileScreen() {
             try {
               const result = await importIslamicLectures();
               if (result.success) {
-                Alert.alert('Success', result.message);
+                Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
               } else {
-                Alert.alert('Error', result.error || 'Failed to import lectures');
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import lectures.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
               }
             } catch (error) {
               Alert.alert('Error', 'An unexpected error occurred');
@@ -130,7 +133,7 @@ export default function ProfileScreen() {
   const handleImportRecitations = async () => {
     Alert.alert(
       'Import Quran Recitations',
-      'This will fetch the first 100 Quran recitation videos from YouTube and import them into the database. This may take a few minutes. Continue?',
+      'This will fetch the first 100 Quran recitation videos from YouTube and import them into the database.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take a few minutes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -140,9 +143,12 @@ export default function ProfileScreen() {
             try {
               const result = await importQuranRecitations();
               if (result.success) {
-                Alert.alert('Success', result.message);
+                Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
               } else {
-                Alert.alert('Error', result.error || 'Failed to import recitations');
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import recitations.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
               }
             } catch (error) {
               Alert.alert('Error', 'An unexpected error occurred');
@@ -159,7 +165,7 @@ export default function ProfileScreen() {
   const handleImportAll = async () => {
     Alert.alert(
       'Import All Videos',
-      'This will fetch and import both Islamic lectures and Quran recitations from YouTube (200 videos total). This may take several minutes. Continue?',
+      'This will fetch and import both Islamic lectures and Quran recitations from YouTube (up to 200 videos total).\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take several minutes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -168,17 +174,52 @@ export default function ProfileScreen() {
             setImporting(true);
             try {
               const results = await importAllVideos();
-              const lecturesMsg = results.lectures.success 
-                ? `Lectures: ${results.lectures.imported} imported` 
-                : `Lectures: ${results.lectures.error}`;
-              const recitationsMsg = results.recitations.success 
-                ? `Recitations: ${results.recitations.imported} imported` 
-                : `Recitations: ${results.recitations.error}`;
               
-              Alert.alert('Import Complete', `${lecturesMsg}\n${recitationsMsg}`);
+              const lecturesMsg = results.lectures.success 
+                ? `✓ Lectures: ${results.lectures.imported} imported` 
+                : `✗ Lectures: ${results.lectures.error}`;
+              
+              const recitationsMsg = results.recitations.success 
+                ? `✓ Recitations: ${results.recitations.imported} imported` 
+                : `✗ Recitations: ${results.recitations.error}`;
+              
+              const overallSuccess = results.lectures.success || results.recitations.success;
+              
+              Alert.alert(
+                overallSuccess ? 'Import Complete' : 'Import Failed', 
+                `${lecturesMsg}\n\n${recitationsMsg}`
+              );
             } catch (error) {
               Alert.alert('Error', 'An unexpected error occurred');
               console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCleanupBrokenVideos = async () => {
+    Alert.alert(
+      'Clean Up Broken Videos',
+      'This will scan all videos in the database and remove any with broken or invalid YouTube URLs.\n\nThis process may take several minutes depending on the number of videos.\n\nContinue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clean Up',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await cleanupBrokenVideos();
+              Alert.alert(
+                'Cleanup Complete',
+                `Removed ${result.lecturesRemoved} broken lecture(s) and ${result.recitationsRemoved} broken recitation(s).`
+              );
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred during cleanup');
+              console.error('Cleanup error:', error);
             } finally {
               setImporting(false);
             }
@@ -398,8 +439,20 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               </View>
 
+              <View style={styles.adminWarning}>
+                <IconSymbol
+                  ios_icon_name="info.circle.fill"
+                  android_material_icon_name="info"
+                  size={20}
+                  color={colors.accent}
+                />
+                <Text style={styles.adminWarningText}>
+                  These tools require a YouTube API key to be configured in Supabase Edge Function secrets.
+                </Text>
+              </View>
+
               <Text style={styles.adminDescription}>
-                Import YouTube videos into the database. This will replace all existing videos.
+                Import YouTube videos into the database. This will replace all existing videos with fresh, validated content from YouTube.
               </Text>
 
               <TouchableOpacity
@@ -450,10 +503,30 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
 
+              <View style={styles.divider} />
+
+              <Text style={styles.adminDescription}>
+                Clean up broken or invalid video links from the database.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.adminButtonDanger, importing && styles.adminButtonDisabled]}
+                onPress={handleCleanupBrokenVideos}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="trash.fill"
+                  android_material_icon_name="delete"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Clean Up Broken Videos</Text>
+              </TouchableOpacity>
+
               {importing && (
                 <View style={styles.importingIndicator}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.importingText}>Importing videos... This may take a few minutes.</Text>
+                  <Text style={styles.importingText}>Processing... This may take a few minutes.</Text>
                 </View>
               )}
             </View>
@@ -928,6 +1001,21 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
+  adminWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  adminWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+  },
   adminDescription: {
     fontSize: 14,
     color: colors.textSecondary,
@@ -954,6 +1042,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 12,
     boxShadow: '0px 2px 6px rgba(63, 81, 181, 0.3)',
+    elevation: 3,
+  },
+  adminButtonDanger: {
+    backgroundColor: colors.error,
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    boxShadow: '0px 2px 6px rgba(244, 67, 54, 0.3)',
     elevation: 3,
   },
   adminButtonDisabled: {
