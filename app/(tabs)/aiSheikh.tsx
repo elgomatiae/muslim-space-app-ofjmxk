@@ -20,8 +20,6 @@ interface Conversation {
   updated_at: string;
 }
 
-const SUPABASE_URL = 'https://teemloiwfnwrogwnoxsa.supabase.co';
-
 export default function AiSheikhScreen() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -108,9 +106,7 @@ export default function AiSheikhScreen() {
   const sendMessage = async () => {
     console.log('=== SEND MESSAGE CALLED ===');
     console.log('Input text:', inputText);
-    console.log('Input text length:', inputText.length);
     console.log('Input text trimmed:', inputText.trim());
-    console.log('Input text trimmed length:', inputText.trim().length);
     
     if (!inputText.trim()) {
       console.log('Input text is empty after trim, returning');
@@ -134,67 +130,36 @@ export default function AiSheikhScreen() {
 
     console.log('Adding user message to state');
     setMessages((prev) => [...prev, userMessage]);
+    const questionToSend = inputText.trim();
     setInputText('');
     setIsLoading(true);
 
     try {
-      console.log('Getting session...');
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        throw new Error('Failed to get session: ' + sessionError.message);
-      }
+      console.log('Calling Edge Function via supabase.functions.invoke...');
+      console.log('Question:', questionToSend);
+      console.log('Conversation ID:', currentConversationId);
 
-      const token = sessionData?.session?.access_token;
-
-      if (!token) {
-        console.error('No token found in session');
-        throw new Error('No authentication token found. Please sign in again.');
-      }
-
-      console.log('Token obtained, length:', token.length);
-      console.log('Calling Edge Function at:', `${SUPABASE_URL}/functions/v1/ai-sheikh`);
-      
-      const requestBody = {
-        question: userMessage.content,
-        conversationId: currentConversationId,
-      };
-      
-      console.log('Request body:', JSON.stringify(requestBody));
-
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-sheikh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+      const { data, error } = await supabase.functions.invoke('ai-sheikh', {
+        body: {
+          question: questionToSend,
+          conversationId: currentConversationId,
         },
-        body: JSON.stringify(requestBody),
       });
 
-      console.log('Response received');
-      console.log('Response status:', response.status);
-      console.log('Response statusText:', response.statusText);
-      console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
+      console.log('Edge Function response received');
+      console.log('Data:', data);
+      console.log('Error:', error);
 
-      if (!response.ok) {
-        let errorMessage = 'Failed to get response';
-        try {
-          const errorData = await response.json();
-          console.error('Error response data:', errorData);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          const errorText = await response.text();
-          console.error('Error response text:', errorText);
-          errorMessage = errorText || errorMessage;
-        }
-        throw new Error(errorMessage);
+      if (error) {
+        console.error('Edge Function error:', error);
+        throw new Error(error.message || 'Failed to get response from AI Sheikh');
       }
 
-      const responseData = await response.json();
-      console.log('Response data received:', responseData);
+      if (!data) {
+        throw new Error('No data returned from Edge Function');
+      }
 
-      const { answer, conversationId } = responseData;
+      const { answer, conversationId } = data;
       console.log('Received answer:', answer);
       console.log('Conversation ID:', conversationId);
 
