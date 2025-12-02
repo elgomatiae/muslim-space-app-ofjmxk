@@ -1,66 +1,49 @@
 
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { useRouter, usePathname } from 'expo-router';
 import { IconSymbol } from './IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-export default function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export interface TabBarItem {
+  name: string;
+  route: string;
+  icon: string;
+  label: string;
+}
+
+interface FloatingTabBarProps {
+  tabs: TabBarItem[];
+}
+
+export default function FloatingTabBar({ tabs }: FloatingTabBarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const isActive = (route: string) => {
+    return pathname.startsWith(route);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const label =
-            options.tabBarLabel !== undefined
-              ? options.tabBarLabel
-              : options.title !== undefined
-              ? options.title
-              : route.name;
-
-          const isFocused = state.index === index;
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
-
-          const onLongPress = () => {
-            navigation.emit({
-              type: 'tabLongPress',
-              target: route.key,
-            });
-          };
-
-          // Get the icon from options
-          const icon = options.tabBarIcon;
-
+        {tabs.map((tab, index) => {
+          const active = isActive(tab.route);
           return (
             <TouchableOpacity
               key={index}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              testID={options.tabBarTestID}
-              onPress={onPress}
-              onLongPress={onLongPress}
               style={styles.tab}
+              onPress={() => router.push(tab.route as any)}
               activeOpacity={0.7}
             >
-              {icon && icon({ 
-                focused: isFocused, 
-                color: isFocused ? colors.primary : colors.textSecondary,
-                size: 24 
-              })}
-              <Text style={[styles.label, isFocused && styles.activeLabel]}>
-                {typeof label === 'string' ? label : ''}
+              <IconSymbol
+                ios_icon_name={tab.icon as any}
+                android_material_icon_name={tab.icon as any}
+                size={24}
+                color={active ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.label, active && styles.activeLabel]}>
+                {tab.label}
               </Text>
             </TouchableOpacity>
           );
