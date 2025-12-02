@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTracker } from '@/contexts/TrackerContext';
 import { router } from 'expo-router';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { importIslamicLectures, importQuranRecitations, importAllVideos } from '@/utils/importYouTubeVideos';
 
 export default function ProfileScreen() {
   const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
@@ -28,6 +29,9 @@ export default function ProfileScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [weeklyStats, setWeeklyStats] = useState<any>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [adminTapCount, setAdminTapCount] = useState(0);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (user && isSupabaseConfigured()) {
@@ -83,6 +87,107 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleHeaderTap = () => {
+    const newCount = adminTapCount + 1;
+    setAdminTapCount(newCount);
+    
+    if (newCount >= 7) {
+      setShowAdminPanel(true);
+      setAdminTapCount(0);
+      Alert.alert('Admin Panel', 'Admin panel unlocked!');
+    }
+  };
+
+  const handleImportLectures = async () => {
+    Alert.alert(
+      'Import Islamic Lectures',
+      'This will fetch the first 100 Islamic lecture videos from YouTube and import them into the database. This may take a few minutes. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importIslamicLectures();
+              if (result.success) {
+                Alert.alert('Success', result.message);
+              } else {
+                Alert.alert('Error', result.error || 'Failed to import lectures');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleImportRecitations = async () => {
+    Alert.alert(
+      'Import Quran Recitations',
+      'This will fetch the first 100 Quran recitation videos from YouTube and import them into the database. This may take a few minutes. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importQuranRecitations();
+              if (result.success) {
+                Alert.alert('Success', result.message);
+              } else {
+                Alert.alert('Error', result.error || 'Failed to import recitations');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleImportAll = async () => {
+    Alert.alert(
+      'Import All Videos',
+      'This will fetch and import both Islamic lectures and Quran recitations from YouTube (200 videos total). This may take several minutes. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import All',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const results = await importAllVideos();
+              const lecturesMsg = results.lectures.success 
+                ? `Lectures: ${results.lectures.imported} imported` 
+                : `Lectures: ${results.lectures.error}`;
+              const recitationsMsg = results.recitations.success 
+                ? `Recitations: ${results.recitations.imported} imported` 
+                : `Recitations: ${results.recitations.error}`;
+              
+              Alert.alert('Import Complete', `${lecturesMsg}\n${recitationsMsg}`);
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleAuth = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
@@ -121,7 +226,6 @@ export default function ProfileScreen() {
       } else {
         const { error, data } = await signIn(email, password);
         if (error) {
-          // Check for common error messages
           if (error.message?.includes('Email not confirmed')) {
             Alert.alert(
               'Email Not Verified',
@@ -197,7 +301,9 @@ export default function ProfileScreen() {
               color={colors.text}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={handleHeaderTap}>
+            <Text style={styles.headerTitle}>Profile</Text>
+          </TouchableOpacity>
           <View style={styles.backButton} />
         </View>
 
@@ -238,7 +344,9 @@ export default function ProfileScreen() {
               color={colors.text}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={handleHeaderTap}>
+            <Text style={styles.headerTitle}>Profile</Text>
+          </TouchableOpacity>
           <View style={styles.backButton} />
         </View>
         <View style={styles.loadingContainer}>
@@ -263,11 +371,94 @@ export default function ProfileScreen() {
               color={colors.text}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={handleHeaderTap}>
+            <Text style={styles.headerTitle}>Profile</Text>
+          </TouchableOpacity>
           <View style={styles.backButton} />
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          {showAdminPanel && (
+            <View style={styles.adminPanel}>
+              <View style={styles.adminHeader}>
+                <IconSymbol
+                  ios_icon_name="wrench.and.screwdriver.fill"
+                  android_material_icon_name="build"
+                  size={24}
+                  color={colors.warning}
+                />
+                <Text style={styles.adminTitle}>Admin Panel</Text>
+                <TouchableOpacity onPress={() => setShowAdminPanel(false)}>
+                  <IconSymbol
+                    ios_icon_name="xmark.circle.fill"
+                    android_material_icon_name="cancel"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.adminDescription}>
+                Import YouTube videos into the database. This will replace all existing videos.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.adminButton, importing && styles.adminButtonDisabled]}
+                onPress={handleImportLectures}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="video.fill"
+                  android_material_icon_name="video-library"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import Islamic Lectures</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.adminButton, importing && styles.adminButtonDisabled]}
+                onPress={handleImportRecitations}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="book.fill"
+                  android_material_icon_name="menu-book"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import Quran Recitations</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
+                onPress={handleImportAll}
+                disabled={importing}
+              >
+                {importing ? (
+                  <ActivityIndicator color={colors.card} />
+                ) : (
+                  <React.Fragment>
+                    <IconSymbol
+                      ios_icon_name="arrow.down.circle.fill"
+                      android_material_icon_name="download"
+                      size={20}
+                      color={colors.card}
+                    />
+                    <Text style={styles.adminButtonText}>Import All Videos</Text>
+                  </React.Fragment>
+                )}
+              </TouchableOpacity>
+
+              {importing && (
+                <View style={styles.importingIndicator}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={styles.importingText}>Importing videos... This may take a few minutes.</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           <View style={styles.profileCard}>
             <View style={styles.avatarCircle}>
               <IconSymbol
@@ -503,7 +694,9 @@ export default function ProfileScreen() {
             color={colors.text}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isSignUp ? 'Sign Up' : 'Sign In'}</Text>
+        <TouchableOpacity onPress={handleHeaderTap}>
+          <Text style={styles.headerTitle}>{isSignUp ? 'Sign Up' : 'Sign In'}</Text>
+        </TouchableOpacity>
         <View style={styles.backButton} />
       </View>
 
@@ -711,6 +904,80 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  adminPanel: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: colors.warning,
+    boxShadow: '0px 4px 12px rgba(255, 152, 0, 0.2)',
+    elevation: 4,
+  },
+  adminHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  adminTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+    marginLeft: 12,
+  },
+  adminDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  adminButton: {
+    backgroundColor: colors.secondary,
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.1)',
+    elevation: 2,
+  },
+  adminButtonPrimary: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    boxShadow: '0px 2px 6px rgba(63, 81, 181, 0.3)',
+    elevation: 3,
+  },
+  adminButtonDisabled: {
+    opacity: 0.6,
+  },
+  adminButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.card,
+    marginLeft: 8,
+  },
+  importingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  importingText: {
+    fontSize: 13,
+    color: colors.text,
+    marginLeft: 12,
   },
   notConfiguredCard: {
     backgroundColor: colors.card,
