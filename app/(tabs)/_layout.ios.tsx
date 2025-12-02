@@ -22,13 +22,13 @@ export default function TabLayout() {
         <Icon sf={{ default: 'star', selected: 'star.fill' }} />
         <Label>Dawah</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger key="tracker" name="tracker">
-        <Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} />
-        <Label>Tracker</Label>
+      <NativeTabs.Trigger key="wellness" name="wellness">
+        <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
+        <Label>Wellness</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger key="duas" name="duas">
-        <Icon sf={{ default: 'hands.sparkles', selected: 'hands.sparkles.fill' }} />
-        <Label>Duas</Label>
+      <NativeTabs.Trigger key="aiSheikh" name="aiSheikh">
+        <Icon sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }} />
+        <Label>AI Sheikh</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

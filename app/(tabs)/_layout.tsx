@@ -30,10 +30,10 @@ export default function TabLayout() {
       label: 'Wellness',
     },
     {
-      name: 'tracker',
-      route: '/(tabs)/tracker',
-      icon: 'bar-chart',
-      label: 'Track',
+      name: 'aiSheikh',
+      route: '/(tabs)/aiSheikh',
+      icon: 'chat',
+      label: 'AI Sheikh',
     },
   ];
 
@@ -51,6 +51,7 @@ export default function TabLayout() {
         <Stack.Screen key="tracker" name="tracker" />
         <Stack.Screen key="duas" name="duas" />
         <Stack.Screen key="wellness" name="wellness" />
+        <Stack.Screen key="aiSheikh" name="aiSheikh" />
       </Stack>
       <FloatingTabBar tabs={tabs} />
     </>

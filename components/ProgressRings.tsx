@@ -116,7 +116,7 @@ export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsPr
       </Svg>
 
       <View style={styles.centerContent}>
-        <Text style={styles.centerTitle}>Faith Tracker</Text>
+        <Text style={styles.centerTitle}>Faith{'\n'}Tracker</Text>
       </View>
     </View>
   );
@@ -134,8 +134,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

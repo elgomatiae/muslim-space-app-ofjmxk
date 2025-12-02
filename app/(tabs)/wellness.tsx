@@ -18,11 +18,13 @@ interface WaterTracker {
 interface WorkoutTracker {
   date: string;
   workouts: string[];
+  totalMinutes: number;
 }
 
 interface CardioTracker {
   date: string;
   minutes: number;
+  activities: string[];
 }
 
 interface GratitudeEntry {
@@ -31,6 +33,18 @@ interface GratitudeEntry {
   entry_text: string;
   prompt_used: string | null;
   created_at: string;
+}
+
+interface WorkoutStats {
+  weeklyMinutes: number;
+  weeklyGoal: number;
+  streak: number;
+}
+
+interface CardioStats {
+  weeklyMinutes: number;
+  weeklyGoal: number;
+  streak: number;
 }
 
 const gratitudePrompts = [
@@ -46,6 +60,20 @@ const gratitudePrompts = [
   'What relationship are you grateful for?',
   'What ability or skill are you thankful to have?',
   'What moment of peace did you experience today?',
+];
+
+const workoutTypes = [
+  { name: 'Strength Training', icon: 'dumbbell', duration: 30 },
+  { name: 'Bodyweight', icon: 'figure-strengthtraining-traditional', duration: 20 },
+  { name: 'Yoga', icon: 'figure-yoga', duration: 30 },
+  { name: 'Stretching', icon: 'figure-flexibility', duration: 15 },
+];
+
+const cardioTypes = [
+  { name: 'Running', icon: 'figure-run', duration: 30 },
+  { name: 'Walking', icon: 'figure-walk', duration: 30 },
+  { name: 'Cycling', icon: 'bicycle', duration: 45 },
+  { name: 'Swimming', icon: 'figure-pool-swim', duration: 30 },
 ];
 
 export default function WellnessScreen() {
@@ -65,11 +93,14 @@ export default function WellnessScreen() {
   const [cardioMinutes, setCardioMinutes] = useState(0);
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [showCardioModal, setShowCardioModal] = useState(false);
+  const [workoutStats, setWorkoutStats] = useState<WorkoutStats>({ weeklyMinutes: 0, weeklyGoal: 150, streak: 0 });
+  const [cardioStats, setCardioStats] = useState<CardioStats>({ weeklyMinutes: 0, weeklyGoal: 150, streak: 0 });
 
   useEffect(() => {
     loadDailyProgress();
     loadTodayJournalEntry();
     generateRandomPrompt();
+    loadWeeklyStats();
   }, []);
 
   const generateRandomPrompt = () => {
@@ -193,7 +224,7 @@ export default function WellnessScreen() {
       if (workoutData) {
         const parsed: WorkoutTracker = JSON.parse(workoutData);
         if (parsed.date === today) {
-          setWorkoutMinutes(parsed.workouts.length * 30);
+          setWorkoutMinutes(parsed.totalMinutes);
         }
       }
 
@@ -205,6 +236,27 @@ export default function WellnessScreen() {
       }
     } catch (error) {
       console.error('Error loading daily progress:', error);
+    }
+  };
+
+  const loadWeeklyStats = async () => {
+    try {
+      // Calculate weekly workout minutes
+      const workoutData = await AsyncStorage.getItem('workoutTracker');
+      const cardioData = await AsyncStorage.getItem('cardioTracker');
+      
+      // For now, use today's data as weekly (you can expand this to track full week)
+      if (workoutData) {
+        const parsed: WorkoutTracker = JSON.parse(workoutData);
+        setWorkoutStats(prev => ({ ...prev, weeklyMinutes: parsed.totalMinutes }));
+      }
+      
+      if (cardioData) {
+        const parsed: CardioTracker = JSON.parse(cardioData);
+        setCardioStats(prev => ({ ...prev, weeklyMinutes: parsed.minutes }));
+      }
+    } catch (error) {
+      console.error('Error loading weekly stats:', error);
     }
   };
 
@@ -230,33 +282,66 @@ export default function WellnessScreen() {
     }
   };
 
-  const addWorkout = async (minutes: number) => {
+  const addWorkout = async (type: string, minutes: number) => {
     const newMinutes = workoutMinutes + minutes;
     setWorkoutMinutes(newMinutes);
     try {
       const today = new Date().toDateString();
       const workoutData = await AsyncStorage.getItem('workoutTracker');
       let workouts: string[] = [];
+      let totalMinutes = 0;
+      
       if (workoutData) {
         const parsed: WorkoutTracker = JSON.parse(workoutData);
         if (parsed.date === today) {
           workouts = parsed.workouts;
+          totalMinutes = parsed.totalMinutes;
         }
       }
-      workouts.push(`${minutes} min workout`);
-      await AsyncStorage.setItem('workoutTracker', JSON.stringify({ date: today, workouts }));
+      
+      workouts.push(`${type} - ${minutes} min`);
+      totalMinutes += minutes;
+      
+      await AsyncStorage.setItem('workoutTracker', JSON.stringify({ 
+        date: today, 
+        workouts,
+        totalMinutes 
+      }));
+      
+      setWorkoutStats(prev => ({ ...prev, weeklyMinutes: prev.weeklyMinutes + minutes }));
     } catch (error) {
       console.error('Error saving workout tracker:', error);
     }
     setShowWorkoutModal(false);
   };
 
-  const addCardio = async (minutes: number) => {
+  const addCardio = async (type: string, minutes: number) => {
     const newMinutes = cardioMinutes + minutes;
     setCardioMinutes(newMinutes);
     try {
       const today = new Date().toDateString();
-      await AsyncStorage.setItem('cardioTracker', JSON.stringify({ date: today, minutes: newMinutes }));
+      const cardioData = await AsyncStorage.getItem('cardioTracker');
+      let activities: string[] = [];
+      let totalMinutes = 0;
+      
+      if (cardioData) {
+        const parsed: CardioTracker = JSON.parse(cardioData);
+        if (parsed.date === today) {
+          activities = parsed.activities;
+          totalMinutes = parsed.minutes;
+        }
+      }
+      
+      activities.push(`${type} - ${minutes} min`);
+      totalMinutes += minutes;
+      
+      await AsyncStorage.setItem('cardioTracker', JSON.stringify({ 
+        date: today, 
+        minutes: totalMinutes,
+        activities 
+      }));
+      
+      setCardioStats(prev => ({ ...prev, weeklyMinutes: prev.weeklyMinutes + minutes }));
     } catch (error) {
       console.error('Error saving cardio tracker:', error);
     }
@@ -764,7 +849,7 @@ export default function WellnessScreen() {
               </View>
             </View>
 
-            {/* Workout Tracker */}
+            {/* Enhanced Workout Tracker */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -778,6 +863,29 @@ export default function WellnessScreen() {
               <Text style={styles.cardDescription}>
                 Track your strength training and exercises
               </Text>
+              
+              {/* Weekly Progress */}
+              <View style={styles.weeklyStatsCard}>
+                <View style={styles.weeklyStatRow}>
+                  <Text style={styles.weeklyStatLabel}>This Week</Text>
+                  <Text style={styles.weeklyStatValue}>{workoutStats.weeklyMinutes} / {workoutStats.weeklyGoal} min</Text>
+                </View>
+                <View style={styles.progressBarContainer}>
+                  <View style={[styles.progressBar, { width: `${Math.min((workoutStats.weeklyMinutes / workoutStats.weeklyGoal) * 100, 100)}%`, backgroundColor: colors.primary }]} />
+                </View>
+                <View style={styles.weeklyStatRow}>
+                  <View style={styles.streakBadge}>
+                    <IconSymbol
+                      ios_icon_name="flame.fill"
+                      android_material_icon_name="local-fire-department"
+                      size={16}
+                      color={colors.warning}
+                    />
+                    <Text style={styles.streakText}>{workoutStats.streak} day streak</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.trackerProgress}>
                 <Text style={styles.trackerCount}>{workoutMinutes} minutes today</Text>
               </View>
@@ -795,7 +903,7 @@ export default function WellnessScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Cardio Tracker */}
+            {/* Enhanced Cardio Tracker */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -809,6 +917,29 @@ export default function WellnessScreen() {
               <Text style={styles.cardDescription}>
                 Track your cardio activities (running, walking, cycling)
               </Text>
+              
+              {/* Weekly Progress */}
+              <View style={styles.weeklyStatsCard}>
+                <View style={styles.weeklyStatRow}>
+                  <Text style={styles.weeklyStatLabel}>This Week</Text>
+                  <Text style={styles.weeklyStatValue}>{cardioStats.weeklyMinutes} / {cardioStats.weeklyGoal} min</Text>
+                </View>
+                <View style={styles.progressBarContainer}>
+                  <View style={[styles.progressBar, { width: `${Math.min((cardioStats.weeklyMinutes / cardioStats.weeklyGoal) * 100, 100)}%`, backgroundColor: colors.error }]} />
+                </View>
+                <View style={styles.weeklyStatRow}>
+                  <View style={styles.streakBadge}>
+                    <IconSymbol
+                      ios_icon_name="flame.fill"
+                      android_material_icon_name="local-fire-department"
+                      size={16}
+                      color={colors.warning}
+                    />
+                    <Text style={styles.streakText}>{cardioStats.streak} day streak</Text>
+                  </View>
+                </View>
+              </View>
+
               <View style={styles.trackerProgress}>
                 <Text style={styles.trackerCount}>{cardioMinutes} minutes today</Text>
               </View>
@@ -1050,7 +1181,7 @@ export default function WellnessScreen() {
         </View>
       </Modal>
 
-      {/* Workout Modal */}
+      {/* Enhanced Workout Modal */}
       <Modal
         visible={showWorkoutModal}
         transparent
@@ -1060,31 +1191,26 @@ export default function WellnessScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.quickModal}>
             <Text style={styles.quickModalTitle}>Log Workout</Text>
+            <Text style={styles.quickModalSubtitle}>Select workout type</Text>
             <View style={styles.quickModalButtons}>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addWorkout(15)}
-              >
-                <Text style={styles.quickModalButtonText}>15 min</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addWorkout(30)}
-              >
-                <Text style={styles.quickModalButtonText}>30 min</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addWorkout(45)}
-              >
-                <Text style={styles.quickModalButtonText}>45 min</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addWorkout(60)}
-              >
-                <Text style={styles.quickModalButtonText}>60 min</Text>
-              </TouchableOpacity>
+              {workoutTypes.map((workout, index) => (
+                <TouchableOpacity
+                  key={`workout-${index}`}
+                  style={styles.workoutTypeButton}
+                  onPress={() => addWorkout(workout.name, workout.duration)}
+                >
+                  <IconSymbol
+                    ios_icon_name={workout.icon as any}
+                    android_material_icon_name="fitness-center"
+                    size={24}
+                    color={colors.primary}
+                  />
+                  <View style={styles.workoutTypeText}>
+                    <Text style={styles.workoutTypeName}>{workout.name}</Text>
+                    <Text style={styles.workoutTypeDuration}>{workout.duration} min</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
             <TouchableOpacity
               style={styles.quickModalCancel}
@@ -1096,7 +1222,7 @@ export default function WellnessScreen() {
         </View>
       </Modal>
 
-      {/* Cardio Modal */}
+      {/* Enhanced Cardio Modal */}
       <Modal
         visible={showCardioModal}
         transparent
@@ -1106,31 +1232,26 @@ export default function WellnessScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.quickModal}>
             <Text style={styles.quickModalTitle}>Log Cardio</Text>
+            <Text style={styles.quickModalSubtitle}>Select activity type</Text>
             <View style={styles.quickModalButtons}>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addCardio(15)}
-              >
-                <Text style={styles.quickModalButtonText}>15 min</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addCardio(30)}
-              >
-                <Text style={styles.quickModalButtonText}>30 min</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addCardio(45)}
-              >
-                <Text style={styles.quickModalButtonText}>45 min</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickModalButton}
-                onPress={() => addCardio(60)}
-              >
-                <Text style={styles.quickModalButtonText}>60 min</Text>
-              </TouchableOpacity>
+              {cardioTypes.map((cardio, index) => (
+                <TouchableOpacity
+                  key={`cardio-${index}`}
+                  style={styles.workoutTypeButton}
+                  onPress={() => addCardio(cardio.name, cardio.duration)}
+                >
+                  <IconSymbol
+                    ios_icon_name={cardio.icon as any}
+                    android_material_icon_name="directions-run"
+                    size={24}
+                    color={colors.error}
+                  />
+                  <View style={styles.workoutTypeText}>
+                    <Text style={styles.workoutTypeName}>{cardio.name}</Text>
+                    <Text style={styles.workoutTypeDuration}>{cardio.duration} min</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
             <TouchableOpacity
               style={styles.quickModalCancel}
@@ -1501,6 +1622,42 @@ const styles = StyleSheet.create({
   waterGlassFilled: {
     backgroundColor: colors.accent,
   },
+  weeklyStatsCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  weeklyStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weeklyStatLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  weeklyStatValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1595,12 +1752,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     width: '100%',
-    maxWidth: 300,
+    maxWidth: 400,
   },
   quickModalTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  quickModalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -1608,16 +1771,29 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  quickModalButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 8,
+  workoutTypeButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.background,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  quickModalButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.card,
+  workoutTypeText: {
+    flex: 1,
+  },
+  workoutTypeName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  workoutTypeDuration: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   quickModalCancel: {
     paddingVertical: 12,
