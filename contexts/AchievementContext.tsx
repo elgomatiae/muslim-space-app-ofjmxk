@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { achievements, Achievement } from '@/data/achievements';
-import { generateWeeklyChallenges, Challenge } from '@/data/challenges';
+import { generateWeeklyChallenges, Challenge, defaultWeeklyChallenges } from '@/data/challenges';
 
 interface AchievementContextType {
   achievements: Achievement[];
@@ -30,7 +30,7 @@ const LECTURES_WATCHED_DATE_KEY = '@lectures_watched_week_date';
 export function AchievementProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [userAchievements, setUserAchievements] = useState<Achievement[]>(achievements);
-  const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
+  const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>(defaultWeeklyChallenges);
   const [totalPoints, setTotalPoints] = useState(0);
 
   useEffect(() => {
@@ -51,12 +51,17 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
 
   const loadWeeklyChallenges = async () => {
     try {
+      console.log('Loading weekly challenges...');
       const weekStart = getWeekStartDate();
       const savedWeekStart = await AsyncStorage.getItem(WEEKLY_CHALLENGES_DATE_KEY);
 
+      console.log('Current week start:', weekStart);
+      console.log('Saved week start:', savedWeekStart);
+
       if (savedWeekStart !== weekStart) {
-        console.log('New week detected, resetting weekly challenges');
+        console.log('New week detected, generating fresh weekly challenges');
         const newChallenges = generateWeeklyChallenges();
+        console.log('Generated challenges:', newChallenges.length);
         setWeeklyChallenges(newChallenges);
         await AsyncStorage.setItem(WEEKLY_CHALLENGES_DATE_KEY, weekStart);
         await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(newChallenges));
@@ -76,6 +81,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
       }
 
       if (user && isSupabaseConfigured()) {
+        console.log('Loading challenges from database for user:', user.id);
         const { data, error } = await supabase
           .from('user_challenges')
           .select('*')
@@ -83,6 +89,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
           .eq('week_start_date', weekStart);
 
         if (data && data.length > 0) {
+          console.log('Found challenges in database:', data.length);
           const challengesMap = new Map(data.map(c => [c.challenge_id, c]));
           const updatedChallenges = generateWeeklyChallenges().map(challenge => {
             const userChallenge = challengesMap.get(challenge.id);
@@ -95,6 +102,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
             }
             return challenge;
           });
+          console.log('Updated challenges with database data:', updatedChallenges.length);
           setWeeklyChallenges(updatedChallenges);
           await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(updatedChallenges));
           return;
@@ -103,14 +111,22 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
 
       const savedChallenges = await AsyncStorage.getItem(WEEKLY_CHALLENGES_STORAGE_KEY);
       if (savedChallenges) {
-        setWeeklyChallenges(JSON.parse(savedChallenges));
+        const parsed = JSON.parse(savedChallenges);
+        console.log('Loaded challenges from storage:', parsed.length);
+        setWeeklyChallenges(parsed);
       } else {
+        console.log('No saved challenges, using default');
         const newChallenges = generateWeeklyChallenges();
         setWeeklyChallenges(newChallenges);
         await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(newChallenges));
+        await AsyncStorage.setItem(WEEKLY_CHALLENGES_DATE_KEY, weekStart);
       }
     } catch (error) {
       console.error('Error loading weekly challenges:', error);
+      // Fallback to default challenges
+      const fallbackChallenges = generateWeeklyChallenges();
+      console.log('Using fallback challenges:', fallbackChallenges.length);
+      setWeeklyChallenges(fallbackChallenges);
     }
   };
 
@@ -133,12 +149,15 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
 
   const updateChallengeProgress = async (challengeId: string, progress: number) => {
     try {
+      console.log(`Updating challenge ${challengeId} with progress:`, progress);
+      
       const updatedChallenges = weeklyChallenges.map(challenge => {
         if (challenge.id === challengeId) {
           const newProgress = Math.min(progress, challenge.requirement.value);
           const isCompleted = newProgress >= challenge.requirement.value;
           
           if (isCompleted && !challenge.completed) {
+            console.log(`Challenge ${challengeId} completed! Adding ${challenge.reward.points} points`);
             addPoints(challenge.reward.points);
           }
           
@@ -151,6 +170,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
         return challenge;
       });
 
+      console.log('Updated challenges:', updatedChallenges.map(c => ({ id: c.id, progress: c.progress, completed: c.completed })));
       setWeeklyChallenges(updatedChallenges);
       await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(updatedChallenges));
 

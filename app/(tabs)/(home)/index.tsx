@@ -56,7 +56,9 @@ export default function HomeScreen() {
 
   const syncWeeklyChallenges = async () => {
     try {
+      console.log('Syncing weekly challenges from home screen...');
       const weeklyStats = await getWeeklyStats();
+      console.log('Weekly stats:', weeklyStats);
       
       await updateChallengeProgress('weekly-dhikr-2000', weeklyStats.dhikrCount);
       await updateChallengeProgress('weekly-quran-35-pages', weeklyStats.quranPages);
@@ -276,6 +278,8 @@ export default function HomeScreen() {
     router.push('/(tabs)/profile');
   };
 
+  console.log('Home screen rendering with challenges:', weeklyChallenges.length);
+
   return (
     <View style={styles.container}>
       <View style={styles.headerButtonsContainer} pointerEvents="box-none">
@@ -398,6 +402,29 @@ export default function HomeScreen() {
               color={colors.card}
             />
           </View>
+          
+          {weeklyChallenges.length > 0 && (
+            <View style={styles.challengesPreview}>
+              {weeklyChallenges.slice(0, 3).map((challenge, index) => (
+                <View key={`challenge-preview-${challenge.id}-${index}`} style={styles.challengePreviewItem}>
+                  <View style={styles.challengePreviewBar}>
+                    <View 
+                      style={[
+                        styles.challengePreviewFill, 
+                        { 
+                          width: `${Math.min((challenge.progress / challenge.requirement.value) * 100, 100)}%`,
+                          backgroundColor: challenge.completed ? colors.success : colors.card
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={styles.challengePreviewText} numberOfLines={1}>
+                    {challenge.title}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </TouchableOpacity>
 
         {!loadingDailyContent && dailyVerse && dailyHadith && (
@@ -689,6 +716,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 12,
   },
   challengesIcon: {
     width: 48,
@@ -712,6 +740,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.card,
+  },
+  challengesPreview: {
+    gap: 8,
+  },
+  challengePreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  challengePreviewBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  challengePreviewFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  challengePreviewText: {
+    fontSize: 11,
+    color: colors.card,
+    opacity: 0.9,
+    width: 100,
   },
   dailyContentRow: {
     flexDirection: 'row',

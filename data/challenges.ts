@@ -23,6 +23,17 @@ export interface Challenge {
 }
 
 export const generateWeeklyChallenges = (): Challenge[] => {
+  const weekStart = new Date();
+  const dayOfWeek = weekStart.getDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(weekStart);
+  monday.setDate(weekStart.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  
+  const weekEnd = new Date(monday);
+  weekEnd.setDate(monday.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
   return [
     {
       id: 'weekly-prayer-streak',
@@ -34,6 +45,8 @@ export const generateWeeklyChallenges = (): Challenge[] => {
       duration: 'weekly',
       requirement: { type: 'streak', value: 7, metric: 'prayers' },
       reward: { points: 200, badge: 'prayer-streak-7' },
+      startDate: monday.toISOString(),
+      endDate: weekEnd.toISOString(),
       progress: 0,
       completed: false,
     },
@@ -47,6 +60,8 @@ export const generateWeeklyChallenges = (): Challenge[] => {
       duration: 'weekly',
       requirement: { type: 'count', value: 35, metric: 'quran-pages' },
       reward: { points: 150 },
+      startDate: monday.toISOString(),
+      endDate: weekEnd.toISOString(),
       progress: 0,
       completed: false,
     },
@@ -60,6 +75,8 @@ export const generateWeeklyChallenges = (): Challenge[] => {
       duration: 'weekly',
       requirement: { type: 'count', value: 2000, metric: 'dhikr' },
       reward: { points: 140 },
+      startDate: monday.toISOString(),
+      endDate: weekEnd.toISOString(),
       progress: 0,
       completed: false,
     },
@@ -73,6 +90,8 @@ export const generateWeeklyChallenges = (): Challenge[] => {
       duration: 'weekly',
       requirement: { type: 'count', value: 5, metric: 'lectures' },
       reward: { points: 120 },
+      startDate: monday.toISOString(),
+      endDate: weekEnd.toISOString(),
       progress: 0,
       completed: false,
     },
@@ -86,8 +105,13 @@ export const generateWeeklyChallenges = (): Challenge[] => {
       duration: 'weekly',
       requirement: { type: 'count', value: 5, metric: 'workouts' },
       reward: { points: 130 },
+      startDate: monday.toISOString(),
+      endDate: weekEnd.toISOString(),
       progress: 0,
       completed: false,
     },
   ];
 };
+
+// Export default challenges for immediate use
+export const defaultWeeklyChallenges = generateWeeklyChallenges();
