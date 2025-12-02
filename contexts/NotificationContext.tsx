@@ -72,10 +72,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        // Use the remove method for newer versions of expo-notifications
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        // Use the remove method for newer versions of expo-notifications
+        responseListener.current.remove();
       }
     };
   }, []);

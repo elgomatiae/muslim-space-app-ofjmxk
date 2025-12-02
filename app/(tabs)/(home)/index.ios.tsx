@@ -186,7 +186,7 @@ export default function HomeScreen() {
       setNextPrayer(result.prayer);
       setTimeUntilNext(result.timeUntil);
     }
-  }, [currentTime, prayers]);
+  }, [currentTime, prayers, getNextPrayer]);
 
   const getTodayDateString = () => {
     const today = new Date();
