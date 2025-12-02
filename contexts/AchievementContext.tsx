@@ -1,266 +1,369 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import { useTracker } from './TrackerContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { achievements, Achievement } from '@/data/achievements';
-import { Challenge, generateDailyChallenges, generateWeeklyChallenges } from '@/data/challenges';
-import { Alert } from 'react-native';
+import { generateWeeklyChallenges, Challenge } from '@/data/challenges';
 
 interface AchievementContextType {
   achievements: Achievement[];
-  dailyChallenges: Challenge[];
   weeklyChallenges: Challenge[];
   totalPoints: number;
-  checkAchievements: (trackerData: any, stats: any) => Promise<void>;
+  checkAchievements: (trackerData: any, lifetimeStats: any) => Promise<void>;
   updateChallengeProgress: (challengeId: string, progress: number) => Promise<void>;
-  loadAchievements: () => Promise<void>;
+  incrementLectureCount: () => Promise<void>;
+  incrementWorkoutDay: () => Promise<void>;
+  loadWeeklyChallenges: () => Promise<void>;
 }
 
 const AchievementContext = createContext<AchievementContextType | undefined>(undefined);
 
 const ACHIEVEMENTS_STORAGE_KEY = '@achievements';
-const CHALLENGES_STORAGE_KEY = '@challenges';
+const WEEKLY_CHALLENGES_STORAGE_KEY = '@weekly_challenges';
+const WEEKLY_CHALLENGES_DATE_KEY = '@weekly_challenges_date';
 const POINTS_STORAGE_KEY = '@total_points';
 
 export function AchievementProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { trackerData } = useTracker();
   const [userAchievements, setUserAchievements] = useState<Achievement[]>(achievements);
-  const [dailyChallenges, setDailyChallenges] = useState<Challenge[]>([]);
   const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
   const [totalPoints, setTotalPoints] = useState(0);
 
   useEffect(() => {
     loadAchievements();
-    loadChallenges();
+    loadWeeklyChallenges();
+    loadPoints();
   }, [user]);
 
-  const loadAchievements = async () => {
+  const getWeekStartDate = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString().split('T')[0];
+  };
+
+  const loadWeeklyChallenges = async () => {
     try {
-      const savedAchievements = await AsyncStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
-      const savedPoints = await AsyncStorage.getItem(POINTS_STORAGE_KEY);
-      
-      if (savedAchievements) {
-        setUserAchievements(JSON.parse(savedAchievements));
-      }
-      
-      if (savedPoints) {
-        setTotalPoints(parseInt(savedPoints));
+      const weekStart = getWeekStartDate();
+      const savedWeekStart = await AsyncStorage.getItem(WEEKLY_CHALLENGES_DATE_KEY);
+
+      if (savedWeekStart !== weekStart) {
+        console.log('New week detected, resetting weekly challenges');
+        const newChallenges = generateWeeklyChallenges();
+        setWeeklyChallenges(newChallenges);
+        await AsyncStorage.setItem(WEEKLY_CHALLENGES_DATE_KEY, weekStart);
+        await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(newChallenges));
+        
+        if (user && isSupabaseConfigured()) {
+          await supabase
+            .from('user_challenges')
+            .delete()
+            .eq('user_id', user.id)
+            .lt('week_start_date', weekStart);
+        }
+        return;
       }
 
       if (user && isSupabaseConfigured()) {
-        await syncAchievementsWithDatabase();
+        const { data, error } = await supabase
+          .from('user_challenges')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('week_start_date', weekStart);
+
+        if (data && data.length > 0) {
+          const challengesMap = new Map(data.map(c => [c.challenge_id, c]));
+          const updatedChallenges = generateWeeklyChallenges().map(challenge => {
+            const userChallenge = challengesMap.get(challenge.id);
+            if (userChallenge) {
+              return {
+                ...challenge,
+                progress: userChallenge.progress || 0,
+                completed: userChallenge.completed || false,
+              };
+            }
+            return challenge;
+          });
+          setWeeklyChallenges(updatedChallenges);
+          await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(updatedChallenges));
+          return;
+        }
+      }
+
+      const savedChallenges = await AsyncStorage.getItem(WEEKLY_CHALLENGES_STORAGE_KEY);
+      if (savedChallenges) {
+        setWeeklyChallenges(JSON.parse(savedChallenges));
+      } else {
+        const newChallenges = generateWeeklyChallenges();
+        setWeeklyChallenges(newChallenges);
+        await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(newChallenges));
+      }
+    } catch (error) {
+      console.error('Error loading weekly challenges:', error);
+    }
+  };
+
+  const updateChallengeProgress = async (challengeId: string, progress: number) => {
+    try {
+      const updatedChallenges = weeklyChallenges.map(challenge => {
+        if (challenge.id === challengeId) {
+          const newProgress = Math.min(progress, challenge.requirement.value);
+          const isCompleted = newProgress >= challenge.requirement.value;
+          
+          if (isCompleted && !challenge.completed) {
+            addPoints(challenge.reward.points);
+          }
+          
+          return {
+            ...challenge,
+            progress: newProgress,
+            completed: isCompleted,
+          };
+        }
+        return challenge;
+      });
+
+      setWeeklyChallenges(updatedChallenges);
+      await AsyncStorage.setItem(WEEKLY_CHALLENGES_STORAGE_KEY, JSON.stringify(updatedChallenges));
+
+      if (user && isSupabaseConfigured()) {
+        const weekStart = getWeekStartDate();
+        const challenge = updatedChallenges.find(c => c.id === challengeId);
+        if (challenge) {
+          await supabase
+            .from('user_challenges')
+            .upsert({
+              user_id: user.id,
+              challenge_id: challengeId,
+              progress: challenge.progress,
+              completed: challenge.completed,
+              completed_at: challenge.completed ? new Date().toISOString() : null,
+              week_start_date: weekStart,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'user_id,challenge_id,week_start_date'
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Error updating challenge progress:', error);
+    }
+  };
+
+  const incrementLectureCount = async () => {
+    try {
+      if (user && isSupabaseConfigured()) {
+        const { data: stats } = await supabase
+          .from('user_stats')
+          .select('lectures_watched')
+          .eq('user_id', user.id)
+          .single();
+
+        const currentCount = stats?.lectures_watched || 0;
+        const newCount = currentCount + 1;
+
+        await supabase
+          .from('user_stats')
+          .upsert({
+            user_id: user.id,
+            lectures_watched: newCount,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id'
+          });
+
+        await updateChallengeProgress('weekly-lectures-5', newCount);
+      } else {
+        const savedCount = await AsyncStorage.getItem('@lectures_watched');
+        const currentCount = savedCount ? parseInt(savedCount) : 0;
+        const newCount = currentCount + 1;
+        await AsyncStorage.setItem('@lectures_watched', newCount.toString());
+        await updateChallengeProgress('weekly-lectures-5', newCount);
+      }
+    } catch (error) {
+      console.error('Error incrementing lecture count:', error);
+    }
+  };
+
+  const incrementWorkoutDay = async () => {
+    try {
+      const weekStart = getWeekStartDate();
+      const storageKey = `@workout_days_${weekStart}`;
+      
+      const savedDays = await AsyncStorage.getItem(storageKey);
+      const workoutDays = savedDays ? JSON.parse(savedDays) : [];
+      
+      const today = new Date().toISOString().split('T')[0];
+      if (!workoutDays.includes(today)) {
+        workoutDays.push(today);
+        await AsyncStorage.setItem(storageKey, JSON.stringify(workoutDays));
+        await updateChallengeProgress('weekly-wellness', workoutDays.length);
+      }
+    } catch (error) {
+      console.error('Error incrementing workout day:', error);
+    }
+  };
+
+  const loadAchievements = async () => {
+    try {
+      if (user && isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from('user_achievements')
+          .select('achievement_id')
+          .eq('user_id', user.id);
+
+        if (data) {
+          const unlockedIds = new Set(data.map(a => a.achievement_id));
+          const updatedAchievements = achievements.map(achievement => ({
+            ...achievement,
+            unlocked: unlockedIds.has(achievement.id),
+          }));
+          setUserAchievements(updatedAchievements);
+          await AsyncStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(updatedAchievements));
+          return;
+        }
+      }
+
+      const savedAchievements = await AsyncStorage.getItem(ACHIEVEMENTS_STORAGE_KEY);
+      if (savedAchievements) {
+        setUserAchievements(JSON.parse(savedAchievements));
       }
     } catch (error) {
       console.error('Error loading achievements:', error);
     }
   };
 
-  const loadChallenges = async () => {
+  const loadPoints = async () => {
     try {
-      const savedChallenges = await AsyncStorage.getItem(CHALLENGES_STORAGE_KEY);
-      const today = new Date().toDateString();
-      
-      if (savedChallenges) {
-        const parsed = JSON.parse(savedChallenges);
-        if (parsed.date === today) {
-          setDailyChallenges(parsed.daily);
-          setWeeklyChallenges(parsed.weekly);
+      if (user && isSupabaseConfigured()) {
+        const { data } = await supabase
+          .from('user_stats')
+          .select('total_points')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data) {
+          setTotalPoints(data.total_points || 0);
+          await AsyncStorage.setItem(POINTS_STORAGE_KEY, data.total_points.toString());
           return;
         }
       }
 
-      const newDaily = generateDailyChallenges();
-      const newWeekly = generateWeeklyChallenges();
-      
-      setDailyChallenges(newDaily);
-      setWeeklyChallenges(newWeekly);
-      
-      await AsyncStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify({
-        date: today,
-        daily: newDaily,
-        weekly: newWeekly,
-      }));
+      const savedPoints = await AsyncStorage.getItem(POINTS_STORAGE_KEY);
+      if (savedPoints) {
+        setTotalPoints(parseInt(savedPoints));
+      }
     } catch (error) {
-      console.error('Error loading challenges:', error);
+      console.error('Error loading points:', error);
     }
   };
 
-  const syncAchievementsWithDatabase = async () => {
-    if (!user || !isSupabaseConfigured()) return;
-
+  const addPoints = async (points: number) => {
     try {
-      const { data, error } = await supabase
-        .from('user_achievements')
-        .select('*')
-        .eq('user_id', user.id);
+      const newTotal = totalPoints + points;
+      setTotalPoints(newTotal);
+      await AsyncStorage.setItem(POINTS_STORAGE_KEY, newTotal.toString());
 
-      if (error) {
-        console.error('Error syncing achievements:', error);
-        return;
+      if (user && isSupabaseConfigured()) {
+        await supabase
+          .from('user_stats')
+          .upsert({
+            user_id: user.id,
+            total_points: newTotal,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id'
+          });
+      }
+    } catch (error) {
+      console.error('Error adding points:', error);
+    }
+  };
+
+  const checkAchievements = async (currentTrackerData: any, lifetimeStats: any) => {
+    try {
+      const updatedAchievements = [...userAchievements];
+      let hasNewAchievement = false;
+
+      for (let i = 0; i < updatedAchievements.length; i++) {
+        const achievement = updatedAchievements[i];
+        if (achievement.unlocked) continue;
+
+        let shouldUnlock = false;
+
+        switch (achievement.id) {
+          case 'first-prayer':
+            shouldUnlock = currentTrackerData.prayers.completed >= 1;
+            break;
+          case 'prayer-streak-7':
+            shouldUnlock = currentTrackerData.prayers.streak >= 7;
+            break;
+          case 'prayer-streak-30':
+            shouldUnlock = currentTrackerData.prayers.streak >= 30;
+            break;
+          case 'dhikr-1000':
+            shouldUnlock = lifetimeStats.totalDhikr >= 1000;
+            break;
+          case 'dhikr-10000':
+            shouldUnlock = lifetimeStats.totalDhikr >= 10000;
+            break;
+          case 'quran-juz':
+            shouldUnlock = lifetimeStats.totalQuranPages >= 20;
+            break;
+          case 'quran-complete':
+            shouldUnlock = lifetimeStats.totalQuranPages >= 604;
+            break;
+          case 'knowledge-seeker':
+            shouldUnlock = lifetimeStats.lecturesWatched >= 10;
+            break;
+          case 'fitness-warrior':
+            shouldUnlock = lifetimeStats.workoutsCompleted >= 30;
+            break;
+        }
+
+        if (shouldUnlock) {
+          updatedAchievements[i] = { ...achievement, unlocked: true };
+          hasNewAchievement = true;
+          await addPoints(achievement.points);
+
+          if (user && isSupabaseConfigured()) {
+            await supabase
+              .from('user_achievements')
+              .insert({
+                user_id: user.id,
+                achievement_id: achievement.id,
+                unlocked_at: new Date().toISOString(),
+              });
+          }
+        }
       }
 
-      if (data && data.length > 0) {
-        const updatedAchievements = userAchievements.map(achievement => {
-          const dbAchievement = data.find(a => a.achievement_id === achievement.id);
-          if (dbAchievement) {
-            return {
-              ...achievement,
-              unlocked: true,
-              unlockedAt: dbAchievement.unlocked_at,
-            };
-          }
-          return achievement;
-        });
+      if (hasNewAchievement) {
         setUserAchievements(updatedAchievements);
         await AsyncStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(updatedAchievements));
       }
     } catch (error) {
-      console.error('Error syncing achievements:', error);
+      console.error('Error checking achievements:', error);
     }
-  };
-
-  const unlockAchievement = async (achievement: Achievement) => {
-    const updatedAchievements = userAchievements.map(a => {
-      if (a.id === achievement.id && !a.unlocked) {
-        return {
-          ...a,
-          unlocked: true,
-          unlockedAt: new Date().toISOString(),
-        };
-      }
-      return a;
-    });
-
-    setUserAchievements(updatedAchievements);
-    await AsyncStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(updatedAchievements));
-
-    const points = achievement.rarity === 'legendary' ? 100 : 
-                   achievement.rarity === 'epic' ? 75 : 
-                   achievement.rarity === 'rare' ? 50 : 25;
-    
-    const newPoints = totalPoints + points;
-    setTotalPoints(newPoints);
-    await AsyncStorage.setItem(POINTS_STORAGE_KEY, newPoints.toString());
-
-    Alert.alert(
-      '🎉 Achievement Unlocked!',
-      `${achievement.title}\n\n${achievement.description}\n\n+${points} points`,
-      [{ text: 'Awesome!', style: 'default' }]
-    );
-
-    if (user && isSupabaseConfigured()) {
-      await supabase.from('user_achievements').insert({
-        user_id: user.id,
-        achievement_id: achievement.id,
-        unlocked_at: new Date().toISOString(),
-      });
-    }
-  };
-
-  const checkAchievements = async (trackerData: any, stats: any) => {
-    for (const achievement of userAchievements) {
-      if (achievement.unlocked) continue;
-
-      let shouldUnlock = false;
-
-      switch (achievement.requirement.metric) {
-        case 'prayers':
-          if (achievement.requirement.type === 'streak') {
-            shouldUnlock = trackerData.prayers.streak >= achievement.requirement.value;
-          }
-          break;
-        
-        case 'dhikr':
-          if (achievement.requirement.type === 'streak') {
-            shouldUnlock = trackerData.dhikr.streak >= achievement.requirement.value;
-          } else if (achievement.requirement.type === 'total') {
-            shouldUnlock = (stats?.totalDhikr || 0) >= achievement.requirement.value;
-          }
-          break;
-        
-        case 'quran':
-          if (achievement.requirement.type === 'streak') {
-            shouldUnlock = trackerData.quran.streak >= achievement.requirement.value;
-          }
-          break;
-        
-        case 'quran-pages':
-          if (achievement.requirement.type === 'total') {
-            shouldUnlock = (stats?.totalQuranPages || 0) >= achievement.requirement.value;
-          }
-          break;
-        
-        case 'quran-verses':
-          if (achievement.requirement.type === 'total') {
-            shouldUnlock = (stats?.totalQuranVerses || 0) >= achievement.requirement.value;
-          }
-          break;
-        
-        case 'lectures':
-          if (achievement.requirement.type === 'count') {
-            shouldUnlock = (stats?.lecturesWatched || 0) >= achievement.requirement.value;
-          }
-          break;
-        
-        case 'workouts':
-          if (achievement.requirement.type === 'count') {
-            shouldUnlock = (stats?.workoutsCompleted || 0) >= achievement.requirement.value;
-          }
-          break;
-      }
-
-      if (shouldUnlock) {
-        await unlockAchievement(achievement);
-      }
-    }
-  };
-
-  const updateChallengeProgress = async (challengeId: string, progress: number) => {
-    const updateChallenges = (challenges: Challenge[]) => {
-      return challenges.map(challenge => {
-        if (challenge.id === challengeId) {
-          const completed = progress >= challenge.requirement.value;
-          if (completed && !challenge.completed) {
-            const newPoints = totalPoints + challenge.reward.points;
-            setTotalPoints(newPoints);
-            AsyncStorage.setItem(POINTS_STORAGE_KEY, newPoints.toString());
-            
-            Alert.alert(
-              '✅ Challenge Complete!',
-              `${challenge.title}\n\n+${challenge.reward.points} points`,
-              [{ text: 'Great!', style: 'default' }]
-            );
-          }
-          return { ...challenge, progress, completed };
-        }
-        return challenge;
-      });
-    };
-
-    const updatedDaily = updateChallenges(dailyChallenges);
-    const updatedWeekly = updateChallenges(weeklyChallenges);
-    
-    setDailyChallenges(updatedDaily);
-    setWeeklyChallenges(updatedWeekly);
-
-    await AsyncStorage.setItem(CHALLENGES_STORAGE_KEY, JSON.stringify({
-      date: new Date().toDateString(),
-      daily: updatedDaily,
-      weekly: updatedWeekly,
-    }));
   };
 
   return (
     <AchievementContext.Provider
       value={{
         achievements: userAchievements,
-        dailyChallenges,
         weeklyChallenges,
         totalPoints,
         checkAchievements,
         updateChallengeProgress,
-        loadAchievements,
+        incrementLectureCount,
+        incrementWorkoutDay,
+        loadWeeklyChallenges,
       }}
     >
       {children}

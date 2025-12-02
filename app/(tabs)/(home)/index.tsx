@@ -24,8 +24,8 @@ const PRAYER_STORAGE_KEY = '@prayer_completion';
 const PRAYER_DATE_KEY = '@prayer_date';
 
 export default function HomeScreen() {
-  const { trackerData, updatePrayers } = useTracker();
-  const { dailyChallenges, totalPoints } = useAchievements();
+  const { trackerData, updatePrayers, getWeeklyStats } = useTracker();
+  const { weeklyChallenges, totalPoints, updateChallengeProgress } = useAchievements();
   
   const [prayers, setPrayers] = useState<Prayer[]>([
     { name: 'Fajr', time: '05:30', completed: false },
@@ -51,7 +51,20 @@ export default function HomeScreen() {
   useEffect(() => {
     loadDailyContent();
     loadWeeklyMiracle();
+    syncWeeklyChallenges();
   }, []);
+
+  const syncWeeklyChallenges = async () => {
+    try {
+      const weeklyStats = await getWeeklyStats();
+      
+      await updateChallengeProgress('weekly-dhikr-2000', weeklyStats.dhikrCount);
+      await updateChallengeProgress('weekly-quran-35-pages', weeklyStats.quranPages);
+      await updateChallengeProgress('weekly-prayer-streak', weeklyStats.prayerDays);
+    } catch (error) {
+      console.error('Error syncing weekly challenges:', error);
+    }
+  };
 
   const loadDailyContent = async () => {
     try {
@@ -217,6 +230,8 @@ export default function HomeScreen() {
       
       const completedCount = updatedPrayers.filter(p => p.completed).length;
       await updatePrayers(completedCount, updatedPrayers.length);
+      
+      await syncWeeklyChallenges();
     } catch (error) {
       console.log('Error saving prayer status:', error);
     }
@@ -358,7 +373,7 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.challengesCard}
-          onPress={() => router.push('/(tabs)/achievements')}
+          onPress={() => router.push('/(tabs)/tracker')}
           activeOpacity={0.8}
         >
           <View style={styles.challengesHeader}>
@@ -371,9 +386,9 @@ export default function HomeScreen() {
               />
             </View>
             <View style={styles.challengesText}>
-              <Text style={styles.challengesLabel}>Daily Challenges</Text>
+              <Text style={styles.challengesLabel}>Weekly Challenges</Text>
               <Text style={styles.challengesTitle}>
-                {dailyChallenges.filter(c => c.completed).length}/{dailyChallenges.length} Completed
+                {weeklyChallenges.filter(c => c.completed).length}/{weeklyChallenges.length} Completed
               </Text>
             </View>
             <View style={styles.pointsBadgeSmall}>

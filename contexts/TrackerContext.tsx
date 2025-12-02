@@ -18,6 +18,7 @@ interface TrackerContextType {
   loadTrackerData: () => Promise<void>;
   syncWithDatabase: () => Promise<void>;
   getLifetimeStats: () => Promise<any>;
+  getWeeklyStats: () => Promise<any>;
 }
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
@@ -25,6 +26,8 @@ const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 const TRACKER_STORAGE_KEY = '@tracker_data';
 const TRACKER_DATE_KEY = '@tracker_date';
 const LIFETIME_STATS_KEY = '@lifetime_stats';
+const WEEKLY_STATS_KEY = '@weekly_stats';
+const WEEKLY_STATS_DATE_KEY = '@weekly_stats_date';
 
 export function TrackerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -41,6 +44,16 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
   const getTodayDateString = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
+  const getWeekStartDate = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString().split('T')[0];
   };
 
   const loadTrackerData = async () => {
@@ -186,6 +199,43 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateWeeklyStats = async (data: TrackerData) => {
+    try {
+      const weekStart = getWeekStartDate();
+      const savedWeekStart = await AsyncStorage.getItem(WEEKLY_STATS_DATE_KEY);
+
+      let weeklyStats;
+      if (savedWeekStart !== weekStart) {
+        weeklyStats = {
+          weekStart,
+          dhikrCount: 0,
+          quranPages: 0,
+          prayerDays: 0,
+        };
+      } else {
+        const savedStats = await AsyncStorage.getItem(WEEKLY_STATS_KEY);
+        weeklyStats = savedStats ? JSON.parse(savedStats) : {
+          weekStart,
+          dhikrCount: 0,
+          quranPages: 0,
+          prayerDays: 0,
+        };
+      }
+
+      weeklyStats.dhikrCount += data.dhikr.count;
+      weeklyStats.quranPages += data.quran.pages;
+      if (data.prayers.completed === data.prayers.total) {
+        weeklyStats.prayerDays += 1;
+      }
+
+      await AsyncStorage.setItem(WEEKLY_STATS_KEY, JSON.stringify(weeklyStats));
+      await AsyncStorage.setItem(WEEKLY_STATS_DATE_KEY, weekStart);
+      console.log('Updated weekly stats:', weeklyStats);
+    } catch (error) {
+      console.error('Error updating weekly stats:', error);
+    }
+  };
+
   const getLifetimeStats = async () => {
     try {
       const savedStats = await AsyncStorage.getItem(LIFETIME_STATS_KEY);
@@ -208,6 +258,38 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const getWeeklyStats = async () => {
+    try {
+      const weekStart = getWeekStartDate();
+      const savedWeekStart = await AsyncStorage.getItem(WEEKLY_STATS_DATE_KEY);
+
+      if (savedWeekStart !== weekStart) {
+        return {
+          weekStart,
+          dhikrCount: 0,
+          quranPages: 0,
+          prayerDays: 0,
+        };
+      }
+
+      const savedStats = await AsyncStorage.getItem(WEEKLY_STATS_KEY);
+      return savedStats ? JSON.parse(savedStats) : {
+        weekStart,
+        dhikrCount: 0,
+        quranPages: 0,
+        prayerDays: 0,
+      };
+    } catch (error) {
+      console.error('Error getting weekly stats:', error);
+      return {
+        weekStart: getWeekStartDate(),
+        dhikrCount: 0,
+        quranPages: 0,
+        prayerDays: 0,
+      };
+    }
+  };
+
   const updatePrayers = async (completed: number, total: number) => {
     const newData = {
       ...trackerData,
@@ -217,6 +299,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
     await updateLifetimeStats(newData);
+    await updateWeeklyStats(newData);
   };
 
   const updateDhikr = async (count: number, goal: number) => {
@@ -228,6 +311,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
     await updateLifetimeStats(newData);
+    await updateWeeklyStats(newData);
   };
 
   const updateQuran = async (pages: number, goal: number, versesMemorized: number, versesGoal: number) => {
@@ -239,6 +323,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
     await updateLifetimeStats(newData);
+    await updateWeeklyStats(newData);
   };
 
   return (
@@ -251,6 +336,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         loadTrackerData,
         syncWithDatabase,
         getLifetimeStats,
+        getWeeklyStats,
       }}
     >
       {children}

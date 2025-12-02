@@ -19,8 +19,8 @@ const dhikrPhrases = [
 ];
 
 export default function TrackerScreen() {
-  const { trackerData, updateDhikr, updateQuran, getLifetimeStats } = useTracker();
-  const { checkAchievements, updateChallengeProgress, achievements, dailyChallenges, weeklyChallenges, totalPoints } = useAchievements();
+  const { trackerData, updateDhikr, updateQuran, getLifetimeStats, getWeeklyStats } = useTracker();
+  const { checkAchievements, updateChallengeProgress, achievements, weeklyChallenges, totalPoints } = useAchievements();
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showDhikrModal, setShowDhikrModal] = useState(false);
@@ -63,7 +63,8 @@ export default function TrackerScreen() {
     const newCount = trackerData.dhikr.count + 1;
     await updateDhikr(newCount, trackerData.dhikr.goal);
     
-    await updateChallengeProgress('daily-dhikr-300', newCount);
+    const weeklyStats = await getWeeklyStats();
+    await updateChallengeProgress('weekly-dhikr-2000', weeklyStats.dhikrCount);
     
     const stats = await getLifetimeStats();
     await checkAchievements(trackerData, stats);
@@ -82,8 +83,8 @@ export default function TrackerScreen() {
     const newPages = trackerData.quran.pages + 1;
     await updateQuran(newPages, trackerData.quran.goal, trackerData.quran.versesMemorized, trackerData.quran.versesGoal);
     
-    await updateChallengeProgress('daily-quran-5-pages', newPages);
-    await updateChallengeProgress('weekly-quran-35-pages', newPages);
+    const weeklyStats = await getWeeklyStats();
+    await updateChallengeProgress('weekly-quran-35-pages', weeklyStats.quranPages);
     
     const stats = await getLifetimeStats();
     await checkAchievements(trackerData, stats);
@@ -98,8 +99,6 @@ export default function TrackerScreen() {
   const incrementVerses = async () => {
     const newVerses = trackerData.quran.versesMemorized + 1;
     await updateQuran(trackerData.quran.pages, trackerData.quran.goal, newVerses, trackerData.quran.versesGoal);
-    
-    await updateChallengeProgress('daily-memorize-3-verses', newVerses);
     
     const stats = await getLifetimeStats();
     await checkAchievements(trackerData, stats);
@@ -265,7 +264,6 @@ export default function TrackerScreen() {
   };
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
-  const completedDailyCount = dailyChallenges.filter(c => c.completed).length;
   const completedWeeklyCount = weeklyChallenges.filter(c => c.completed).length;
 
   return (
@@ -597,7 +595,7 @@ export default function TrackerScreen() {
               </Text>
               <View style={styles.goalsTabBadge}>
                 <Text style={styles.goalsTabBadgeText}>
-                  {completedDailyCount + completedWeeklyCount}/{dailyChallenges.length + weeklyChallenges.length}
+                  {completedWeeklyCount}/{weeklyChallenges.length}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -617,14 +615,6 @@ export default function TrackerScreen() {
 
           {selectedGoalsTab === 'challenges' ? (
             <React.Fragment>
-              <View style={styles.goalsSubsection}>
-                <Text style={styles.goalsSubsectionTitle}>Daily Challenges</Text>
-                <Text style={styles.goalsSubsectionSubtitle}>
-                  Complete {completedDailyCount}/{dailyChallenges.length} today
-                </Text>
-                {dailyChallenges.map((challenge, index) => renderChallenge(challenge, index))}
-              </View>
-
               <View style={styles.goalsSubsection}>
                 <Text style={styles.goalsSubsectionTitle}>Weekly Challenges</Text>
                 <Text style={styles.goalsSubsectionSubtitle}>
