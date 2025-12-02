@@ -253,16 +253,8 @@ export default function ProfileScreen() {
         if (error) {
           Alert.alert('Sign Up Error', error.message || 'Failed to create account');
         } else {
-          Alert.alert(
-            'Success',
-            'Account created! Please check your email to verify your account before signing in.',
-            [{ text: 'OK', onPress: () => {
-              setIsSignUp(false);
-              setEmail('');
-              setPassword('');
-              setConfirmPassword('');
-            }}]
-          );
+          // Navigate to email verification screen
+          router.push('/email-verification');
         }
       } else {
         const { error, data } = await signIn(email, password);
@@ -278,11 +270,8 @@ export default function ProfileScreen() {
           } else {
             Alert.alert('Sign In Error', error.message || 'Failed to sign in');
           }
-        } else {
-          Alert.alert('Success', 'Signed in successfully!');
-          setEmail('');
-          setPassword('');
         }
+        // Navigation to profile happens automatically when user state changes
       }
     } catch (error) {
       console.log('Auth error:', error);
@@ -298,9 +287,8 @@ export default function ProfileScreen() {
       const { error } = await signInWithGoogle();
       if (error) {
         Alert.alert('Google Sign In Error', error.message || 'Failed to sign in with Google');
-      } else {
-        Alert.alert('Success', 'Signed in with Google successfully!');
       }
+      // Navigation to profile happens automatically when user state changes
     } catch (error) {
       console.log('Google sign in error:', error);
       Alert.alert('Error', 'An unexpected error occurred');
