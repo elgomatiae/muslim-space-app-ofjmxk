@@ -47,7 +47,6 @@ export default function HomeScreen() {
   const [weeklyMiracle, setWeeklyMiracle] = useState<Miracle | null>(null);
   const [showMiracleModal, setShowMiracleModal] = useState(false);
 
-  // Load daily content
   useEffect(() => {
     loadDailyContent();
     loadWeeklyMiracle();
@@ -69,8 +68,8 @@ export default function HomeScreen() {
 
   const getWeekStartDate = () => {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Get Monday
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(now);
     monday.setDate(now.getDate() + diff);
     monday.setHours(0, 0, 0, 0);
@@ -83,7 +82,6 @@ export default function HomeScreen() {
       console.log('Loading weekly miracle for week starting:', weekStart);
       
       if (isSupabaseConfigured()) {
-        // Try to get from database
         const { data, error } = await supabase
           .from('weekly_lectures')
           .select('miracle_id')
@@ -92,7 +90,6 @@ export default function HomeScreen() {
 
         if (data && !error) {
           console.log('Found weekly miracle in database:', data.miracle_id);
-          // Found in database, load the miracle
           const miracle = findMiracleById(data.miracle_id);
           if (miracle) {
             setWeeklyMiracle(miracle);
@@ -103,7 +100,6 @@ export default function HomeScreen() {
         }
       }
 
-      // Not in database or not found, select a random one
       const allMiracles: Miracle[] = [];
       miracleCategories.forEach(category => {
         allMiracles.push(...category.miracles);
@@ -115,7 +111,6 @@ export default function HomeScreen() {
         console.log('Selected new weekly miracle:', selectedMiracle.id);
         setWeeklyMiracle(selectedMiracle);
 
-        // Save to database if configured
         if (isSupabaseConfigured()) {
           const { error: insertError } = await supabase
             .from('weekly_lectures')
@@ -146,7 +141,6 @@ export default function HomeScreen() {
     return null;
   };
 
-  // Load prayer completion status from storage
   useEffect(() => {
     loadPrayerStatus();
   }, []);
@@ -163,7 +157,6 @@ export default function HomeScreen() {
   useEffect(() => {
     if (location) {
       const prayerTimes = calculatePrayerTimes(location, currentTime);
-      // Preserve completion status when updating prayer times
       setPrayers(prevPrayers => {
         return prayerTimes.map((pt, index) => ({
           ...pt,
@@ -191,16 +184,13 @@ export default function HomeScreen() {
       const savedDate = await AsyncStorage.getItem(PRAYER_DATE_KEY);
       const todayDate = getTodayDateString();
 
-      // Check if it's a new day
       if (savedDate !== todayDate) {
         console.log('New day detected, resetting prayer status');
-        // Reset prayer status for new day
         await AsyncStorage.setItem(PRAYER_DATE_KEY, todayDate);
         await AsyncStorage.removeItem(PRAYER_STORAGE_KEY);
         return;
       }
 
-      // Load saved prayer status
       const savedStatus = await AsyncStorage.getItem(PRAYER_STORAGE_KEY);
       if (savedStatus) {
         const completionStatus = JSON.parse(savedStatus);
@@ -224,7 +214,6 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(PRAYER_DATE_KEY, getTodayDateString());
       console.log('Saved prayer status:', completionStatus);
       
-      // Update tracker context
       const completedCount = updatedPrayers.filter(p => p.completed).length;
       await updatePrayers(completedCount, updatedPrayers.length);
     } catch (error) {
@@ -267,14 +256,18 @@ export default function HomeScreen() {
   const completedCount = prayers.filter(p => p.completed).length;
 
   const handleAiSheikhPress = () => {
-    console.log('AI Sheikh button pressed');
+    console.log('=== AI SHEIKH BUTTON PRESSED ===');
     router.push('/(tabs)/aiSheikh');
+  };
+
+  const handleProfilePress = () => {
+    console.log('=== PROFILE BUTTON PRESSED ===');
+    router.push('/(tabs)/profile');
   };
 
   return (
     <View style={styles.container}>
-      {/* Header Buttons - Fixed positioning with proper pointer events */}
-      <View style={styles.headerButtons} pointerEvents="box-none">
+      <View style={styles.headerButtonsContainer} pointerEvents="box-none">
         <TouchableOpacity
           onPress={handleAiSheikhPress}
           style={styles.aiSheikhButton}
@@ -287,7 +280,18 @@ export default function HomeScreen() {
             size={24}
           />
         </TouchableOpacity>
-        <ProfileButton />
+        <TouchableOpacity
+          onPress={handleProfilePress}
+          style={styles.profileButton}
+          activeOpacity={0.7}
+        >
+          <IconSymbol
+            ios_icon_name="person.circle.fill"
+            android_material_icon_name="account-circle"
+            size={32}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       </View>
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -454,7 +458,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* Weekly Miracle Modal */}
       <Modal
         visible={showMiracleModal}
         transparent
@@ -520,7 +523,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerButtons: {
+  headerButtonsContainer: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
     right: 16,
@@ -537,6 +540,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     boxShadow: '0px 3px 8px rgba(63, 81, 181, 0.4)',
     elevation: 4,
+  },
+  profileButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.1)',
+    elevation: 3,
   },
   scrollView: {
     flex: 1,

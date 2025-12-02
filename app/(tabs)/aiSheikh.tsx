@@ -86,7 +86,6 @@ export default function AiSheikhScreen() {
         setCurrentConversationId(conversationId);
         setSidebarVisible(false);
         
-        // Scroll to bottom after loading
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -105,12 +104,15 @@ export default function AiSheikhScreen() {
   };
 
   const sendMessage = async () => {
-    console.log('Send button pressed');
+    console.log('=== SEND MESSAGE CALLED ===');
     console.log('Input text:', inputText);
+    console.log('Input text length:', inputText.length);
     console.log('Input text trimmed:', inputText.trim());
+    console.log('Input text trimmed length:', inputText.trim().length);
     
     if (!inputText.trim()) {
-      console.log('Input text is empty, returning');
+      console.log('Input text is empty after trim, returning');
+      Alert.alert('Empty Message', 'Please enter a question before sending.');
       return;
     }
 
@@ -128,6 +130,7 @@ export default function AiSheikhScreen() {
       created_at: new Date().toISOString(),
     };
 
+    console.log('Adding user message to state');
     setMessages((prev) => [...prev, userMessage]);
     setInputText('');
     setIsLoading(true);
@@ -166,10 +169,8 @@ export default function AiSheikhScreen() {
       console.log('Received answer:', answer);
       console.log('Conversation ID:', conversationId);
 
-      // Update current conversation ID if this was a new conversation
       if (!currentConversationId && conversationId) {
         setCurrentConversationId(conversationId);
-        // Reload conversations to show the new one
         loadConversations();
       }
 
@@ -182,7 +183,6 @@ export default function AiSheikhScreen() {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      // Scroll to bottom
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -190,7 +190,6 @@ export default function AiSheikhScreen() {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to get response from AI Sheikh. Please try again.');
       
-      // Remove the user message if there was an error
       setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
     } finally {
       setIsLoading(false);
@@ -219,11 +218,9 @@ export default function AiSheikhScreen() {
                 console.error('Error deleting conversation:', error);
                 Alert.alert('Error', 'Failed to delete conversation.');
               } else {
-                // If we deleted the current conversation, start a new one
                 if (currentConversationId === conversationId) {
                   startNewConversation();
                 }
-                // Reload conversations
                 loadConversations();
               }
             } catch (error) {
@@ -263,11 +260,14 @@ export default function AiSheikhScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
-          onPress={() => setSidebarVisible(true)} 
+          onPress={() => {
+            console.log('Menu button pressed');
+            setSidebarVisible(true);
+          }} 
           style={styles.menuButton}
+          activeOpacity={0.7}
         >
           <IconSymbol
             ios_icon_name="line.3.horizontal"
@@ -294,7 +294,14 @@ export default function AiSheikhScreen() {
           </View>
         </View>
 
-        <TouchableOpacity onPress={startNewConversation} style={styles.newChatButton}>
+        <TouchableOpacity 
+          onPress={() => {
+            console.log('New chat button pressed');
+            startNewConversation();
+          }} 
+          style={styles.newChatButton}
+          activeOpacity={0.7}
+        >
           <IconSymbol
             ios_icon_name="square.and.pencil"
             android_material_icon_name="edit"
@@ -304,7 +311,6 @@ export default function AiSheikhScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Messages Area */}
       <KeyboardAvoidingView
         style={styles.chatContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -343,7 +349,11 @@ export default function AiSheikhScreen() {
                   <TouchableOpacity
                     key={index}
                     style={styles.suggestionButton}
-                    onPress={() => setInputText(question)}
+                    onPress={() => {
+                      console.log('Suggestion clicked:', question);
+                      setInputText(question);
+                    }}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol
                       ios_icon_name="lightbulb"
@@ -421,7 +431,6 @@ export default function AiSheikhScreen() {
           )}
         </ScrollView>
 
-        {/* Input Area - Now inside KeyboardAvoidingView with proper padding */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
             <TextInput
@@ -430,7 +439,7 @@ export default function AiSheikhScreen() {
               placeholderTextColor={colors.textSecondary}
               value={inputText}
               onChangeText={(text) => {
-                console.log('Text changed:', text);
+                console.log('Text input changed:', text);
                 setInputText(text);
               }}
               multiline
@@ -440,9 +449,12 @@ export default function AiSheikhScreen() {
               blurOnSubmit={false}
             />
             <TouchableOpacity
-              style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+              style={[
+                styles.sendButton, 
+                (!inputText.trim() || isLoading) && styles.sendButtonDisabled
+              ]}
               onPress={() => {
-                console.log('Send button onPress triggered');
+                console.log('=== SEND BUTTON PRESSED ===');
                 sendMessage();
               }}
               disabled={!inputText.trim() || isLoading}
@@ -463,7 +475,6 @@ export default function AiSheikhScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Sidebar Modal */}
       <Modal
         visible={sidebarVisible}
         animationType="slide"
@@ -492,6 +503,7 @@ export default function AiSheikhScreen() {
             <TouchableOpacity 
               style={styles.newConversationButton}
               onPress={startNewConversation}
+              activeOpacity={0.7}
             >
               <IconSymbol
                 ios_icon_name="plus.circle.fill"
@@ -529,6 +541,7 @@ export default function AiSheikhScreen() {
                           currentConversationId === conversation.id && styles.conversationItemActive,
                         ]}
                         onPress={() => loadConversationMessages(conversation.id)}
+                        activeOpacity={0.7}
                       >
                         <View style={styles.conversationIcon}>
                           <IconSymbol
@@ -555,6 +568,7 @@ export default function AiSheikhScreen() {
                         <TouchableOpacity
                           style={styles.deleteButton}
                           onPress={() => deleteConversation(conversation.id)}
+                          activeOpacity={0.7}
                         >
                           <IconSymbol
                             ios_icon_name="trash"
@@ -773,12 +787,17 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   inputContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 100 : 90,
+    zIndex: 100,
   },
   inputWrapper: {
     flexDirection: 'row',
