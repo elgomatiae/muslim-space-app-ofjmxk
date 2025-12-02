@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "Muslim Space",
@@ -42,6 +43,9 @@
             "DEFAULT"
           ]
         }
+      ],
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -56,6 +60,16 @@
         {
           "experimentalLauncherActivity": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/natively-dark.png",
+          "color": "#ffffff",
+          "sounds": [],
+          "mode": "production",
+          "enableBackgroundRemoteNotifications": true
+        }
       ]
     ],
     "scheme": "muslimspace",
@@ -64,6 +78,13 @@
     },
     "extra": {
       "router": {}
+    },
+    "notification": {
+      "icon": "./assets/images/natively-dark.png",
+      "color": "#ffffff",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "Muslim Space"
     }
   },
   "scheme": "Muslim Space"
