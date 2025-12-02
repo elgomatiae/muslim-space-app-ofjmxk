@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Platform, KeyboardAvoidingView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Platform, KeyboardAvoidingView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -13,35 +13,68 @@ interface Message {
   created_at: string;
 }
 
+interface Conversation {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function AiSheikhScreen() {
   const { user } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (user && isSupabaseConfigured()) {
-      loadChatHistory();
+      loadConversations();
     } else {
-      setIsLoadingHistory(false);
+      setIsLoadingConversations(false);
     }
   }, [user]);
 
-  const loadChatHistory = async () => {
+  const loadConversations = async () => {
     if (!user || !isSupabaseConfigured()) return;
 
     try {
       const { data, error } = await supabase
-        .from('ai_sheikh_chats')
+        .from('ai_sheikh_conversations')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .order('updated_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading chat history:', error);
+        console.error('Error loading conversations:', error);
+      } else if (data) {
+        setConversations(data);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  const loadConversationMessages = async (conversationId: string) => {
+    if (!user || !isSupabaseConfigured()) return;
+
+    setIsLoadingMessages(true);
+    try {
+      const { data, error } = await supabase
+        .from('ai_sheikh_chats')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error loading messages:', error);
       } else if (data) {
         const formattedMessages: Message[] = data.map((msg) => ({
           id: msg.id,
@@ -50,12 +83,25 @@ export default function AiSheikhScreen() {
           created_at: msg.created_at,
         }));
         setMessages(formattedMessages);
+        setCurrentConversationId(conversationId);
+        setSidebarVisible(false);
+        
+        // Scroll to bottom after loading
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
       }
     } catch (error) {
-      console.error('Error loading chat history:', error);
+      console.error('Error loading messages:', error);
     } finally {
-      setIsLoadingHistory(false);
+      setIsLoadingMessages(false);
     }
+  };
+
+  const startNewConversation = () => {
+    setCurrentConversationId(null);
+    setMessages([]);
+    setSidebarVisible(false);
   };
 
   const sendMessage = async () => {
@@ -78,12 +124,6 @@ export default function AiSheikhScreen() {
     setIsLoading(true);
 
     try {
-      // Build chat history for context (last 10 messages)
-      const chatHistory = messages.slice(-10).map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
-
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
 
@@ -99,7 +139,7 @@ export default function AiSheikhScreen() {
         },
         body: JSON.stringify({
           question: userMessage.content,
-          chatHistory,
+          conversationId: currentConversationId,
         }),
       });
 
@@ -108,7 +148,14 @@ export default function AiSheikhScreen() {
         throw new Error(errorData.error || 'Failed to get response');
       }
 
-      const { answer } = await response.json();
+      const { answer, conversationId } = await response.json();
+
+      // Update current conversation ID if this was a new conversation
+      if (!currentConversationId && conversationId) {
+        setCurrentConversationId(conversationId);
+        // Reload conversations to show the new one
+        loadConversations();
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -134,34 +181,38 @@ export default function AiSheikhScreen() {
     }
   };
 
-  const clearHistory = async () => {
+  const deleteConversation = async (conversationId: string) => {
     Alert.alert(
-      'Clear Chat History',
-      'Are you sure you want to clear all chat history? This cannot be undone.',
+      'Delete Conversation',
+      'Are you sure you want to delete this conversation? This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             if (!user || !isSupabaseConfigured()) return;
 
             try {
               const { error } = await supabase
-                .from('ai_sheikh_chats')
+                .from('ai_sheikh_conversations')
                 .delete()
-                .eq('user_id', user.id);
+                .eq('id', conversationId);
 
               if (error) {
-                console.error('Error clearing chat history:', error);
-                Alert.alert('Error', 'Failed to clear chat history.');
+                console.error('Error deleting conversation:', error);
+                Alert.alert('Error', 'Failed to delete conversation.');
               } else {
-                setMessages([]);
-                Alert.alert('Success', 'Chat history cleared.');
+                // If we deleted the current conversation, start a new one
+                if (currentConversationId === conversationId) {
+                  startNewConversation();
+                }
+                // Reload conversations
+                loadConversations();
               }
             } catch (error) {
-              console.error('Error clearing chat history:', error);
-              Alert.alert('Error', 'Failed to clear chat history.');
+              console.error('Error deleting conversation:', error);
+              Alert.alert('Error', 'Failed to delete conversation.');
             }
           },
         },
@@ -177,49 +228,81 @@ export default function AiSheikhScreen() {
     'What are the benefits of reading Quran?',
   ];
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return 'Today';
+    } else if (diffDays === 1) {
+      return 'Yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
+      {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => setSidebarVisible(true)} 
+          style={styles.menuButton}
+        >
+          <IconSymbol
+            ios_icon_name="line.3.horizontal"
+            android_material_icon_name="menu"
+            size={24}
+            color={colors.card}
+          />
+        </TouchableOpacity>
+        
         <View style={styles.headerContent}>
           <View style={styles.headerIcon}>
             <IconSymbol
-              ios_icon_name="person.fill"
-              android_material_icon_name="person"
+              ios_icon_name="book.fill"
+              android_material_icon_name="menu-book"
               size={28}
               color={colors.card}
             />
           </View>
           <View style={styles.headerText}>
             <Text style={styles.headerTitle}>AI Sheikh</Text>
-            <Text style={styles.headerSubtitle}>Ask Islamic questions</Text>
+            <Text style={styles.headerSubtitle}>
+              {currentConversationId ? 'Conversation' : 'New Chat'}
+            </Text>
           </View>
         </View>
-        {messages.length > 0 && (
-          <TouchableOpacity onPress={clearHistory} style={styles.clearButton}>
-            <IconSymbol
-              ios_icon_name="trash"
-              android_material_icon_name="delete"
-              size={20}
-              color={colors.error}
-            />
-          </TouchableOpacity>
-        )}
+
+        <TouchableOpacity onPress={startNewConversation} style={styles.newChatButton}>
+          <IconSymbol
+            ios_icon_name="square.and.pencil"
+            android_material_icon_name="edit"
+            size={20}
+            color={colors.card}
+          />
+        </TouchableOpacity>
       </View>
 
+      {/* Messages Area */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
-        {isLoadingHistory ? (
+        {isLoadingMessages ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading chat history...</Text>
+            <Text style={styles.loadingText}>Loading conversation...</Text>
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -320,6 +403,7 @@ export default function AiSheikhScreen() {
         )}
       </ScrollView>
 
+      {/* Input Area */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -348,6 +432,116 @@ export default function AiSheikhScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Sidebar Modal */}
+      <Modal
+        visible={sidebarVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSidebarVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setSidebarVisible(false)}
+          />
+          <View style={styles.sidebar}>
+            <View style={styles.sidebarHeader}>
+              <Text style={styles.sidebarTitle}>Chat History</Text>
+              <TouchableOpacity onPress={() => setSidebarVisible(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.newConversationButton}
+              onPress={startNewConversation}
+            >
+              <IconSymbol
+                ios_icon_name="plus.circle.fill"
+                android_material_icon_name="add-circle"
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={styles.newConversationText}>New Conversation</Text>
+            </TouchableOpacity>
+
+            <ScrollView style={styles.conversationsList}>
+              {isLoadingConversations ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              ) : conversations.length === 0 ? (
+                <View style={styles.emptyConversations}>
+                  <IconSymbol
+                    ios_icon_name="bubble.left.and.bubble.right"
+                    android_material_icon_name="chat"
+                    size={48}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.emptyConversationsText}>
+                    No conversations yet. Start a new chat!
+                  </Text>
+                </View>
+              ) : (
+                <React.Fragment>
+                  {conversations.map((conversation, index) => (
+                    <View key={`conversation-${index}`} style={styles.conversationItemWrapper}>
+                      <TouchableOpacity
+                        style={[
+                          styles.conversationItem,
+                          currentConversationId === conversation.id && styles.conversationItemActive,
+                        ]}
+                        onPress={() => loadConversationMessages(conversation.id)}
+                      >
+                        <View style={styles.conversationIcon}>
+                          <IconSymbol
+                            ios_icon_name="message.fill"
+                            android_material_icon_name="chat"
+                            size={20}
+                            color={currentConversationId === conversation.id ? colors.primary : colors.textSecondary}
+                          />
+                        </View>
+                        <View style={styles.conversationInfo}>
+                          <Text 
+                            style={[
+                              styles.conversationTitle,
+                              currentConversationId === conversation.id && styles.conversationTitleActive,
+                            ]}
+                            numberOfLines={2}
+                          >
+                            {conversation.title}
+                          </Text>
+                          <Text style={styles.conversationDate}>
+                            {formatDate(conversation.updated_at)}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={() => deleteConversation(conversation.id)}
+                        >
+                          <IconSymbol
+                            ios_icon_name="trash"
+                            android_material_icon_name="delete"
+                            size={18}
+                            color={colors.error}
+                          />
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </React.Fragment>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -365,6 +559,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  menuButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    marginRight: 12,
   },
   headerContent: {
     flexDirection: 'row',
@@ -394,9 +594,9 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.9,
   },
-  clearButton: {
+  newChatButton: {
     padding: 8,
-    backgroundColor: colors.card,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
   },
   messagesContainer: {
@@ -574,5 +774,111 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  sidebar: {
+    width: '80%',
+    maxWidth: 320,
+    backgroundColor: colors.card,
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
+  },
+  sidebarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sidebarTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  newConversationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+  },
+  newConversationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  conversationsList: {
+    flex: 1,
+  },
+  emptyConversations: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyConversationsText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  conversationItemWrapper: {
+    paddingHorizontal: 12,
+  },
+  conversationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: colors.background,
+    gap: 12,
+  },
+  conversationItemActive: {
+    backgroundColor: colors.primary,
+    opacity: 0.1,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  conversationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  conversationInfo: {
+    flex: 1,
+  },
+  conversationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  conversationTitleActive: {
+    color: colors.primary,
+  },
+  conversationDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  deleteButton: {
+    padding: 8,
   },
 });
