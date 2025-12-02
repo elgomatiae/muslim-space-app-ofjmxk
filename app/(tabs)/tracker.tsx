@@ -20,7 +20,7 @@ const dhikrPhrases = [
 
 export default function TrackerScreen() {
   const { trackerData, updateDhikr, updateQuran, getLifetimeStats, getWeeklyStats } = useTracker();
-  const { checkAchievements, updateChallengeProgress, achievements, weeklyChallenges, totalPoints } = useAchievements();
+  const { checkAchievements, updateChallengeProgress, achievements, weeklyChallenges } = useAchievements();
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showDhikrModal, setShowDhikrModal] = useState(false);
@@ -272,15 +272,6 @@ export default function TrackerScreen() {
         <View>
           <Text style={styles.headerTitle}>Faith Tracker</Text>
           <Text style={styles.headerSubtitle}>Track your spiritual journey</Text>
-        </View>
-        <View style={styles.pointsBadge}>
-          <IconSymbol
-            ios_icon_name="star.fill"
-            android_material_icon_name="star"
-            size={18}
-            color={colors.highlight}
-          />
-          <Text style={styles.pointsText}>{totalPoints}</Text>
         </View>
       </View>
 
@@ -574,15 +565,6 @@ export default function TrackerScreen() {
         <View style={styles.goalsSection}>
           <View style={styles.goalsSectionHeader}>
             <Text style={styles.goalsSectionTitle}>Goals & Achievements</Text>
-            <View style={styles.pointsBadgeSmall}>
-              <IconSymbol
-                ios_icon_name="star.fill"
-                android_material_icon_name="star"
-                size={14}
-                color={colors.highlight}
-              />
-              <Text style={styles.pointsBadgeSmallText}>{totalPoints} pts</Text>
-            </View>
           </View>
 
           <View style={styles.goalsTabs}>
@@ -799,20 +781,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 15,
     color: colors.textSecondary,
-  },
-  pointsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.highlight,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  pointsText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
   },
   content: {
     flex: 1,
@@ -1109,20 +1077,6 @@ const styles = StyleSheet.create({
   },
   goalsSectionTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  pointsBadgeSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.highlight,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  pointsBadgeSmallText: {
-    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
   },

@@ -25,7 +25,7 @@ const PRAYER_DATE_KEY = '@prayer_date';
 
 export default function HomeScreen() {
   const { trackerData, updatePrayers, getWeeklyStats } = useTracker();
-  const { weeklyChallenges, totalPoints, updateChallengeProgress } = useAchievements();
+  const { weeklyChallenges, updateChallengeProgress } = useAchievements();
   
   const [prayers, setPrayers] = useState<Prayer[]>([
     { name: 'Fajr', time: '05:30', completed: false },
@@ -391,15 +391,12 @@ export default function HomeScreen() {
                 {weeklyChallenges.filter(c => c.completed).length}/{weeklyChallenges.length} Completed
               </Text>
             </View>
-            <View style={styles.pointsBadgeSmall}>
-              <IconSymbol
-                ios_icon_name="star.fill"
-                android_material_icon_name="star"
-                size={16}
-                color={colors.highlight}
-              />
-              <Text style={styles.pointsTextSmall}>{totalPoints}</Text>
-            </View>
+            <IconSymbol
+              ios_icon_name="chevron.right"
+              android_material_icon_name="chevron-right"
+              size={24}
+              color={colors.card}
+            />
           </View>
         </TouchableOpacity>
 
@@ -713,20 +710,6 @@ const styles = StyleSheet.create({
   },
   challengesTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: colors.card,
-  },
-  pointsBadgeSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  pointsTextSmall: {
-    fontSize: 14,
     fontWeight: '700',
     color: colors.card,
   },

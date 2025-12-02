@@ -12,6 +12,7 @@ import { useTracker } from '@/contexts/TrackerContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { miracleCategories, Miracle } from '@/data/miracles';
 import { router } from 'expo-router';
+import { useAchievements } from '@/contexts/AchievementContext';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
@@ -23,7 +24,8 @@ const PRAYER_STORAGE_KEY = '@prayer_completion';
 const PRAYER_DATE_KEY = '@prayer_date';
 
 export default function HomeScreen() {
-  const { trackerData, updatePrayers } = useTracker();
+  const { trackerData, updatePrayers, getWeeklyStats } = useTracker();
+  const { weeklyChallenges, updateChallengeProgress } = useAchievements();
   
   const [prayers, setPrayers] = useState<Prayer[]>([
     { name: 'Fajr', time: '05:30', completed: false },
@@ -49,7 +51,20 @@ export default function HomeScreen() {
   useEffect(() => {
     loadDailyContent();
     loadWeeklyMiracle();
+    syncWeeklyChallenges();
   }, []);
+
+  const syncWeeklyChallenges = async () => {
+    try {
+      const weeklyStats = await getWeeklyStats();
+      
+      await updateChallengeProgress('weekly-dhikr-2000', weeklyStats.dhikrCount);
+      await updateChallengeProgress('weekly-quran-35-pages', weeklyStats.quranPages);
+      await updateChallengeProgress('weekly-prayer-streak', weeklyStats.prayerDays);
+    } catch (error) {
+      console.error('Error syncing weekly challenges:', error);
+    }
+  };
 
   const loadDailyContent = async () => {
     try {
@@ -215,6 +230,8 @@ export default function HomeScreen() {
       
       const completedCount = updatedPrayers.filter(p => p.completed).length;
       await updatePrayers(completedCount, updatedPrayers.length);
+      
+      await syncWeeklyChallenges();
     } catch (error) {
       console.log('Error saving prayer status:', error);
     }
@@ -353,6 +370,35 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          style={styles.challengesCard}
+          onPress={() => router.push('/(tabs)/tracker')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.challengesHeader}>
+            <View style={styles.challengesIcon}>
+              <IconSymbol
+                ios_icon_name="trophy.fill"
+                android_material_icon_name="emoji-events"
+                size={24}
+                color={colors.card}
+              />
+            </View>
+            <View style={styles.challengesText}>
+              <Text style={styles.challengesLabel}>Weekly Challenges</Text>
+              <Text style={styles.challengesTitle}>
+                {weeklyChallenges.filter(c => c.completed).length}/{weeklyChallenges.length} Completed
+              </Text>
+            </View>
+            <IconSymbol
+              ios_icon_name="chevron.right"
+              android_material_icon_name="chevron-right"
+              size={24}
+              color={colors.card}
+            />
+          </View>
+        </TouchableOpacity>
 
         {!loadingDailyContent && dailyVerse && dailyHadith && (
           <View style={styles.dailyContentRow}>
@@ -630,6 +676,42 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.9,
     lineHeight: 20,
+  },
+  challengesCard: {
+    backgroundColor: colors.accent,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(0, 188, 212, 0.3)',
+    elevation: 4,
+  },
+  challengesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  challengesIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  challengesText: {
+    flex: 1,
+  },
+  challengesLabel: {
+    fontSize: 12,
+    color: colors.card,
+    opacity: 0.9,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  challengesTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.card,
   },
   dailyContentRow: {
     flexDirection: 'row',
