@@ -6,6 +6,8 @@ import { IconSymbol } from '@/components/IconSymbol';
 import ProgressRings from '@/components/ProgressRings';
 import { useTracker } from '@/contexts/TrackerContext';
 import { useAchievements } from '@/contexts/AchievementContext';
+import { Achievement } from '@/data/achievements';
+import { Challenge } from '@/data/challenges';
 
 const dhikrPhrases = [
   { id: 'subhanallah', arabic: 'سُبْحَانَ ٱللَّٰهِ', transliteration: 'SubhanAllah', translation: 'Glory be to Allah' },
@@ -18,7 +20,7 @@ const dhikrPhrases = [
 
 export default function TrackerScreen() {
   const { trackerData, updateDhikr, updateQuran, getLifetimeStats } = useTracker();
-  const { checkAchievements, updateChallengeProgress } = useAchievements();
+  const { checkAchievements, updateChallengeProgress, achievements, dailyChallenges, weeklyChallenges, totalPoints } = useAchievements();
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showDhikrModal, setShowDhikrModal] = useState(false);
@@ -26,6 +28,7 @@ export default function TrackerScreen() {
   const [goalValue, setGoalValue] = useState('');
   const [selectedDhikr, setSelectedDhikr] = useState(dhikrPhrases[0]);
   const [tasbihCount, setTasbihCount] = useState(0);
+  const [selectedGoalsTab, setSelectedGoalsTab] = useState<'challenges' | 'achievements'>('challenges');
 
   const openGoalModal = (type: 'dhikr' | 'quran-pages' | 'quran-verses') => {
     setGoalType(type);
@@ -108,11 +111,179 @@ export default function TrackerScreen() {
     }
   };
 
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'legendary': return '#FFD700';
+      case 'epic': return '#9C27B0';
+      case 'rare': return '#2196F3';
+      default: return colors.textSecondary;
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'hard': return colors.error;
+      case 'medium': return colors.warning;
+      default: return colors.success;
+    }
+  };
+
+  const getIconName = (icon: string, platform: 'ios' | 'android') => {
+    const iconMap: Record<string, { ios: string; android: string }> = {
+      'flame': { ios: 'flame.fill', android: 'local-fire-department' },
+      'star': { ios: 'star.fill', android: 'star' },
+      'trophy': { ios: 'trophy.fill', android: 'emoji-events' },
+      'beads': { ios: 'circle.grid.3x3.fill', android: 'grid-on' },
+      'medal': { ios: 'medal.fill', android: 'military-tech' },
+      'book': { ios: 'book.fill', android: 'menu-book' },
+      'book-open': { ios: 'book.pages.fill', android: 'auto-stories' },
+      'brain': { ios: 'brain.head.profile', android: 'psychology' },
+      'book-bookmark': { ios: 'book.closed.fill', android: 'bookmark' },
+      'graduation-cap': { ios: 'graduationcap.fill', android: 'school' },
+      'book-reader': { ios: 'text.book.closed.fill', android: 'local-library' },
+      'check-circle': { ios: 'checkmark.circle.fill', android: 'check-circle' },
+      'share': { ios: 'square.and.arrow.up.fill', android: 'share' },
+      'dumbbell': { ios: 'figure.strengthtraining.traditional', android: 'fitness-center' },
+      'heart': { ios: 'heart.fill', android: 'favorite' },
+      'award': { ios: 'rosette', android: 'workspace-premium' },
+      'hands-sparkles': { ios: 'hands.sparkles.fill', android: 'favorite' },
+      'video': { ios: 'play.rectangle.fill', android: 'play-circle' },
+      'question-circle': { ios: 'questionmark.circle.fill', android: 'help' },
+      'sunrise': { ios: 'sunrise.fill', android: 'wb-twilight' },
+      'calendar-check': { ios: 'calendar.badge.checkmark', android: 'event-available' },
+    };
+    
+    const mapping = iconMap[icon] || { ios: 'star.fill', android: 'star' };
+    return platform === 'ios' ? mapping.ios : mapping.android;
+  };
+
+  const renderAchievement = (achievement: Achievement, index: number) => (
+    <View
+      key={`achievement-${achievement.id}-${index}`}
+      style={[
+        styles.achievementCard,
+        !achievement.unlocked && styles.achievementCardLocked,
+      ]}
+    >
+      <View style={[
+        styles.achievementIcon,
+        { backgroundColor: achievement.unlocked ? getRarityColor(achievement.rarity) : colors.border },
+      ]}>
+        <IconSymbol
+          ios_icon_name={getIconName(achievement.icon, 'ios')}
+          android_material_icon_name={getIconName(achievement.icon, 'android')}
+          size={28}
+          color={achievement.unlocked ? colors.card : colors.textSecondary}
+        />
+      </View>
+      <View style={styles.achievementInfo}>
+        <Text style={[styles.achievementTitle, !achievement.unlocked && styles.textLocked]}>
+          {achievement.title}
+        </Text>
+        <Text style={[styles.achievementDescription, !achievement.unlocked && styles.textLocked]}>
+          {achievement.description}
+        </Text>
+        <View style={styles.achievementMeta}>
+          <View style={[styles.rarityBadge, { backgroundColor: getRarityColor(achievement.rarity) }]}>
+            <Text style={styles.rarityText}>{achievement.rarity.toUpperCase()}</Text>
+          </View>
+        </View>
+      </View>
+      {achievement.unlocked && (
+        <IconSymbol
+          ios_icon_name="checkmark.seal.fill"
+          android_material_icon_name="verified"
+          size={24}
+          color={colors.success}
+        />
+      )}
+    </View>
+  );
+
+  const renderChallenge = (challenge: Challenge, index: number) => {
+    const progressPercent = (challenge.progress / challenge.requirement.value) * 100;
+    
+    return (
+      <View
+        key={`challenge-${challenge.id}-${index}`}
+        style={[
+          styles.challengeCard,
+          challenge.completed && styles.challengeCardCompleted,
+        ]}
+      >
+        <View style={styles.challengeHeader}>
+          <View style={[
+            styles.challengeIcon,
+            { backgroundColor: challenge.completed ? colors.success : getDifficultyColor(challenge.difficulty) },
+          ]}>
+            <IconSymbol
+              ios_icon_name={getIconName(challenge.icon, 'ios')}
+              android_material_icon_name={getIconName(challenge.icon, 'android')}
+              size={20}
+              color={colors.card}
+            />
+          </View>
+          <View style={styles.challengeInfo}>
+            <Text style={styles.challengeTitle}>{challenge.title}</Text>
+            <Text style={styles.challengeDescription}>{challenge.description}</Text>
+          </View>
+          {challenge.completed && (
+            <IconSymbol
+              ios_icon_name="checkmark.circle.fill"
+              android_material_icon_name="check-circle"
+              size={24}
+              color={colors.success}
+            />
+          )}
+        </View>
+        
+        <View style={styles.challengeProgress}>
+          <View style={styles.challengeProgressBar}>
+            <View style={[styles.challengeProgressFill, { width: `${Math.min(progressPercent, 100)}%` }]} />
+          </View>
+          <Text style={styles.challengeProgressText}>
+            {challenge.progress} / {challenge.requirement.value}
+          </Text>
+        </View>
+
+        <View style={styles.challengeMeta}>
+          <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(challenge.difficulty) }]}>
+            <Text style={styles.difficultyText}>{challenge.difficulty.toUpperCase()}</Text>
+          </View>
+          <View style={styles.rewardBadge}>
+            <IconSymbol
+              ios_icon_name="star.fill"
+              android_material_icon_name="star"
+              size={12}
+              color={colors.highlight}
+            />
+            <Text style={styles.rewardText}>+{challenge.reward.points} pts</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const completedDailyCount = dailyChallenges.filter(c => c.completed).length;
+  const completedWeeklyCount = weeklyChallenges.filter(c => c.completed).length;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Faith Tracker</Text>
-        <Text style={styles.headerSubtitle}>Track your spiritual journey</Text>
+        <View>
+          <Text style={styles.headerTitle}>Faith Tracker</Text>
+          <Text style={styles.headerSubtitle}>Track your spiritual journey</Text>
+        </View>
+        <View style={styles.pointsBadge}>
+          <IconSymbol
+            ios_icon_name="star.fill"
+            android_material_icon_name="star"
+            size={18}
+            color={colors.highlight}
+          />
+          <Text style={styles.pointsText}>{totalPoints}</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -402,6 +573,93 @@ export default function TrackerScreen() {
           </View>
         </View>
 
+        <View style={styles.goalsSection}>
+          <View style={styles.goalsSectionHeader}>
+            <Text style={styles.goalsSectionTitle}>Goals & Achievements</Text>
+            <View style={styles.pointsBadgeSmall}>
+              <IconSymbol
+                ios_icon_name="star.fill"
+                android_material_icon_name="star"
+                size={14}
+                color={colors.highlight}
+              />
+              <Text style={styles.pointsBadgeSmallText}>{totalPoints} pts</Text>
+            </View>
+          </View>
+
+          <View style={styles.goalsTabs}>
+            <TouchableOpacity
+              style={[styles.goalsTab, selectedGoalsTab === 'challenges' && styles.goalsTabActive]}
+              onPress={() => setSelectedGoalsTab('challenges')}
+            >
+              <Text style={[styles.goalsTabText, selectedGoalsTab === 'challenges' && styles.goalsTabTextActive]}>
+                Challenges
+              </Text>
+              <View style={styles.goalsTabBadge}>
+                <Text style={styles.goalsTabBadgeText}>
+                  {completedDailyCount + completedWeeklyCount}/{dailyChallenges.length + weeklyChallenges.length}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.goalsTab, selectedGoalsTab === 'achievements' && styles.goalsTabActive]}
+              onPress={() => setSelectedGoalsTab('achievements')}
+            >
+              <Text style={[styles.goalsTabText, selectedGoalsTab === 'achievements' && styles.goalsTabTextActive]}>
+                Badges
+              </Text>
+              <View style={styles.goalsTabBadge}>
+                <Text style={styles.goalsTabBadgeText}>{unlockedCount}/{achievements.length}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {selectedGoalsTab === 'challenges' ? (
+            <React.Fragment>
+              <View style={styles.goalsSubsection}>
+                <Text style={styles.goalsSubsectionTitle}>Daily Challenges</Text>
+                <Text style={styles.goalsSubsectionSubtitle}>
+                  Complete {completedDailyCount}/{dailyChallenges.length} today
+                </Text>
+                {dailyChallenges.map((challenge, index) => renderChallenge(challenge, index))}
+              </View>
+
+              <View style={styles.goalsSubsection}>
+                <Text style={styles.goalsSubsectionTitle}>Weekly Challenges</Text>
+                <Text style={styles.goalsSubsectionSubtitle}>
+                  Complete {completedWeeklyCount}/{weeklyChallenges.length} this week
+                </Text>
+                {weeklyChallenges.map((challenge, index) => renderChallenge(challenge, index))}
+              </View>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <View style={styles.statsCard}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{unlockedCount}</Text>
+                  <Text style={styles.statLabel}>Unlocked</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{achievements.length - unlockedCount}</Text>
+                  <Text style={styles.statLabel}>Locked</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{Math.round((unlockedCount / achievements.length) * 100)}%</Text>
+                  <Text style={styles.statLabel}>Complete</Text>
+                </View>
+              </View>
+
+              <View style={styles.goalsSubsection}>
+                <Text style={styles.goalsSubsectionTitle}>All Achievements</Text>
+                {achievements.map((achievement, index) => renderAchievement(achievement, index))}
+              </View>
+            </React.Fragment>
+          )}
+        </View>
+
         <View style={styles.motivationCard}>
           <IconSymbol
             ios_icon_name="star.fill"
@@ -538,6 +796,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 32,
@@ -548,6 +809,20 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 15,
     color: colors.textSecondary,
+  },
+  pointsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.highlight,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  pointsText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
   },
   content: {
     flex: 1,
@@ -831,6 +1106,255 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginVertical: 16,
+  },
+  goalsSection: {
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  goalsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  goalsSectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  pointsBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.highlight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  pointsBadgeSmallText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  goalsTabs: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  goalsTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: colors.card,
+    gap: 8,
+  },
+  goalsTabActive: {
+    backgroundColor: colors.primary,
+  },
+  goalsTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  goalsTabTextActive: {
+    color: colors.card,
+  },
+  goalsTabBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  goalsTabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  goalsSubsection: {
+    marginBottom: 20,
+  },
+  goalsSubsectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  goalsSubsectionSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+    marginHorizontal: 8,
+  },
+  achievementCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.06)',
+    elevation: 1,
+    gap: 10,
+  },
+  achievementCardLocked: {
+    opacity: 0.6,
+  },
+  achievementIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  achievementInfo: {
+    flex: 1,
+  },
+  achievementTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 3,
+  },
+  achievementDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  achievementMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  rarityBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  rarityText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  textLocked: {
+    color: colors.textSecondary,
+  },
+  challengeCard: {
+    backgroundColor: colors.card,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.06)',
+    elevation: 1,
+  },
+  challengeCardCompleted: {
+    borderWidth: 2,
+    borderColor: colors.success,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    gap: 10,
+  },
+  challengeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  challengeInfo: {
+    flex: 1,
+  },
+  challengeTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 3,
+  },
+  challengeDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  challengeProgress: {
+    marginBottom: 10,
+  },
+  challengeProgressBar: {
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  challengeProgressFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: 3,
+  },
+  challengeProgressText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  challengeMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  difficultyBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+  },
+  difficultyText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  rewardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 3,
+    gap: 3,
+  },
+  rewardText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.text,
   },
   motivationCard: {
     backgroundColor: colors.highlight,

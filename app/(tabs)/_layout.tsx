@@ -18,10 +18,10 @@ export default function TabLayout() {
       label: 'Learn',
     },
     {
-      name: 'achievements',
-      route: '/(tabs)/achievements',
-      icon: 'emoji-events',
-      label: 'Goals',
+      name: 'dawah',
+      route: '/(tabs)/dawah',
+      icon: 'star',
+      label: 'Dawah',
     },
     {
       name: 'wellness',
