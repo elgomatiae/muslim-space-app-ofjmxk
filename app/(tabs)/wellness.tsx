@@ -111,7 +111,6 @@ export default function WellnessScreen() {
     loadTodayJournalEntry();
     generateRandomPrompt();
     loadWeeklyStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const generateRandomPrompt = () => {

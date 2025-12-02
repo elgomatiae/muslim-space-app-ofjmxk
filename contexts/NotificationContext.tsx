@@ -72,13 +72,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     return () => {
       if (notificationListener.current) {
-        notificationListener.current.remove();
+        Notifications.removeNotificationSubscription(notificationListener.current);
       }
       if (responseListener.current) {
-        responseListener.current.remove();
+        Notifications.removeNotificationSubscription(responseListener.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initializeNotifications = async () => {

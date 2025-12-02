@@ -52,7 +52,6 @@ export default function HomeScreen() {
     loadDailyContent();
     loadWeeklyMiracle();
     syncWeeklyChallenges();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const syncWeeklyChallenges = async () => {
@@ -160,7 +159,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadPrayerStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -190,7 +188,7 @@ export default function HomeScreen() {
       setNextPrayer(result.prayer);
       setTimeUntilNext(result.timeUntil);
     }
-  }, [prayers, currentTime]);
+  }, [currentTime, prayers]);
 
   const getTodayDateString = () => {
     const today = new Date();
