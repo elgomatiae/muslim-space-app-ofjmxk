@@ -190,7 +190,7 @@ export default function HomeScreen() {
       setNextPrayer(result.prayer);
       setTimeUntilNext(result.timeUntil);
     }
-  }, [currentTime, prayers]);
+  }, [prayers, currentTime]);
 
   const getTodayDateString = () => {
     const today = new Date();

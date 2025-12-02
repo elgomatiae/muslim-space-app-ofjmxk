@@ -153,7 +153,7 @@ export default function HomeScreen() {
     loadDailyContent();
     loadWeeklyMiracle();
     syncWeeklyChallenges();
-  }, []);
+  }, [loadDailyContent, loadWeeklyMiracle, syncWeeklyChallenges]);
 
   const loadPrayerStatus = useCallback(async () => {
     try {
@@ -185,7 +185,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadPrayerStatus();
-  }, []);
+  }, [loadPrayerStatus]);
 
   useEffect(() => {
     requestLocationPermission();
