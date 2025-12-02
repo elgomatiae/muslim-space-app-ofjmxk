@@ -52,6 +52,7 @@ export default function HomeScreen() {
     loadDailyContent();
     loadWeeklyMiracle();
     syncWeeklyChallenges();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const syncWeeklyChallenges = async () => {
@@ -159,6 +160,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadPrayerStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

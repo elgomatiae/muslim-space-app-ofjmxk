@@ -44,6 +44,7 @@ export default function TrendsScreen() {
 
   useEffect(() => {
     loadTrendsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, timeRange]);
 
   const loadTrendsData = async () => {

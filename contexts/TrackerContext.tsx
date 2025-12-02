@@ -39,6 +39,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadTrackerData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const getTodayDateString = () => {

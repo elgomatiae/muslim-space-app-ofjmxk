@@ -45,6 +45,7 @@ export default function QuizScreen() {
     if (quizId) {
       fetchQuizData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizId]);
 
   const fetchQuizData = async () => {

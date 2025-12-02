@@ -37,6 +37,7 @@ export function AchievementProvider({ children }: { children: ReactNode }) {
     loadAchievements();
     loadWeeklyChallenges();
     loadPoints();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const getWeekStartDate = () => {

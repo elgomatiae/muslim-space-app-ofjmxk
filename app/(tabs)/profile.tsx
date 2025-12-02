@@ -1349,7 +1349,14 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   adminWarning: {
-    flexPerfect! The profile screen already has notification settings UI. Now I need to update it to show the push notification permission status. Let me create a component to display the notification permission status and add it to the profile screen:
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
 
 <write file="app/(tabs)/profile.tsx">
 import React, { useState, useEffect } from 'react';
