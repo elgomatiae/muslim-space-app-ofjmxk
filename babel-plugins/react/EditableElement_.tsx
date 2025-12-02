@@ -1,3 +1,4 @@
+
 /* eslint-disable */
 
 // @eslint-ignore-file
@@ -38,11 +39,11 @@ export default function EditableElement_(_props: PropsWithChildren<any>) {
     editModeEnabled,
     selected,
     onElementClick,
-    attributes: overwrittenProps,
+    attributes: overwrittenProps = {},
     hovered,
     pushHovered,
     popHovered,
-  } = useContext(EditableContext);
+  } = useContext(EditableContext) || {};
 
   const { children } = _props;
   const { props } = children;
@@ -56,7 +57,7 @@ export default function EditableElement_(_props: PropsWithChildren<any>) {
   const type = getType(children);
   const __sourceLocation = props.__sourceLocation;
   const __trace = props.__trace;
-  const id = __trace.join("");
+  const id = __trace?.join("") || "";
   const attributes = overwrittenProps[id] ?? {};
 
   const editStyling =
@@ -73,21 +74,23 @@ export default function EditableElement_(_props: PropsWithChildren<any>) {
   const onClick = (ev: any) => {
     ev.stopPropagation();
     ev.preventDefault();
-    onElementClick({
-      sourceLocation: __sourceLocation,
-      id,
-      type,
-      trace: __trace,
-      props: {
-        style: { ...props.style },
-        children: isPrimitive(props.children) ? props.children : undefined,
-      },
-    });
+    if (onElementClick) {
+      onElementClick({
+        sourceLocation: __sourceLocation,
+        id,
+        type,
+        trace: __trace,
+        props: {
+          style: { ...props.style },
+          children: isPrimitive(props.children) ? props.children : undefined,
+        },
+      });
+    }
   };
 
   const editProps = {
-    onMouseOver: () => pushHovered(id),
-    onMouseLeave: () => popHovered(id),
+    onMouseOver: () => pushHovered && pushHovered(id),
+    onMouseLeave: () => popHovered && popHovered(id),
     onClick: (ev) => onClick(ev),
     onPress: (ev) => onClick(ev),
   };
