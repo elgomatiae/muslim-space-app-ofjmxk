@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -18,6 +19,14 @@ import { useTracker } from '@/contexts/TrackerContext';
 import { router } from 'expo-router';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { importIslamicLectures, importQuranRecitations, importAllVideos, cleanupBrokenVideos } from '@/utils/importYouTubeVideos';
+
+interface NotificationSettings {
+  prayer_reminders: boolean;
+  dhikr_reminders: boolean;
+  quran_reminders: boolean;
+  weekly_challenge_reminders: boolean;
+  achievement_notifications: boolean;
+}
 
 export default function ProfileScreen() {
   const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
@@ -32,12 +41,101 @@ export default function ProfileScreen() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminTapCount, setAdminTapCount] = useState(0);
   const [importing, setImporting] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    prayer_reminders: true,
+    dhikr_reminders: true,
+    quran_reminders: true,
+    weekly_challenge_reminders: true,
+    achievement_notifications: true,
+  });
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     if (user && isSupabaseConfigured()) {
       loadWeeklyStats();
+      loadNotificationSettings();
     }
   }, [user]);
+
+  const loadNotificationSettings = async () => {
+    if (!user || !isSupabaseConfigured()) return;
+
+    setLoadingSettings(true);
+    try {
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        // If no settings exist, create default ones
+        if (error.code === 'PGRST116') {
+          const { error: insertError } = await supabase
+            .from('user_settings')
+            .insert({
+              user_id: user.id,
+              prayer_reminders: true,
+              dhikr_reminders: true,
+              quran_reminders: true,
+              weekly_challenge_reminders: true,
+              achievement_notifications: true,
+            });
+
+          if (insertError) {
+            console.error('Error creating settings:', insertError);
+          }
+        } else {
+          console.error('Error loading settings:', error);
+        }
+        return;
+      }
+
+      if (data) {
+        setNotificationSettings({
+          prayer_reminders: data.prayer_reminders ?? true,
+          dhikr_reminders: data.dhikr_reminders ?? true,
+          quran_reminders: data.quran_reminders ?? true,
+          weekly_challenge_reminders: data.weekly_challenge_reminders ?? true,
+          achievement_notifications: data.achievement_notifications ?? true,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading notification settings:', error);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const updateNotificationSetting = async (key: keyof NotificationSettings, value: boolean) => {
+    if (!user || !isSupabaseConfigured()) return;
+
+    // Update local state immediately for better UX
+    setNotificationSettings(prev => ({ ...prev, [key]: value }));
+
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ [key]: value, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error updating setting:', error);
+        // Revert on error
+        setNotificationSettings(prev => ({ ...prev, [key]: !value }));
+        Alert.alert('Error', 'Failed to update notification setting');
+      }
+    } catch (error) {
+      console.error('Error updating notification setting:', error);
+      // Revert on error
+      setNotificationSettings(prev => ({ ...prev, [key]: !value }));
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const loadWeeklyStats = async () => {
     if (!user || !isSupabaseConfigured()) return;
@@ -315,6 +413,48 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            // Second confirmation
+            Alert.alert(
+              'Final Confirmation',
+              'This will permanently delete your account and all associated data. Are you absolutely sure?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete Forever',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      // Note: Account deletion should be handled by a Supabase Edge Function
+                      // for security reasons. For now, we'll just sign out.
+                      Alert.alert(
+                        'Account Deletion',
+                        'Please contact support to delete your account. For now, you will be signed out.'
+                      );
+                      await signOut();
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      Alert.alert('Error', 'Failed to delete account');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
   if (!isConfigured) {
     return (
       <View style={styles.container}>
@@ -406,7 +546,11 @@ export default function ProfileScreen() {
           <View style={styles.backButton} />
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
           {showAdminPanel && (
             <View style={styles.adminPanel}>
               <View style={styles.adminHeader}>
@@ -675,6 +819,137 @@ export default function ProfileScreen() {
           )}
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notification Settings</Text>
+            
+            {loadingSettings ? (
+              <View style={styles.loadingSettingsCard}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingSettingsText}>Loading settings...</Text>
+              </View>
+            ) : (
+              <View style={styles.settingsCard}>
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <IconSymbol
+                      ios_icon_name="bell.fill"
+                      android_material_icon_name="notifications"
+                      size={20}
+                      color={colors.primary}
+                    />
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingTitle}>Prayer Reminders</Text>
+                      <Text style={styles.settingDescription}>Get notified before prayer times</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.prayer_reminders}
+                    onValueChange={(value) => updateNotificationSetting('prayer_reminders', value)}
+                    trackColor={{ false: colors.border, true: colors.primary }}
+                    thumbColor={colors.card}
+                    disabled={savingSettings}
+                  />
+                </View>
+
+                <View style={styles.settingDivider} />
+
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <IconSymbol
+                      ios_icon_name="sparkles"
+                      android_material_icon_name="auto-awesome"
+                      size={20}
+                      color={colors.secondary}
+                    />
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingTitle}>Dhikr Reminders</Text>
+                      <Text style={styles.settingDescription}>Daily dhikr practice reminders</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.dhikr_reminders}
+                    onValueChange={(value) => updateNotificationSetting('dhikr_reminders', value)}
+                    trackColor={{ false: colors.border, true: colors.secondary }}
+                    thumbColor={colors.card}
+                    disabled={savingSettings}
+                  />
+                </View>
+
+                <View style={styles.settingDivider} />
+
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <IconSymbol
+                      ios_icon_name="book.fill"
+                      android_material_icon_name="menu-book"
+                      size={20}
+                      color={colors.accent}
+                    />
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingTitle}>Quran Reminders</Text>
+                      <Text style={styles.settingDescription}>Daily Quran reading reminders</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.quran_reminders}
+                    onValueChange={(value) => updateNotificationSetting('quran_reminders', value)}
+                    trackColor={{ false: colors.border, true: colors.accent }}
+                    thumbColor={colors.card}
+                    disabled={savingSettings}
+                  />
+                </View>
+
+                <View style={styles.settingDivider} />
+
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <IconSymbol
+                      ios_icon_name="trophy.fill"
+                      android_material_icon_name="emoji-events"
+                      size={20}
+                      color={colors.warning}
+                    />
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingTitle}>Weekly Challenges</Text>
+                      <Text style={styles.settingDescription}>New challenge notifications</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.weekly_challenge_reminders}
+                    onValueChange={(value) => updateNotificationSetting('weekly_challenge_reminders', value)}
+                    trackColor={{ false: colors.border, true: colors.warning }}
+                    thumbColor={colors.card}
+                    disabled={savingSettings}
+                  />
+                </View>
+
+                <View style={styles.settingDivider} />
+
+                <View style={styles.settingRow}>
+                  <View style={styles.settingInfo}>
+                    <IconSymbol
+                      ios_icon_name="star.fill"
+                      android_material_icon_name="star"
+                      size={20}
+                      color={colors.success}
+                    />
+                    <View style={styles.settingTextContainer}>
+                      <Text style={styles.settingTitle}>Achievement Notifications</Text>
+                      <Text style={styles.settingDescription}>Get notified when you unlock achievements</Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={notificationSettings.achievement_notifications}
+                    onValueChange={(value) => updateNotificationSetting('achievement_notifications', value)}
+                    trackColor={{ false: colors.border, true: colors.success }}
+                    thumbColor={colors.card}
+                    disabled={savingSettings}
+                  />
+                </View>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account Settings</Text>
             
             <TouchableOpacity style={styles.settingCard}>
@@ -723,19 +998,38 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
-            activeOpacity={0.8}
-          >
-            <IconSymbol
-              ios_icon_name="rectangle.portrait.and.arrow.right"
-              android_material_icon_name="logout"
-              size={20}
-              color={colors.card}
-            />
-            <Text style={styles.signOutButtonText}>Sign Out</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+              activeOpacity={0.8}
+            >
+              <IconSymbol
+                ios_icon_name="rectangle.portrait.and.arrow.right"
+                android_material_icon_name="logout"
+                size={20}
+                color={colors.card}
+              />
+              <Text style={styles.signOutButtonText}>Sign Out</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.deleteAccountButton}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.8}
+            >
+              <IconSymbol
+                ios_icon_name="trash.fill"
+                android_material_icon_name="delete-forever"
+                size={20}
+                color={colors.card}
+              />
+              <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Extra padding at bottom to prevent tab bar overlap */}
+          <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
     );
@@ -761,7 +1055,11 @@ export default function ProfileScreen() {
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.authCard}>
           <View style={styles.authIconCircle}>
             <IconSymbol
@@ -922,6 +1220,9 @@ export default function ProfileScreen() {
             • Track your spiritual journey over time
           </Text>
         </View>
+
+        {/* Extra padding at bottom to prevent tab bar overlap */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
@@ -959,7 +1260,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -1212,6 +1513,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
+  settingsCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  settingTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  settingDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  settingDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 4,
+  },
+  loadingSettingsCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  loadingSettingsText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 12,
+  },
   settingCard: {
     backgroundColor: colors.card,
     borderRadius: 12,
@@ -1260,15 +1613,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
+  actionButtonsContainer: {
+    gap: 12,
+    marginTop: 8,
+  },
   signOutButton: {
-    backgroundColor: colors.error,
+    backgroundColor: colors.secondary,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    boxShadow: '0px 2px 6px rgba(244, 67, 54, 0.3)',
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.15)',
     elevation: 3,
   },
   signOutButtonText: {
@@ -1276,6 +1632,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.card,
     marginLeft: 8,
+  },
+  deleteAccountButton: {
+    backgroundColor: colors.error,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 2px 6px rgba(244, 67, 54, 0.3)',
+    elevation: 3,
+  },
+  deleteAccountButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
+    marginLeft: 8,
+  },
+  bottomSpacer: {
+    height: 120,
   },
   authCard: {
     backgroundColor: colors.card,
