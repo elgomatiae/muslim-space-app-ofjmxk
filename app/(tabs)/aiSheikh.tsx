@@ -105,13 +105,22 @@ export default function AiSheikhScreen() {
   };
 
   const sendMessage = async () => {
-    if (!inputText.trim()) return;
+    console.log('Send button pressed');
+    console.log('Input text:', inputText);
+    console.log('Input text trimmed:', inputText.trim());
+    
+    if (!inputText.trim()) {
+      console.log('Input text is empty, returning');
+      return;
+    }
 
     if (!user || !isSupabaseConfigured()) {
+      console.log('User not authenticated or Supabase not configured');
       Alert.alert('Sign In Required', 'Please sign in to ask questions to the AI Sheikh.');
       return;
     }
 
+    console.log('Creating user message...');
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -124,6 +133,7 @@ export default function AiSheikhScreen() {
     setIsLoading(true);
 
     try {
+      console.log('Getting session...');
       const { data: session } = await supabase.auth.getSession();
       const token = session?.session?.access_token;
 
@@ -131,6 +141,7 @@ export default function AiSheikhScreen() {
         throw new Error('No authentication token');
       }
 
+      console.log('Calling Edge Function...');
       const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-sheikh`, {
         method: 'POST',
         headers: {
@@ -143,12 +154,17 @@ export default function AiSheikhScreen() {
         }),
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to get response');
       }
 
       const { answer, conversationId } = await response.json();
+      console.log('Received answer:', answer);
+      console.log('Conversation ID:', conversationId);
 
       // Update current conversation ID if this was a new conversation
       if (!currentConversationId && conversationId) {
@@ -413,7 +429,10 @@ export default function AiSheikhScreen() {
               placeholder="Ask a question about Islam..."
               placeholderTextColor={colors.textSecondary}
               value={inputText}
-              onChangeText={setInputText}
+              onChangeText={(text) => {
+                console.log('Text changed:', text);
+                setInputText(text);
+              }}
               multiline
               maxLength={500}
               editable={!isLoading}
@@ -422,8 +441,12 @@ export default function AiSheikhScreen() {
             />
             <TouchableOpacity
               style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
-              onPress={sendMessage}
+              onPress={() => {
+                console.log('Send button onPress triggered');
+                sendMessage();
+              }}
               disabled={!inputText.trim() || isLoading}
+              activeOpacity={0.7}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color={colors.card} />

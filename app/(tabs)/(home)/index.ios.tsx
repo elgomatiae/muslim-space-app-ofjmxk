@@ -266,25 +266,28 @@ export default function HomeScreen() {
 
   const completedCount = prayers.filter(p => p.completed).length;
 
+  const handleAiSheikhPress = () => {
+    console.log('AI Sheikh button pressed');
+    router.push('/(tabs)/aiSheikh');
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.headerButtons}>
-        <View style={styles.aiSheikhButtonContainer}>
-          <TouchableOpacity
-            onPress={() => router.push('/(tabs)/aiSheikh')}
-            style={styles.aiSheikhButton}
-          >
-            <IconSymbol 
-              ios_icon_name="bubble.left.and.bubble.right.fill" 
-              android_material_icon_name="chat" 
-              color={colors.card} 
-              size={24}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.profileButtonContainer}>
-          <ProfileButton />
-        </View>
+      {/* Header Buttons - Fixed positioning with proper pointer events */}
+      <View style={styles.headerButtons} pointerEvents="box-none">
+        <TouchableOpacity
+          onPress={handleAiSheikhPress}
+          style={styles.aiSheikhButton}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            ios_icon_name="bubble.left.and.bubble.right.fill" 
+            android_material_icon_name="chat" 
+            color={colors.card} 
+            size={24}
+          />
+        </TouchableOpacity>
+        <ProfileButton />
       </View>
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -525,9 +528,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 12,
   },
-  aiSheikhButtonContainer: {
-    alignItems: 'flex-end',
-  },
   aiSheikhButton: {
     backgroundColor: colors.primary,
     borderRadius: 24,
@@ -537,9 +537,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     boxShadow: '0px 3px 8px rgba(63, 81, 181, 0.4)',
     elevation: 4,
-  },
-  profileButtonContainer: {
-    alignItems: 'flex-end',
   },
   scrollView: {
     flex: 1,
