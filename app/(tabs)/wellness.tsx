@@ -63,17 +63,21 @@ const gratitudePrompts = [
 ];
 
 const workoutTypes = [
-  { name: 'Strength Training', icon: 'dumbbell', duration: 30 },
-  { name: 'Bodyweight', icon: 'figure-strengthtraining-traditional', duration: 20 },
-  { name: 'Yoga', icon: 'figure-yoga', duration: 30 },
-  { name: 'Stretching', icon: 'figure-flexibility', duration: 15 },
+  { name: 'Strength Training', icon: 'dumbbell', androidIcon: 'fitness-center' },
+  { name: 'Bodyweight', icon: 'figure-strengthtraining-traditional', androidIcon: 'fitness-center' },
+  { name: 'Yoga', icon: 'figure-yoga', androidIcon: 'self-improvement' },
+  { name: 'Stretching', icon: 'figure-flexibility', androidIcon: 'accessibility' },
+  { name: 'HIIT', icon: 'bolt-fill', androidIcon: 'flash-on' },
+  { name: 'CrossFit', icon: 'figure-cross-training', androidIcon: 'fitness-center' },
 ];
 
 const cardioTypes = [
-  { name: 'Running', icon: 'figure-run', duration: 30 },
-  { name: 'Walking', icon: 'figure-walk', duration: 30 },
-  { name: 'Cycling', icon: 'bicycle', duration: 45 },
-  { name: 'Swimming', icon: 'figure-pool-swim', duration: 30 },
+  { name: 'Running', icon: 'figure-run', androidIcon: 'directions-run' },
+  { name: 'Walking', icon: 'figure-walk', androidIcon: 'directions-walk' },
+  { name: 'Cycling', icon: 'bicycle', androidIcon: 'directions-bike' },
+  { name: 'Swimming', icon: 'figure-pool-swim', androidIcon: 'pool' },
+  { name: 'Rowing', icon: 'figure-rowing', androidIcon: 'rowing' },
+  { name: 'Jump Rope', icon: 'figure-jumprope', androidIcon: 'fitness-center' },
 ];
 
 export default function WellnessScreen() {
@@ -93,6 +97,10 @@ export default function WellnessScreen() {
   const [cardioMinutes, setCardioMinutes] = useState(0);
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [showCardioModal, setShowCardioModal] = useState(false);
+  const [selectedWorkoutType, setSelectedWorkoutType] = useState<string | null>(null);
+  const [selectedCardioType, setSelectedCardioType] = useState<string | null>(null);
+  const [customWorkoutMinutes, setCustomWorkoutMinutes] = useState('');
+  const [customCardioMinutes, setCustomCardioMinutes] = useState('');
   const [workoutStats, setWorkoutStats] = useState<WorkoutStats>({ weeklyMinutes: 0, weeklyGoal: 150, streak: 0 });
   const [cardioStats, setCardioStats] = useState<CardioStats>({ weeklyMinutes: 0, weeklyGoal: 150, streak: 0 });
 
@@ -130,7 +138,6 @@ export default function WellnessScreen() {
         console.log('Error loading journal entry:', error);
       }
     } else {
-      // Load from local storage if not logged in
       const savedEntry = await AsyncStorage.getItem(`@journal_${today}`);
       if (savedEntry) {
         setJournalEntry(savedEntry);
@@ -168,7 +175,6 @@ export default function WellnessScreen() {
           Alert.alert('Saved!', 'Your gratitude entry has been saved.');
         }
       } else {
-        // Save to local storage if not logged in
         await AsyncStorage.setItem(`@journal_${today}`, journalEntry);
         Alert.alert('Saved!', 'Your gratitude entry has been saved locally.');
       }
@@ -241,11 +247,9 @@ export default function WellnessScreen() {
 
   const loadWeeklyStats = async () => {
     try {
-      // Calculate weekly workout minutes
       const workoutData = await AsyncStorage.getItem('workoutTracker');
       const cardioData = await AsyncStorage.getItem('cardioTracker');
       
-      // For now, use today's data as weekly (you can expand this to track full week)
       if (workoutData) {
         const parsed: WorkoutTracker = JSON.parse(workoutData);
         setWorkoutStats(prev => ({ ...prev, weeklyMinutes: parsed.totalMinutes }));
@@ -282,9 +286,21 @@ export default function WellnessScreen() {
     }
   };
 
-  const addWorkout = async (type: string, minutes: number) => {
+  const handleWorkoutSubmit = async () => {
+    if (!selectedWorkoutType) {
+      Alert.alert('Select Type', 'Please select a workout type.');
+      return;
+    }
+    
+    const minutes = parseInt(customWorkoutMinutes);
+    if (!customWorkoutMinutes || isNaN(minutes) || minutes <= 0) {
+      Alert.alert('Invalid Duration', 'Please enter a valid number of minutes.');
+      return;
+    }
+
     const newMinutes = workoutMinutes + minutes;
     setWorkoutMinutes(newMinutes);
+    
     try {
       const today = new Date().toDateString();
       const workoutData = await AsyncStorage.getItem('workoutTracker');
@@ -299,7 +315,7 @@ export default function WellnessScreen() {
         }
       }
       
-      workouts.push(`${type} - ${minutes} min`);
+      workouts.push(`${selectedWorkoutType} - ${minutes} min`);
       totalMinutes += minutes;
       
       await AsyncStorage.setItem('workoutTracker', JSON.stringify({ 
@@ -309,15 +325,33 @@ export default function WellnessScreen() {
       }));
       
       setWorkoutStats(prev => ({ ...prev, weeklyMinutes: prev.weeklyMinutes + minutes }));
+      
+      setSelectedWorkoutType(null);
+      setCustomWorkoutMinutes('');
+      setShowWorkoutModal(false);
+      
+      Alert.alert('Success!', `Added ${minutes} minutes of ${selectedWorkoutType}`);
     } catch (error) {
       console.error('Error saving workout tracker:', error);
+      Alert.alert('Error', 'Failed to save workout. Please try again.');
     }
-    setShowWorkoutModal(false);
   };
 
-  const addCardio = async (type: string, minutes: number) => {
+  const handleCardioSubmit = async () => {
+    if (!selectedCardioType) {
+      Alert.alert('Select Type', 'Please select a cardio type.');
+      return;
+    }
+    
+    const minutes = parseInt(customCardioMinutes);
+    if (!customCardioMinutes || isNaN(minutes) || minutes <= 0) {
+      Alert.alert('Invalid Duration', 'Please enter a valid number of minutes.');
+      return;
+    }
+
     const newMinutes = cardioMinutes + minutes;
     setCardioMinutes(newMinutes);
+    
     try {
       const today = new Date().toDateString();
       const cardioData = await AsyncStorage.getItem('cardioTracker');
@@ -332,7 +366,7 @@ export default function WellnessScreen() {
         }
       }
       
-      activities.push(`${type} - ${minutes} min`);
+      activities.push(`${selectedCardioType} - ${minutes} min`);
       totalMinutes += minutes;
       
       await AsyncStorage.setItem('cardioTracker', JSON.stringify({ 
@@ -342,10 +376,16 @@ export default function WellnessScreen() {
       }));
       
       setCardioStats(prev => ({ ...prev, weeklyMinutes: prev.weeklyMinutes + minutes }));
+      
+      setSelectedCardioType(null);
+      setCustomCardioMinutes('');
+      setShowCardioModal(false);
+      
+      Alert.alert('Success!', `Added ${minutes} minutes of ${selectedCardioType}`);
     } catch (error) {
       console.error('Error saving cardio tracker:', error);
+      Alert.alert('Error', 'Failed to save cardio. Please try again.');
     }
-    setShowCardioModal(false);
   };
 
   const emotions = [
@@ -562,7 +602,6 @@ export default function WellnessScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedTab === 'mental' && (
           <React.Fragment>
-            {/* Prophet Muhammad's Mental Health - MOVED TO TOP */}
             <TouchableOpacity 
               style={styles.prophetCard}
               onPress={() => setShowProphetStory(true)}
@@ -591,7 +630,6 @@ export default function WellnessScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* Emotion Selector */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -632,14 +670,12 @@ export default function WellnessScreen() {
               </View>
             </View>
 
-            {/* Emotion-specific content */}
             {selectedEmotion && (
               <View style={styles.card}>
                 <Text style={styles.emotionContentTitle}>
                   {getEmotionContent(selectedEmotion).title}
                 </Text>
                 
-                {/* Quranic Verses */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Quranic Guidance</Text>
                   {getEmotionContent(selectedEmotion).verses.map((verse, index) => (
@@ -651,7 +687,6 @@ export default function WellnessScreen() {
                   ))}
                 </View>
 
-                {/* Hadiths */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Prophetic Wisdom</Text>
                   {getEmotionContent(selectedEmotion).hadiths.map((hadith, index) => (
@@ -662,7 +697,6 @@ export default function WellnessScreen() {
                   ))}
                 </View>
 
-                {/* Practical Tips */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Practical Steps</Text>
                   {getEmotionContent(selectedEmotion).tips.map((tip, index) => (
@@ -680,7 +714,6 @@ export default function WellnessScreen() {
               </View>
             )}
 
-            {/* Enhanced Gratitude Journal */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -695,7 +728,6 @@ export default function WellnessScreen() {
                 Reflect on your blessings and express gratitude to Allah
               </Text>
 
-              {/* Prompt Section */}
               <View style={styles.promptCard}>
                 <View style={styles.promptHeader}>
                   <IconSymbol
@@ -771,7 +803,6 @@ export default function WellnessScreen() {
               </View>
             </View>
 
-            {/* Stress Relief Dhikr */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -802,7 +833,6 @@ export default function WellnessScreen() {
 
         {selectedTab === 'physical' && (
           <React.Fragment>
-            {/* Water Tracker */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -849,7 +879,6 @@ export default function WellnessScreen() {
               </View>
             </View>
 
-            {/* Enhanced Workout Tracker */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -864,7 +893,6 @@ export default function WellnessScreen() {
                 Track your strength training and exercises
               </Text>
               
-              {/* Weekly Progress */}
               <View style={styles.weeklyStatsCard}>
                 <View style={styles.weeklyStatRow}>
                   <Text style={styles.weeklyStatLabel}>This Week</Text>
@@ -903,7 +931,6 @@ export default function WellnessScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Enhanced Cardio Tracker */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -918,7 +945,6 @@ export default function WellnessScreen() {
                 Track your cardio activities (running, walking, cycling)
               </Text>
               
-              {/* Weekly Progress */}
               <View style={styles.weeklyStatsCard}>
                 <View style={styles.weeklyStatRow}>
                   <Text style={styles.weeklyStatLabel}>This Week</Text>
@@ -957,7 +983,6 @@ export default function WellnessScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Islamic Perspective on Physical Health */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -982,7 +1007,6 @@ export default function WellnessScreen() {
               </View>
             </View>
 
-            {/* Sleep & Rest */}
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <IconSymbol
@@ -1039,7 +1063,6 @@ export default function WellnessScreen() {
         )}
       </ScrollView>
 
-      {/* Prophet Story Modal */}
       <Modal
         visible={showProphetStory}
         transparent
@@ -1142,7 +1165,6 @@ export default function WellnessScreen() {
         </View>
       </Modal>
 
-      {/* Journal History Modal */}
       <Modal
         visible={showJournalHistory}
         transparent
@@ -1181,84 +1203,180 @@ export default function WellnessScreen() {
         </View>
       </Modal>
 
-      {/* Enhanced Workout Modal */}
       <Modal
         visible={showWorkoutModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowWorkoutModal(false)}
+        onRequestClose={() => {
+          setShowWorkoutModal(false);
+          setSelectedWorkoutType(null);
+          setCustomWorkoutMinutes('');
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.quickModal}>
             <Text style={styles.quickModalTitle}>Log Workout</Text>
-            <Text style={styles.quickModalSubtitle}>Select workout type</Text>
-            <View style={styles.quickModalButtons}>
-              {workoutTypes.map((workout, index) => (
-                <TouchableOpacity
-                  key={`workout-${index}`}
-                  style={styles.workoutTypeButton}
-                  onPress={() => addWorkout(workout.name, workout.duration)}
-                >
-                  <IconSymbol
-                    ios_icon_name={workout.icon as any}
-                    android_material_icon_name="fitness-center"
-                    size={24}
-                    color={colors.primary}
-                  />
-                  <View style={styles.workoutTypeText}>
-                    <Text style={styles.workoutTypeName}>{workout.name}</Text>
-                    <Text style={styles.workoutTypeDuration}>{workout.duration} min</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+            <Text style={styles.quickModalSubtitle}>Select workout type and enter duration</Text>
+            
+            <ScrollView style={styles.typeSelectionScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.quickModalButtons}>
+                {workoutTypes.map((workout, index) => (
+                  <TouchableOpacity
+                    key={`workout-${index}`}
+                    style={[
+                      styles.workoutTypeButton,
+                      selectedWorkoutType === workout.name && styles.workoutTypeButtonSelected
+                    ]}
+                    onPress={() => setSelectedWorkoutType(workout.name)}
+                  >
+                    <IconSymbol
+                      ios_icon_name={workout.icon as any}
+                      android_material_icon_name={workout.androidIcon}
+                      size={24}
+                      color={selectedWorkoutType === workout.name ? colors.card : colors.primary}
+                    />
+                    <View style={styles.workoutTypeText}>
+                      <Text style={[
+                        styles.workoutTypeName,
+                        selectedWorkoutType === workout.name && styles.workoutTypeNameSelected
+                      ]}>
+                        {workout.name}
+                      </Text>
+                    </View>
+                    {selectedWorkoutType === workout.name && (
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check-circle"
+                        size={24}
+                        color={colors.card}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <View style={styles.durationInputContainer}>
+              <Text style={styles.durationLabel}>Duration (minutes)</Text>
+              <TextInput
+                style={styles.durationInput}
+                placeholder="Enter minutes"
+                placeholderTextColor={colors.textSecondary}
+                value={customWorkoutMinutes}
+                onChangeText={setCustomWorkoutMinutes}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
             </View>
-            <TouchableOpacity
-              style={styles.quickModalCancel}
-              onPress={() => setShowWorkoutModal(false)}
-            >
-              <Text style={styles.quickModalCancelText}>Cancel</Text>
-            </TouchableOpacity>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => {
+                  setShowWorkoutModal(false);
+                  setSelectedWorkoutType(null);
+                  setCustomWorkoutMinutes('');
+                }}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={handleWorkoutSubmit}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Add Workout</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
 
-      {/* Enhanced Cardio Modal */}
       <Modal
         visible={showCardioModal}
         transparent
         animationType="fade"
-        onRequestClose={() => setShowCardioModal(false)}
+        onRequestClose={() => {
+          setShowCardioModal(false);
+          setSelectedCardioType(null);
+          setCustomCardioMinutes('');
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.quickModal}>
             <Text style={styles.quickModalTitle}>Log Cardio</Text>
-            <Text style={styles.quickModalSubtitle}>Select activity type</Text>
-            <View style={styles.quickModalButtons}>
-              {cardioTypes.map((cardio, index) => (
-                <TouchableOpacity
-                  key={`cardio-${index}`}
-                  style={styles.workoutTypeButton}
-                  onPress={() => addCardio(cardio.name, cardio.duration)}
-                >
-                  <IconSymbol
-                    ios_icon_name={cardio.icon as any}
-                    android_material_icon_name="directions-run"
-                    size={24}
-                    color={colors.error}
-                  />
-                  <View style={styles.workoutTypeText}>
-                    <Text style={styles.workoutTypeName}>{cardio.name}</Text>
-                    <Text style={styles.workoutTypeDuration}>{cardio.duration} min</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+            <Text style={styles.quickModalSubtitle}>Select activity type and enter duration</Text>
+            
+            <ScrollView style={styles.typeSelectionScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.quickModalButtons}>
+                {cardioTypes.map((cardio, index) => (
+                  <TouchableOpacity
+                    key={`cardio-${index}`}
+                    style={[
+                      styles.workoutTypeButton,
+                      selectedCardioType === cardio.name && styles.cardioTypeButtonSelected
+                    ]}
+                    onPress={() => setSelectedCardioType(cardio.name)}
+                  >
+                    <IconSymbol
+                      ios_icon_name={cardio.icon as any}
+                      android_material_icon_name={cardio.androidIcon}
+                      size={24}
+                      color={selectedCardioType === cardio.name ? colors.card : colors.error}
+                    />
+                    <View style={styles.workoutTypeText}>
+                      <Text style={[
+                        styles.workoutTypeName,
+                        selectedCardioType === cardio.name && styles.workoutTypeNameSelected
+                      ]}>
+                        {cardio.name}
+                      </Text>
+                    </View>
+                    {selectedCardioType === cardio.name && (
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check-circle"
+                        size={24}
+                        color={colors.card}
+                      />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            <View style={styles.durationInputContainer}>
+              <Text style={styles.durationLabel}>Duration (minutes)</Text>
+              <TextInput
+                style={styles.durationInput}
+                placeholder="Enter minutes"
+                placeholderTextColor={colors.textSecondary}
+                value={customCardioMinutes}
+                onChangeText={setCustomCardioMinutes}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
             </View>
-            <TouchableOpacity
-              style={styles.quickModalCancel}
-              onPress={() => setShowCardioModal(false)}
-            >
-              <Text style={styles.quickModalCancelText}>Cancel</Text>
-            </TouchableOpacity>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.modalButtonSecondary}
+                onPress={() => {
+                  setShowCardioModal(false);
+                  setSelectedCardioType(null);
+                  setCustomCardioMinutes('');
+                }}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.modalButtonPrimary}
+                onPress={handleCardioSubmit}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Add Cardio</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1753,6 +1871,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '100%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
   quickModalTitle: {
     fontSize: 18,
@@ -1767,9 +1886,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  typeSelectionScroll: {
+    maxHeight: 280,
+    marginBottom: 16,
+  },
   quickModalButtons: {
     gap: 12,
-    marginBottom: 16,
   },
   workoutTypeButton: {
     flexDirection: 'row',
@@ -1779,8 +1901,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.border,
+  },
+  workoutTypeButtonSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  cardioTypeButtonSelected: {
+    backgroundColor: colors.error,
+    borderColor: colors.error,
   },
   workoutTypeText: {
     flex: 1,
@@ -1789,19 +1919,56 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 2,
   },
-  workoutTypeDuration: {
-    fontSize: 13,
-    color: colors.textSecondary,
+  workoutTypeNameSelected: {
+    color: colors.card,
   },
-  quickModalCancel: {
-    paddingVertical: 12,
-    alignItems: 'center',
+  durationInputContainer: {
+    marginBottom: 20,
   },
-  quickModalCancelText: {
+  durationLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: colors.text,
+    marginBottom: 8,
+  },
+  durationInput: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 14,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonSecondaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalButtonPrimary: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+  },
+  modalButtonPrimaryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.card,
   },
 });
