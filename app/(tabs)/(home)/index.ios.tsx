@@ -272,8 +272,14 @@ export default function HomeScreen() {
   const completedCount = prayers.filter(p => p.completed).length;
 
   const handleProfilePress = () => {
-    console.log('=== PROFILE BUTTON PRESSED ===');
-    router.push('/(tabs)/profile');
+    console.log('=== PROFILE BUTTON PRESSED (iOS) ===');
+    console.log('Navigating to profile screen...');
+    try {
+      router.push('/(tabs)/profile' as any);
+      console.log('Navigation command sent');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   return (

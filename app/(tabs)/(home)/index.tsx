@@ -275,7 +275,13 @@ export default function HomeScreen() {
 
   const handleProfilePress = () => {
     console.log('=== PROFILE BUTTON PRESSED ===');
-    router.push('/(tabs)/profile');
+    console.log('Navigating to profile screen...');
+    try {
+      router.push('/(tabs)/profile' as any);
+      console.log('Navigation command sent');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   console.log('Home screen rendering with challenges:', weeklyChallenges.length);
