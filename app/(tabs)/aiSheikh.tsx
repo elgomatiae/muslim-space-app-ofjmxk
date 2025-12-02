@@ -246,11 +246,7 @@ export default function AiSheikhScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -293,145 +289,156 @@ export default function AiSheikhScreen() {
       </View>
 
       {/* Messages Area */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.messagesContainer}
-        contentContainerStyle={styles.messagesContent}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+      <KeyboardAvoidingView
+        style={styles.chatContainer}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {isLoadingMessages ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading conversation...</Text>
-          </View>
-        ) : messages.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}>
-              <IconSymbol
-                ios_icon_name="bubble.left.and.bubble.right"
-                android_material_icon_name="chat"
-                size={64}
-                color={colors.textSecondary}
-              />
-            </View>
-            <Text style={styles.emptyTitle}>As-salamu alaykum!</Text>
-            <Text style={styles.emptyText}>
-              Welcome to AI Sheikh. Ask any Islamic question and receive guidance based on the Quran and Sunnah.
-            </Text>
-            
-            <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>Suggested Questions:</Text>
-              {suggestedQuestions.map((question, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.suggestionButton}
-                  onPress={() => setInputText(question)}
-                >
-                  <IconSymbol
-                    ios_icon_name="lightbulb"
-                    android_material_icon_name="lightbulb"
-                    size={16}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.suggestionText}>{question}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.disclaimerCard}>
-              <IconSymbol
-                ios_icon_name="info.circle"
-                android_material_icon_name="info"
-                size={20}
-                color={colors.warning}
-              />
-              <Text style={styles.disclaimerText}>
-                This AI provides general Islamic guidance. For specific religious rulings, please consult a qualified scholar.
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <React.Fragment>
-            {messages.map((message, index) => (
-              <View
-                key={`message-${index}`}
-                style={[
-                  styles.messageCard,
-                  message.role === 'user' ? styles.userMessage : styles.assistantMessage,
-                ]}
-              >
-                <View style={styles.messageHeader}>
-                  <View style={[
-                    styles.messageAvatar,
-                    message.role === 'user' ? styles.userAvatar : styles.assistantAvatar,
-                  ]}>
-                    <IconSymbol
-                      ios_icon_name={message.role === 'user' ? 'person.fill' : 'book.fill'}
-                      android_material_icon_name={message.role === 'user' ? 'person' : 'menu-book'}
-                      size={16}
-                      color={colors.card}
-                    />
-                  </View>
-                  <Text style={styles.messageRole}>
-                    {message.role === 'user' ? 'You' : 'AI Sheikh'}
-                  </Text>
-                </View>
-                <Text style={styles.messageContent}>{message.content}</Text>
-              </View>
-            ))}
-            {isLoading && (
-              <View style={[styles.messageCard, styles.assistantMessage]}>
-                <View style={styles.messageHeader}>
-                  <View style={[styles.messageAvatar, styles.assistantAvatar]}>
-                    <IconSymbol
-                      ios_icon_name="book.fill"
-                      android_material_icon_name="menu-book"
-                      size={16}
-                      color={colors.card}
-                    />
-                  </View>
-                  <Text style={styles.messageRole}>AI Sheikh</Text>
-                </View>
-                <View style={styles.typingIndicator}>
-                  <View style={styles.typingDot} />
-                  <View style={styles.typingDot} />
-                  <View style={styles.typingDot} />
-                </View>
-              </View>
-            )}
-          </React.Fragment>
-        )}
-      </ScrollView>
-
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ask a question about Islam..."
-          placeholderTextColor={colors.textSecondary}
-          value={inputText}
-          onChangeText={setInputText}
-          multiline
-          maxLength={500}
-          editable={!isLoading}
-        />
-        <TouchableOpacity
-          style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
-          onPress={sendMessage}
-          disabled={!inputText.trim() || isLoading}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          keyboardShouldPersistTaps="handled"
         >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={colors.card} />
+          {isLoadingMessages ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.loadingText}>Loading conversation...</Text>
+            </View>
+          ) : messages.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIcon}>
+                <IconSymbol
+                  ios_icon_name="bubble.left.and.bubble.right"
+                  android_material_icon_name="chat"
+                  size={64}
+                  color={colors.textSecondary}
+                />
+              </View>
+              <Text style={styles.emptyTitle}>As-salamu alaykum!</Text>
+              <Text style={styles.emptyText}>
+                Welcome to AI Sheikh. Ask any Islamic question and receive guidance based on the Quran and Sunnah.
+              </Text>
+              
+              <View style={styles.suggestionsContainer}>
+                <Text style={styles.suggestionsTitle}>Suggested Questions:</Text>
+                {suggestedQuestions.map((question, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.suggestionButton}
+                    onPress={() => setInputText(question)}
+                  >
+                    <IconSymbol
+                      ios_icon_name="lightbulb"
+                      android_material_icon_name="lightbulb"
+                      size={16}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.suggestionText}>{question}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.disclaimerCard}>
+                <IconSymbol
+                  ios_icon_name="info.circle"
+                  android_material_icon_name="info"
+                  size={20}
+                  color={colors.warning}
+                />
+                <Text style={styles.disclaimerText}>
+                  This AI provides general Islamic guidance. For specific religious rulings, please consult a qualified scholar.
+                </Text>
+              </View>
+            </View>
           ) : (
-            <IconSymbol
-              ios_icon_name="paperplane.fill"
-              android_material_icon_name="send"
-              size={20}
-              color={colors.card}
-            />
+            <React.Fragment>
+              {messages.map((message, index) => (
+                <View
+                  key={`message-${index}`}
+                  style={[
+                    styles.messageCard,
+                    message.role === 'user' ? styles.userMessage : styles.assistantMessage,
+                  ]}
+                >
+                  <View style={styles.messageHeader}>
+                    <View style={[
+                      styles.messageAvatar,
+                      message.role === 'user' ? styles.userAvatar : styles.assistantAvatar,
+                    ]}>
+                      <IconSymbol
+                        ios_icon_name={message.role === 'user' ? 'person.fill' : 'book.fill'}
+                        android_material_icon_name={message.role === 'user' ? 'person' : 'menu-book'}
+                        size={16}
+                        color={colors.card}
+                      />
+                    </View>
+                    <Text style={styles.messageRole}>
+                      {message.role === 'user' ? 'You' : 'AI Sheikh'}
+                    </Text>
+                  </View>
+                  <Text style={styles.messageContent}>{message.content}</Text>
+                </View>
+              ))}
+              {isLoading && (
+                <View style={[styles.messageCard, styles.assistantMessage]}>
+                  <View style={styles.messageHeader}>
+                    <View style={[styles.messageAvatar, styles.assistantAvatar]}>
+                      <IconSymbol
+                        ios_icon_name="book.fill"
+                        android_material_icon_name="menu-book"
+                        size={16}
+                        color={colors.card}
+                      />
+                    </View>
+                    <Text style={styles.messageRole}>AI Sheikh</Text>
+                  </View>
+                  <View style={styles.typingIndicator}>
+                    <View style={styles.typingDot} />
+                    <View style={styles.typingDot} />
+                    <View style={styles.typingDot} />
+                  </View>
+                </View>
+              )}
+            </React.Fragment>
           )}
-        </TouchableOpacity>
-      </View>
+        </ScrollView>
+
+        {/* Input Area - Now inside KeyboardAvoidingView */}
+        <View style={styles.inputContainer}>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Ask a question about Islam..."
+              placeholderTextColor={colors.textSecondary}
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+              maxLength={500}
+              editable={!isLoading}
+              returnKeyType="default"
+              blurOnSubmit={false}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
+              onPress={sendMessage}
+              disabled={!inputText.trim() || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color={colors.card} />
+              ) : (
+                <IconSymbol
+                  ios_icon_name="paperplane.fill"
+                  android_material_icon_name="send"
+                  size={20}
+                  color={colors.card}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
 
       {/* Sidebar Modal */}
       <Modal
@@ -542,7 +549,7 @@ export default function AiSheikhScreen() {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -599,12 +606,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
   },
+  chatContainer: {
+    flex: 1,
+  },
   messagesContainer: {
     flex: 1,
   },
   messagesContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -740,17 +750,17 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   inputContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    padding: 16,
     backgroundColor: colors.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 12,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
   },
   input: {
     flex: 1,
@@ -763,6 +773,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 44,
   },
   sendButton: {
     width: 44,
@@ -771,6 +782,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 0,
   },
   sendButtonDisabled: {
     opacity: 0.5,
