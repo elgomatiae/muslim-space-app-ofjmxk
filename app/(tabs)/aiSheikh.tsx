@@ -405,7 +405,7 @@ export default function AiSheikhScreen() {
           )}
         </ScrollView>
 
-        {/* Input Area - Now inside KeyboardAvoidingView */}
+        {/* Input Area - Now inside KeyboardAvoidingView with proper padding */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
             <TextInput
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   },
   messagesContent: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom: 120,
   },
   loadingContainer: {
     flex: 1,
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 90,
   },
   inputWrapper: {
     flexDirection: 'row',
