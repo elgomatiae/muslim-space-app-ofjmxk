@@ -12,6 +12,8 @@ import ProfileButton from '@/components/ProfileButton';
 import { useTracker } from '@/contexts/TrackerContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { miracleCategories, Miracle } from '@/data/miracles';
+import { AiSheikhButton } from '@/components/HeaderButtons';
+import { router } from 'expo-router';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
@@ -79,6 +81,7 @@ export default function HomeScreen() {
   const loadWeeklyMiracle = async () => {
     try {
       const weekStart = getWeekStartDate();
+      console.log('Loading weekly miracle for week starting:', weekStart);
       
       if (isSupabaseConfigured()) {
         // Try to get from database
@@ -89,12 +92,15 @@ export default function HomeScreen() {
           .single();
 
         if (data && !error) {
+          console.log('Found weekly miracle in database:', data.miracle_id);
           // Found in database, load the miracle
           const miracle = findMiracleById(data.miracle_id);
           if (miracle) {
             setWeeklyMiracle(miracle);
             return;
           }
+        } else {
+          console.log('No weekly miracle found in database, selecting new one');
         }
       }
 
@@ -107,11 +113,12 @@ export default function HomeScreen() {
       if (allMiracles.length > 0) {
         const randomIndex = Math.floor(Math.random() * allMiracles.length);
         const selectedMiracle = allMiracles[randomIndex];
+        console.log('Selected new weekly miracle:', selectedMiracle.id);
         setWeeklyMiracle(selectedMiracle);
 
         // Save to database if configured
         if (isSupabaseConfigured()) {
-          await supabase
+          const { error: insertError } = await supabase
             .from('weekly_lectures')
             .upsert({
               week_start_date: weekStart,
@@ -119,6 +126,12 @@ export default function HomeScreen() {
             }, {
               onConflict: 'week_start_date'
             });
+          
+          if (insertError) {
+            console.error('Error saving weekly miracle:', insertError);
+          } else {
+            console.log('Weekly miracle saved to database');
+          }
         }
       }
     } catch (error) {
@@ -256,8 +269,23 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.profileButtonContainer}>
-        <ProfileButton />
+      <View style={styles.headerButtons}>
+        <View style={styles.aiSheikhButtonContainer}>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/aiSheikh')}
+            style={styles.aiSheikhButton}
+          >
+            <IconSymbol 
+              ios_icon_name="bubble.left.and.bubble.right.fill" 
+              android_material_icon_name="chat" 
+              color={colors.card} 
+              size={24}
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.profileButtonContainer}>
+          <ProfileButton />
+        </View>
       </View>
       
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -490,11 +518,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  profileButtonContainer: {
+  headerButtons: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
     right: 16,
     zIndex: 1000,
+    flexDirection: 'column',
+    gap: 12,
+  },
+  aiSheikhButtonContainer: {
+    alignItems: 'flex-end',
+  },
+  aiSheikhButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 3px 8px rgba(63, 81, 181, 0.4)',
+    elevation: 4,
+  },
+  profileButtonContainer: {
+    alignItems: 'flex-end',
   },
   scrollView: {
     flex: 1,

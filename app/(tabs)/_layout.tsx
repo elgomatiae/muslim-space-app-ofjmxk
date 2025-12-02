@@ -30,10 +30,10 @@ export default function TabLayout() {
       label: 'Wellness',
     },
     {
-      name: 'aiSheikh',
-      route: '/(tabs)/aiSheikh',
-      icon: 'chat',
-      label: 'AI Sheikh',
+      name: 'tracker',
+      route: '/(tabs)/tracker',
+      icon: 'trending-up',
+      label: 'Faith',
     },
   ];
 

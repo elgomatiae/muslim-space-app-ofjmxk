@@ -26,9 +26,9 @@ export default function TabLayout() {
         <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
         <Label>Wellness</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger key="aiSheikh" name="aiSheikh">
-        <Icon sf={{ default: 'bubble.left.and.bubble.right', selected: 'bubble.left.and.bubble.right.fill' }} />
-        <Label>AI Sheikh</Label>
+      <NativeTabs.Trigger key="tracker" name="tracker">
+        <Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis.circle.fill' }} />
+        <Label>Faith</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
