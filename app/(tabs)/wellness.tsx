@@ -6,6 +6,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAchievements } from '@/contexts/AchievementContext';
 
 type TabType = 'mental' | 'physical';
 type EmotionType = 'anxious' | 'sad' | 'angry' | 'stressed' | 'grateful' | 'hopeful';
@@ -82,6 +83,7 @@ const cardioTypes = [
 
 export default function WellnessScreen() {
   const { user } = useAuth();
+  const { incrementWorkoutDay } = useAchievements();
   const [selectedTab, setSelectedTab] = useState<TabType>('mental');
   const [selectedEmotion, setSelectedEmotion] = useState<EmotionType | null>(null);
   const [journalEntry, setJournalEntry] = useState('');
@@ -326,11 +328,17 @@ export default function WellnessScreen() {
       
       setWorkoutStats(prev => ({ ...prev, weeklyMinutes: prev.weeklyMinutes + minutes }));
       
+      // Check if workout is at least 20 minutes to count toward weekly challenge
+      if (minutes >= 20) {
+        console.log('Workout is 20+ minutes, incrementing workout day for weekly challenge');
+        await incrementWorkoutDay();
+      }
+      
       setSelectedWorkoutType(null);
       setCustomWorkoutMinutes('');
       setShowWorkoutModal(false);
       
-      Alert.alert('Success!', `Added ${minutes} minutes of ${selectedWorkoutType}`);
+      Alert.alert('Success!', `Added ${minutes} minutes of ${selectedWorkoutType}${minutes >= 20 ? '\n\nCounted toward your Fitness Week challenge!' : ''}`);
     } catch (error) {
       console.error('Error saving workout tracker:', error);
       Alert.alert('Error', 'Failed to save workout. Please try again.');
@@ -377,11 +385,17 @@ export default function WellnessScreen() {
       
       setCardioStats(prev => ({ ...prev, weeklyMinutes: prev.weeklyMinutes + minutes }));
       
+      // Check if cardio is at least 20 minutes to count toward weekly challenge
+      if (minutes >= 20) {
+        console.log('Cardio is 20+ minutes, incrementing workout day for weekly challenge');
+        await incrementWorkoutDay();
+      }
+      
       setSelectedCardioType(null);
       setCustomCardioMinutes('');
       setShowCardioModal(false);
       
-      Alert.alert('Success!', `Added ${minutes} minutes of ${selectedCardioType}`);
+      Alert.alert('Success!', `Added ${minutes} minutes of ${selectedCardioType}${minutes >= 20 ? '\n\nCounted toward your Fitness Week challenge!' : ''}`);
     } catch (error) {
       console.error('Error saving cardio tracker:', error);
       Alert.alert('Error', 'Failed to save cardio. Please try again.');
@@ -890,7 +904,7 @@ export default function WellnessScreen() {
                 <Text style={styles.cardTitle}>Workout Tracker</Text>
               </View>
               <Text style={styles.cardDescription}>
-                Track your strength training and exercises
+                Track your strength training and exercises. 20+ min workouts count toward your weekly challenge!
               </Text>
               
               <View style={styles.weeklyStatsCard}>
@@ -942,7 +956,7 @@ export default function WellnessScreen() {
                 <Text style={styles.cardTitle}>Cardio Tracker</Text>
               </View>
               <Text style={styles.cardDescription}>
-                Track your cardio activities (running, walking, cycling)
+                Track your cardio activities (running, walking, cycling). 20+ min sessions count toward your weekly challenge!
               </Text>
               
               <View style={styles.weeklyStatsCard}>
@@ -1063,6 +1077,7 @@ export default function WellnessScreen() {
         )}
       </ScrollView>
 
+      {/* Modals remain the same - keeping them for brevity */}
       <Modal
         visible={showProphetStory}
         transparent
@@ -1216,7 +1231,7 @@ export default function WellnessScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.quickModal}>
             <Text style={styles.quickModalTitle}>Log Workout</Text>
-            <Text style={styles.quickModalSubtitle}>Select workout type and enter duration</Text>
+            <Text style={styles.quickModalSubtitle}>Select workout type and enter duration (20+ min counts toward weekly challenge)</Text>
             
             <ScrollView style={styles.typeSelectionScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.quickModalButtons}>
@@ -1305,7 +1320,7 @@ export default function WellnessScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.quickModal}>
             <Text style={styles.quickModalTitle}>Log Cardio</Text>
-            <Text style={styles.quickModalSubtitle}>Select activity type and enter duration</Text>
+            <Text style={styles.quickModalSubtitle}>Select activity type and enter duration (20+ min counts toward weekly challenge)</Text>
             
             <ScrollView style={styles.typeSelectionScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.quickModalButtons}>
@@ -1384,6 +1399,7 @@ export default function WellnessScreen() {
   );
 }
 
+// Styles remain the same - keeping them for brevity
 const styles = StyleSheet.create({
   container: {
     flex: 1,

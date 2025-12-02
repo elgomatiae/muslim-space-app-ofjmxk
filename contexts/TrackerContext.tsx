@@ -211,7 +211,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateWeeklyStats = async (data: TrackerData) => {
+  const updateWeeklyStats = async (data: TrackerData, previousData: TrackerData | null) => {
     try {
       const weekStart = getWeekStartDate();
       const savedWeekStart = await AsyncStorage.getItem(WEEKLY_STATS_DATE_KEY);
@@ -225,6 +225,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           quranPages: data.quran.pages,
           prayerDays: data.prayers.completed === data.prayers.total ? 1 : 0,
         };
+        console.log('New week detected, resetting weekly stats:', weeklyStats);
       } else {
         const savedStats = await AsyncStorage.getItem(WEEKLY_STATS_KEY);
         weeklyStats = savedStats ? JSON.parse(savedStats) : {
@@ -234,22 +235,27 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           prayerDays: 0,
         };
 
-        // Get previous day's data to calculate increments
-        const previousData = await AsyncStorage.getItem(TRACKER_STORAGE_KEY);
-        const previous = previousData ? JSON.parse(previousData) : null;
-
-        if (previous) {
-          // Add only the difference
-          weeklyStats.dhikrCount += Math.max(0, data.dhikr.count - previous.dhikr.count);
-          weeklyStats.quranPages += Math.max(0, data.quran.pages - previous.quran.pages);
+        // Add only the difference from today
+        if (previousData) {
+          const dhikrDiff = Math.max(0, data.dhikr.count - previousData.dhikr.count);
+          const quranDiff = Math.max(0, data.quran.pages - previousData.quran.pages);
+          
+          weeklyStats.dhikrCount += dhikrDiff;
+          weeklyStats.quranPages += quranDiff;
+          
+          console.log(`Added dhikr diff: ${dhikrDiff}, quran diff: ${quranDiff}`);
         } else {
           weeklyStats.dhikrCount += data.dhikr.count;
           weeklyStats.quranPages += data.quran.pages;
         }
 
-        // Check if all prayers completed today
-        if (data.prayers.completed === data.prayers.total && (!previous || previous.prayers.completed < previous.prayers.total)) {
+        // Check if all prayers completed today (and weren't completed before)
+        const wasCompleted = previousData && previousData.prayers.completed === previousData.prayers.total;
+        const isNowCompleted = data.prayers.completed === data.prayers.total;
+        
+        if (isNowCompleted && !wasCompleted) {
           weeklyStats.prayerDays += 1;
+          console.log('All prayers completed today! Incrementing prayer days to:', weeklyStats.prayerDays);
         }
       }
 
@@ -318,6 +324,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePrayers = async (completed: number, total: number) => {
+    const previousData = { ...trackerData };
     const newData = {
       ...trackerData,
       prayers: { ...trackerData.prayers, completed, total },
@@ -326,10 +333,11 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
     await updateLifetimeStats(newData);
-    await updateWeeklyStats(newData);
+    await updateWeeklyStats(newData, previousData);
   };
 
   const updateDhikr = async (count: number, goal: number) => {
+    const previousData = { ...trackerData };
     const newData = {
       ...trackerData,
       dhikr: { ...trackerData.dhikr, count, goal },
@@ -338,10 +346,11 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
     await updateLifetimeStats(newData);
-    await updateWeeklyStats(newData);
+    await updateWeeklyStats(newData, previousData);
   };
 
   const updateQuran = async (pages: number, goal: number, versesMemorized: number, versesGoal: number) => {
+    const previousData = { ...trackerData };
     const newData = {
       ...trackerData,
       quran: { ...trackerData.quran, pages, goal, versesMemorized, versesGoal },
@@ -350,7 +359,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
     await updateLifetimeStats(newData);
-    await updateWeeklyStats(newData);
+    await updateWeeklyStats(newData, previousData);
   };
 
   return (

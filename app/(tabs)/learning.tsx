@@ -6,6 +6,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useAchievements } from '@/contexts/AchievementContext';
 
 type TabType = 'lectures' | 'recitations' | 'quizzes' | 'duas';
 
@@ -103,6 +104,7 @@ export default function LearningScreen() {
   const [categoryDuas, setCategoryDuas] = useState<Dua[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { incrementLectureCount } = useAchievements();
 
   useEffect(() => {
     if (selectedTab === 'lectures') {
@@ -257,7 +259,9 @@ export default function LearningScreen() {
     }
   };
 
-  const openVideo = (url: string) => {
+  const openVideo = async (url: string) => {
+    console.log('Opening lecture video, incrementing lecture count...');
+    await incrementLectureCount();
     Linking.openURL(url);
   };
 
