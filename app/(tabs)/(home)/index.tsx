@@ -12,6 +12,7 @@ import { useTracker } from '@/contexts/TrackerContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { miracleCategories, Miracle } from '@/data/miracles';
 import { router } from 'expo-router';
+import { useAchievements } from '@/contexts/AchievementContext';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
@@ -24,6 +25,7 @@ const PRAYER_DATE_KEY = '@prayer_date';
 
 export default function HomeScreen() {
   const { trackerData, updatePrayers } = useTracker();
+  const { dailyChallenges, totalPoints } = useAchievements();
   
   const [prayers, setPrayers] = useState<Prayer[]>([
     { name: 'Fajr', time: '05:30', completed: false },
@@ -354,6 +356,38 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
+        <TouchableOpacity
+          style={styles.challengesCard}
+          onPress={() => router.push('/(tabs)/achievements')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.challengesHeader}>
+            <View style={styles.challengesIcon}>
+              <IconSymbol
+                ios_icon_name="trophy.fill"
+                android_material_icon_name="emoji-events"
+                size={24}
+                color={colors.card}
+              />
+            </View>
+            <View style={styles.challengesText}>
+              <Text style={styles.challengesLabel}>Daily Challenges</Text>
+              <Text style={styles.challengesTitle}>
+                {dailyChallenges.filter(c => c.completed).length}/{dailyChallenges.length} Completed
+              </Text>
+            </View>
+            <View style={styles.pointsBadgeSmall}>
+              <IconSymbol
+                ios_icon_name="star.fill"
+                android_material_icon_name="star"
+                size={16}
+                color={colors.highlight}
+              />
+              <Text style={styles.pointsTextSmall}>{totalPoints}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
         {!loadingDailyContent && dailyVerse && dailyHadith && (
           <View style={styles.dailyContentRow}>
             <View style={styles.dailyCardVertical}>
@@ -630,6 +664,56 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.9,
     lineHeight: 20,
+  },
+  challengesCard: {
+    backgroundColor: colors.accent,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    boxShadow: '0px 4px 12px rgba(0, 188, 212, 0.3)',
+    elevation: 4,
+  },
+  challengesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  challengesIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  challengesText: {
+    flex: 1,
+  },
+  challengesLabel: {
+    fontSize: 12,
+    color: colors.card,
+    opacity: 0.9,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  challengesTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  pointsBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  pointsTextSmall: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.card,
   },
   dailyContentRow: {
     flexDirection: 'row',

@@ -18,10 +18,10 @@ export default function TabLayout() {
       label: 'Learn',
     },
     {
-      name: 'dawah',
-      route: '/(tabs)/dawah',
-      icon: 'star',
-      label: 'Dawah',
+      name: 'achievements',
+      route: '/(tabs)/achievements',
+      icon: 'emoji-events',
+      label: 'Goals',
     },
     {
       name: 'wellness',
@@ -52,6 +52,7 @@ export default function TabLayout() {
         <Stack.Screen key="duas" name="duas" />
         <Stack.Screen key="wellness" name="wellness" />
         <Stack.Screen key="profile" name="profile" />
+        <Stack.Screen key="achievements" name="achievements" />
       </Stack>
       <FloatingTabBar tabs={tabs} />
     </>

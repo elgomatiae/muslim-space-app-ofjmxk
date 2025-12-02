@@ -17,12 +17,14 @@ interface TrackerContextType {
   updateQuran: (pages: number, goal: number, versesMemorized: number, versesGoal: number) => Promise<void>;
   loadTrackerData: () => Promise<void>;
   syncWithDatabase: () => Promise<void>;
+  getLifetimeStats: () => Promise<any>;
 }
 
 const TrackerContext = createContext<TrackerContextType | undefined>(undefined);
 
 const TRACKER_STORAGE_KEY = '@tracker_data';
 const TRACKER_DATE_KEY = '@tracker_date';
+const LIFETIME_STATS_KEY = '@lifetime_stats';
 
 export function TrackerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -46,20 +48,17 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       const savedDate = await AsyncStorage.getItem(TRACKER_DATE_KEY);
       const todayDate = getTodayDateString();
 
-      // Check if it's a new day
       if (savedDate !== todayDate) {
         console.log('New day detected, resetting tracker data');
         await AsyncStorage.setItem(TRACKER_DATE_KEY, todayDate);
         await AsyncStorage.removeItem(TRACKER_STORAGE_KEY);
         
-        // If user is logged in, sync with database
         if (user && isSupabaseConfigured()) {
           await syncWithDatabase();
         }
         return;
       }
 
-      // Load from local storage first
       const savedData = await AsyncStorage.getItem(TRACKER_STORAGE_KEY);
       if (savedData) {
         const parsed = JSON.parse(savedData);
@@ -67,7 +66,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         console.log('Loaded tracker data from local storage:', parsed);
       }
 
-      // If user is logged in, sync with database
       if (user && isSupabaseConfigured()) {
         await syncWithDatabase();
       }
@@ -85,7 +83,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     try {
       const todayDate = getTodayDateString();
       
-      // Fetch today's data from database
       const { data, error } = await supabase
         .from('iman_tracker')
         .select('*')
@@ -99,7 +96,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       }
 
       if (data) {
-        // Update local state with database data
         const dbData: TrackerData = {
           prayers: {
             completed: data.prayers_completed || 0,
@@ -168,6 +164,50 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateLifetimeStats = async (data: TrackerData) => {
+    try {
+      const savedStats = await AsyncStorage.getItem(LIFETIME_STATS_KEY);
+      const stats = savedStats ? JSON.parse(savedStats) : {
+        totalDhikr: 0,
+        totalQuranPages: 0,
+        totalQuranVerses: 0,
+        lecturesWatched: 0,
+        workoutsCompleted: 0,
+      };
+
+      stats.totalDhikr = (stats.totalDhikr || 0) + data.dhikr.count;
+      stats.totalQuranPages = (stats.totalQuranPages || 0) + data.quran.pages;
+      stats.totalQuranVerses = (stats.totalQuranVerses || 0) + data.quran.versesMemorized;
+
+      await AsyncStorage.setItem(LIFETIME_STATS_KEY, JSON.stringify(stats));
+      console.log('Updated lifetime stats:', stats);
+    } catch (error) {
+      console.error('Error updating lifetime stats:', error);
+    }
+  };
+
+  const getLifetimeStats = async () => {
+    try {
+      const savedStats = await AsyncStorage.getItem(LIFETIME_STATS_KEY);
+      return savedStats ? JSON.parse(savedStats) : {
+        totalDhikr: 0,
+        totalQuranPages: 0,
+        totalQuranVerses: 0,
+        lecturesWatched: 0,
+        workoutsCompleted: 0,
+      };
+    } catch (error) {
+      console.error('Error getting lifetime stats:', error);
+      return {
+        totalDhikr: 0,
+        totalQuranPages: 0,
+        totalQuranVerses: 0,
+        lecturesWatched: 0,
+        workoutsCompleted: 0,
+      };
+    }
+  };
+
   const updatePrayers = async (completed: number, total: number) => {
     const newData = {
       ...trackerData,
@@ -176,6 +216,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     setTrackerData(newData);
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
+    await updateLifetimeStats(newData);
   };
 
   const updateDhikr = async (count: number, goal: number) => {
@@ -186,6 +227,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     setTrackerData(newData);
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
+    await updateLifetimeStats(newData);
   };
 
   const updateQuran = async (pages: number, goal: number, versesMemorized: number, versesGoal: number) => {
@@ -196,6 +238,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     setTrackerData(newData);
     await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(newData));
     await saveToDatabase(newData);
+    await updateLifetimeStats(newData);
   };
 
   return (
@@ -207,6 +250,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         updateQuran,
         loadTrackerData,
         syncWithDatabase,
+        getLifetimeStats,
       }}
     >
       {children}

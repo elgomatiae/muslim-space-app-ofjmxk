@@ -5,6 +5,7 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import ProgressRings from '@/components/ProgressRings';
 import { useTracker } from '@/contexts/TrackerContext';
+import { useAchievements } from '@/contexts/AchievementContext';
 
 const dhikrPhrases = [
   { id: 'subhanallah', arabic: 'سُبْحَانَ ٱللَّٰهِ', transliteration: 'SubhanAllah', translation: 'Glory be to Allah' },
@@ -16,7 +17,8 @@ const dhikrPhrases = [
 ];
 
 export default function TrackerScreen() {
-  const { trackerData, updateDhikr, updateQuran } = useTracker();
+  const { trackerData, updateDhikr, updateQuran, getLifetimeStats } = useTracker();
+  const { checkAchievements, updateChallengeProgress } = useAchievements();
 
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [showDhikrModal, setShowDhikrModal] = useState(false);
@@ -55,7 +57,13 @@ export default function TrackerScreen() {
 
   const incrementTasbih = async () => {
     setTasbihCount(tasbihCount + 1);
-    await updateDhikr(trackerData.dhikr.count + 1, trackerData.dhikr.goal);
+    const newCount = trackerData.dhikr.count + 1;
+    await updateDhikr(newCount, trackerData.dhikr.goal);
+    
+    await updateChallengeProgress('daily-dhikr-300', newCount);
+    
+    const stats = await getLifetimeStats();
+    await checkAchievements(trackerData, stats);
   };
 
   const resetTasbih = () => {
@@ -68,7 +76,14 @@ export default function TrackerScreen() {
   };
 
   const incrementPages = async () => {
-    await updateQuran(trackerData.quran.pages + 1, trackerData.quran.goal, trackerData.quran.versesMemorized, trackerData.quran.versesGoal);
+    const newPages = trackerData.quran.pages + 1;
+    await updateQuran(newPages, trackerData.quran.goal, trackerData.quran.versesMemorized, trackerData.quran.versesGoal);
+    
+    await updateChallengeProgress('daily-quran-5-pages', newPages);
+    await updateChallengeProgress('weekly-quran-35-pages', newPages);
+    
+    const stats = await getLifetimeStats();
+    await checkAchievements(trackerData, stats);
   };
 
   const decrementPages = async () => {
@@ -78,7 +93,13 @@ export default function TrackerScreen() {
   };
 
   const incrementVerses = async () => {
-    await updateQuran(trackerData.quran.pages, trackerData.quran.goal, trackerData.quran.versesMemorized + 1, trackerData.quran.versesGoal);
+    const newVerses = trackerData.quran.versesMemorized + 1;
+    await updateQuran(trackerData.quran.pages, trackerData.quran.goal, newVerses, trackerData.quran.versesGoal);
+    
+    await updateChallengeProgress('daily-memorize-3-verses', newVerses);
+    
+    const stats = await getLifetimeStats();
+    await checkAchievements(trackerData, stats);
   };
 
   const decrementVerses = async () => {
