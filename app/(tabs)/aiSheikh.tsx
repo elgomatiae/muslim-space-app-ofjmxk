@@ -20,6 +20,8 @@ interface Conversation {
   updated_at: string;
 }
 
+const SUPABASE_URL = 'https://teemloiwfnwrogwnoxsa.supabase.co';
+
 export default function AiSheikhScreen() {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -137,37 +139,68 @@ export default function AiSheikhScreen() {
 
     try {
       console.log('Getting session...');
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-
-      if (!token) {
-        throw new Error('No authentication token');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Failed to get session: ' + sessionError.message);
       }
 
-      console.log('Calling Edge Function...');
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/ai-sheikh`, {
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        console.error('No token found in session');
+        throw new Error('No authentication token found. Please sign in again.');
+      }
+
+      console.log('Token obtained, length:', token.length);
+      console.log('Calling Edge Function at:', `${SUPABASE_URL}/functions/v1/ai-sheikh`);
+      
+      const requestBody = {
+        question: userMessage.content,
+        conversationId: currentConversationId,
+      };
+      
+      console.log('Request body:', JSON.stringify(requestBody));
+
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-sheikh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          question: userMessage.content,
-          conversationId: currentConversationId,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Response received');
       console.log('Response status:', response.status);
+      console.log('Response statusText:', response.statusText);
+      console.log('Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error response:', errorData);
-        throw new Error(errorData.error || 'Failed to get response');
+        let errorMessage = 'Failed to get response';
+        try {
+          const errorData = await response.json();
+          console.error('Error response data:', errorData);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          const errorText = await response.text();
+          console.error('Error response text:', errorText);
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      const { answer, conversationId } = await response.json();
+      const responseData = await response.json();
+      console.log('Response data received:', responseData);
+
+      const { answer, conversationId } = responseData;
       console.log('Received answer:', answer);
       console.log('Conversation ID:', conversationId);
+
+      if (!answer) {
+        throw new Error('Empty response from AI');
+      }
 
       if (!currentConversationId && conversationId) {
         setCurrentConversationId(conversationId);
@@ -186,9 +219,17 @@ export default function AiSheikhScreen() {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to get response from AI Sheikh. Please try again.');
+    } catch (error: any) {
+      console.error('=== ERROR IN SEND MESSAGE ===');
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      console.error('Full error:', JSON.stringify(error, null, 2));
+      
+      Alert.alert(
+        'Error', 
+        `Failed to get response from AI Sheikh: ${error?.message || 'Unknown error'}. Please try again.`
+      );
       
       setMessages((prev) => prev.filter((msg) => msg.id !== userMessage.id));
     } finally {
