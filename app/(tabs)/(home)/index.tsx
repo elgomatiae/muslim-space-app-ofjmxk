@@ -8,7 +8,6 @@ import { calculatePrayerTimes, getNextPrayer, PrayerTime } from '@/utils/prayerT
 import { getDailyContent, DailyHadith, DailyVerse } from '@/data/dailyContent';
 import ProgressRings from '@/components/ProgressRings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import ProfileButton from '@/components/ProfileButton';
 import { useTracker } from '@/contexts/TrackerContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { miracleCategories, Miracle } from '@/data/miracles';
@@ -255,11 +254,6 @@ export default function HomeScreen() {
 
   const completedCount = prayers.filter(p => p.completed).length;
 
-  const handleAiSheikhPress = () => {
-    console.log('=== AI SHEIKH BUTTON PRESSED ===');
-    router.push('/(tabs)/aiSheikh');
-  };
-
   const handleProfilePress = () => {
     console.log('=== PROFILE BUTTON PRESSED ===');
     router.push('/(tabs)/profile');
@@ -268,18 +262,6 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerButtonsContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          onPress={handleAiSheikhPress}
-          style={styles.aiSheikhButton}
-          activeOpacity={0.7}
-        >
-          <IconSymbol 
-            ios_icon_name="bubble.left.and.bubble.right.fill" 
-            android_material_icon_name="chat" 
-            color={colors.card} 
-            size={24}
-          />
-        </TouchableOpacity>
         <TouchableOpacity
           onPress={handleProfilePress}
           style={styles.profileButton}
@@ -528,18 +510,6 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'android' ? 48 : 60,
     right: 16,
     zIndex: 1000,
-    flexDirection: 'column',
-    gap: 12,
-  },
-  aiSheikhButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 24,
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 3px 8px rgba(63, 81, 181, 0.4)',
-    elevation: 4,
   },
   profileButton: {
     width: 48,

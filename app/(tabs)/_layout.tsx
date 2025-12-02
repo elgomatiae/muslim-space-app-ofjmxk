@@ -51,7 +51,7 @@ export default function TabLayout() {
         <Stack.Screen key="tracker" name="tracker" />
         <Stack.Screen key="duas" name="duas" />
         <Stack.Screen key="wellness" name="wellness" />
-        <Stack.Screen key="aiSheikh" name="aiSheikh" />
+        <Stack.Screen key="profile" name="profile" />
       </Stack>
       <FloatingTabBar tabs={tabs} />
     </>
