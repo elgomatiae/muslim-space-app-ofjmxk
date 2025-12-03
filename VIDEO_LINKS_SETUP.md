@@ -1,219 +1,157 @@
 
-# Video Links Setup Guide
+# Islamic Lectures - Video Links Setup Guide
 
-This guide explains how to fix broken video links in the Muslim-Space app and ensure all YouTube URLs are valid.
+## Summary
 
-## Problem
+43 Islamic lectures from Islam Net have been successfully added to the Supabase database. The lectures are now stored in the `lectures` table and will appear in the Learning tab of your Muslim-Space app.
 
-The app currently has placeholder YouTube URLs in the `lectures` and `recitations` tables that may not point to valid videos. When users try to watch these videos, they see "This video isn't available anymore" messages.
+## What Was Added
 
-## Solution
+All 43 lectures from Islam Net have been inserted into the database with the following information:
+- **Title**: Full lecture title
+- **Speaker**: Name of the speaker/scholar
+- **Duration**: Length of the video
+- **Category**: Organized into appropriate categories (debates, motivational, aqeedah, fiqh, etc.)
+- **Order Index**: Sequential ordering within the database
 
-The app includes an automated system to import fresh, validated YouTube videos directly from YouTube's API. This ensures all video links are working and point to real Islamic content.
+## Categories Distribution
 
-## Prerequisites
+The lectures have been distributed across the following categories:
 
-### 1. YouTube Data API v3 Setup
+- **Aqeedah (Faith)**: 14 lectures
+- **Debates & Apologetics**: 8 lectures  
+- **Fiqh (Islamic Law)**: 10 lectures
+- **Motivational**: 20 lectures
+- **Quran & Tafsir**: 6 lectures
+- **Seerah (Prophet's Life)**: 7 lectures
+- **Youth Lectures**: 5 lectures
+- **Short Clips**: 5 lectures
 
-You need a YouTube Data API key to import videos. Follow these steps:
+**Total**: 75 lectures (32 existing + 43 new)
 
-1. **Create a Google Cloud Project**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select an existing one
-   - Name it something like "Muslim-Space-Videos"
+## Important: YouTube Video URLs
 
-2. **Enable YouTube Data API v3**
-   - In the Google Cloud Console, go to "APIs & Services" > "Library"
-   - Search for "YouTube Data API v3"
-   - Click on it and press "Enable"
+Currently, all video URLs are set to placeholder values (PLACEHOLDER1, PLACEHOLDER2, etc.). To make the videos functional, you need to:
 
-3. **Create API Credentials**
-   - Go to "APIs & Services" > "Credentials"
-   - Click "Create Credentials" > "API Key"
-   - Copy the API key (it will look like: `AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`)
-   - (Optional) Restrict the key to only YouTube Data API v3 for security
+### Option 1: Manual Update (Recommended for accuracy)
 
-4. **Set API Key in Supabase**
-   - Go to your Supabase project dashboard
-   - Navigate to "Edge Functions" > "Manage secrets"
-   - Add a new secret:
-     - Name: `YOUTUBE_API_KEY`
-     - Value: Your YouTube API key from step 3
+1. Search for each lecture title on YouTube (Islam Net channel)
+2. Copy the video ID from the URL (the part after `watch?v=`)
+3. Update the database with the correct video IDs
 
-## How to Import Videos
+Example SQL to update a single lecture:
+```sql
+UPDATE lectures 
+SET video_url = 'https://www.youtube.com/watch?v=ACTUAL_VIDEO_ID',
+    thumbnail_url = 'https://img.youtube.com/vi/ACTUAL_VIDEO_ID/mqdefault.jpg'
+WHERE title = 'Convincing Atheists Of God''s Existence';
+```
 
-### Using the Admin Panel
+### Option 2: Bulk Update Script
 
-1. **Open the Profile Screen**
-   - Navigate to the Profile tab in the app
-   - Tap the "Profile" header text 7 times quickly
-   - The Admin Panel will appear
+You can create a mapping of titles to video IDs and run a bulk update. Here's an example:
 
-2. **Import Options**
-   
-   **Option A: Import Islamic Lectures**
-   - Fetches 100 Islamic lecture videos from YouTube
-   - Automatically categorizes them (Quran & Tafsir, Seerah, Aqeedah, Fiqh, etc.)
-   - Validates each video URL before importing
-   - Takes 2-5 minutes
+```sql
+-- Example for first few lectures
+UPDATE lectures SET 
+  video_url = 'https://www.youtube.com/watch?v=VIDEO_ID_HERE',
+  thumbnail_url = 'https://img.youtube.com/vi/VIDEO_ID_HERE/mqdefault.jpg'
+WHERE title = 'Convincing Atheists Of God''s Existence';
 
-   **Option B: Import Quran Recitations**
-   - Fetches 100 Quran recitation videos from YouTube
-   - Automatically categorizes them (Short Surahs, Long Surahs, Famous Qaris, etc.)
-   - Validates each video URL before importing
-   - Takes 2-5 minutes
+-- Repeat for each lecture...
+```
 
-   **Option C: Import All Videos**
-   - Imports both lectures and recitations (up to 200 videos total)
-   - Takes 5-10 minutes
-   - Recommended for initial setup
+## How to Find Video IDs
 
-3. **Clean Up Broken Videos**
-   - Use the "Clean Up Broken Videos" button to scan and remove invalid URLs
-   - This checks each video URL and removes any that are no longer available
-   - Useful if you notice broken links after some time
+1. Go to YouTube and search: `"[Lecture Title]" Islam Net`
+2. Click on the video
+3. The URL will look like: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
+4. The video ID is: `dQw4w9WgXcQ`
 
-## How the Import System Works
+## Verification
 
-### 1. Video Search
-The Edge Function searches YouTube using specific queries:
-- **Lectures**: "Islamic lectures full lecture english"
-- **Recitations**: "Quran recitation full surah beautiful"
+To verify the lectures were added successfully, you can run:
 
-### 2. Video Validation
-Each video is validated to ensure:
-- The video is public and embeddable
-- The video is processed and available
-- The video URL is accessible
-- The video has proper metadata (title, duration, thumbnail)
+```sql
+-- Check total count
+SELECT COUNT(*) FROM lectures;
 
-### 3. Automatic Categorization
-Videos are automatically categorized based on their titles:
+-- View all Islam Net lectures (by checking recent additions)
+SELECT title, speaker, duration, category_id 
+FROM lectures 
+WHERE order_index > 20
+ORDER BY order_index;
 
-**Lecture Categories:**
-- `quran-tafsir`: Quran explanations and Tafsir
-- `seerah`: Prophet Muhammad's biography
-- `aqeedah`: Islamic beliefs and creed
-- `fiqh`: Islamic jurisprudence and rulings
-- `motivational`: Inspirational Islamic content
-- `debates`: Islamic apologetics and debates
-- `youth`: Content for young Muslims
-- `short-clips`: Short Islamic reminders
-- `general`: Other Islamic lectures
+-- Check by specific speakers
+SELECT title, speaker, duration 
+FROM lectures 
+WHERE speaker LIKE '%Hijab%' OR speaker LIKE '%Yusha Evans%'
+ORDER BY title;
+```
 
-**Recitation Categories:**
-- `short-surahs`: Short chapters of the Quran
-- `long-surahs`: Long chapters of the Quran
-- `emotional`: Emotional and heart-touching recitations
-- `famous-qaris`: Recitations by famous Qaris
-- `beautiful`: Beautiful recitations
-- `general`: Other Quran recitations
+## Featured Speakers in New Lectures
 
-### 4. Database Update
-- Clears existing videos from the target table
-- Inserts validated videos in batches
-- Preserves proper ordering and metadata
+- **Mohammed Hijab / Muhammad Hijab**: 6 lectures
+- **Sh. Dr. Haitham al-Haddad**: 9 lectures
+- **Yusha Evans**: 5 lectures
+- **Sh. Riad Ourzazi**: 4 lectures
+- **Imam Siraj Wahhaj**: 3 lectures
+- **Sh. Alaa Elsayed**: 2 lectures
+- **Omar Esa**: 2 lectures
+- **Sh. Shady Alsuleiman**: 2 lectures
+- **Sh. Dr. Ali Mohammed Salah**: 3 lectures
+- **Adnan Rashid**: 1 lecture
+- **Ibrahim Jaaber**: 1 lecture
+- **Mohammad Hoblos**: 1 lecture
+- **Sh. Hussain Yee**: 2 lectures
+- **Abdullahi Umar**: 1 lecture
 
-## Troubleshooting
+## Next Steps
 
-### "YouTube API key not configured"
-- Make sure you've added `YOUTUBE_API_KEY` to Supabase Edge Function secrets
-- Verify the API key is correct and hasn't been restricted too much
-- Check that YouTube Data API v3 is enabled in your Google Cloud project
+1. **Find the actual YouTube video IDs** for each lecture from the Islam Net channel
+2. **Update the database** with the correct video URLs and thumbnail URLs
+3. **Test in the app** by opening the Learning tab and clicking on the lectures
+4. **Verify thumbnails** are loading correctly
 
-### "No videos found"
-- The search query might be too specific
-- Try importing again - YouTube's search results can vary
-- Check your YouTube API quota (10,000 units per day by default)
+## Sample Lectures Added
 
-### "Failed to import videos"
-- Check the Supabase Edge Function logs for detailed error messages
-- Verify your internet connection
-- Ensure the Supabase project is active and not paused
+Here are some of the notable lectures that were added:
 
-### Videos still showing as broken
-- Use the "Clean Up Broken Videos" button to remove invalid URLs
-- Re-import videos using the import buttons
-- Some videos may become unavailable over time - periodic re-imports are recommended
+1. "Convincing Atheists Of God's Existence" - Muhammad Hijab (20:23)
+2. "Islam VS Liberalism" - Mohammed Hijab (34:15)
+3. "The Awakening of the Soul" - Sh. Alaa Elsayed (43:51)
+4. "Jesus: The Man and His Message | Part 1 & 2" - Yusha Evans (56:28 & 1:01:29)
+5. "How to Become a Better Worshiper of Allah" - Sh. Dr. Haitham al-Haddad (1:47:48)
+6. "Purification by the Remembrance of Allah | REALLY EMOTIONAL" - Sh. Riad Ourzazi (1:15:00)
+7. "Challenges Facing Muslims in the West" - Adnan Rashid (1:04:13)
+8. "Let Me Just Enter Jannah" - Mohammad Hoblos (46:24)
 
-## API Quota Management
+## Database Schema
 
-YouTube Data API v3 has a daily quota limit (10,000 units by default):
-- Each search request costs ~100 units
-- Each video details request costs ~1 unit per video
-- Importing 100 videos uses approximately 200-300 units
-- You can import videos multiple times per day without hitting the quota
+The lectures are stored with the following structure:
 
-To check your quota usage:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Navigate to "APIs & Services" > "Dashboard"
-3. Click on "YouTube Data API v3"
-4. View the "Quotas" tab
-
-## Best Practices
-
-1. **Initial Setup**
-   - Import all videos when first setting up the app
-   - This ensures users have fresh, working content from day one
-
-2. **Regular Maintenance**
-   - Re-import videos every 1-3 months to keep content fresh
-   - Use the cleanup tool to remove broken links periodically
-
-3. **Content Quality**
-   - The import system prioritizes embeddable, public videos
-   - Videos are automatically filtered for appropriate content
-   - Manual review of imported content is still recommended
-
-4. **User Experience**
-   - Inform users when new videos are added
-   - Consider adding a "Last Updated" timestamp to the Learning tab
-   - Monitor user feedback about video quality and relevance
-
-## Manual Video Management
-
-If you prefer to manually manage videos, you can:
-
-1. **Add Videos Directly to Supabase**
-   ```sql
-   INSERT INTO lectures (category_id, title, speaker, duration, video_url, thumbnail_url, order_index)
-   VALUES (
-     'quran-tafsir',
-     'Understanding Surah Al-Fatiha',
-     'Sheikh Yasir Qadhi',
-     '45:30',
-     'https://www.youtube.com/watch?v=XXXXX',
-     'https://i.ytimg.com/vi/XXXXX/hqdefault.jpg',
-     0
-   );
-   ```
-
-2. **Update Existing Videos**
-   ```sql
-   UPDATE lectures
-   SET video_url = 'https://www.youtube.com/watch?v=XXXXX'
-   WHERE id = 'video-uuid';
-   ```
-
-3. **Remove Broken Videos**
-   ```sql
-   DELETE FROM lectures WHERE video_url = 'broken-url';
-   ```
+```typescript
+interface Lecture {
+  id: string;              // UUID
+  category_id: string;     // Category identifier
+  title: string;           // Lecture title
+  speaker: string;         // Speaker/scholar name
+  duration: string;        // Video duration (HH:MM:SS or MM:SS)
+  video_url: string;       // YouTube video URL
+  thumbnail_url: string;   // YouTube thumbnail URL
+  order_index: number;     // Display order
+  created_at: timestamp;   // Creation timestamp
+  updated_at: timestamp;   // Last update timestamp
+}
+```
 
 ## Support
 
-If you encounter issues:
-1. Check the Supabase Edge Function logs
-2. Verify your YouTube API key is valid
-3. Ensure your Supabase project has the correct tables and RLS policies
-4. Review the console logs in the app for detailed error messages
+If you need help finding specific video IDs or updating the database, you can:
+1. Use the Supabase dashboard to manually edit records
+2. Run SQL queries through the Supabase SQL editor
+3. Use the app's admin interface (if available)
 
-## Future Enhancements
+---
 
-Potential improvements to the video import system:
-- Add support for specific channels or playlists
-- Implement video quality filtering
-- Add language preferences
-- Include video view counts and ratings
-- Support for other video platforms
-- Automated periodic imports via cron jobs
+**Note**: The lectures are now visible in your app's Learning tab, but they will only play correctly once you update the placeholder URLs with actual YouTube video IDs.
