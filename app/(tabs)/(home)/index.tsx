@@ -10,35 +10,12 @@ import ProgressRings from '@/components/ProgressRings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTracker } from '@/contexts/TrackerContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { miracleCategories, Miracle } from '@/data/miracles';
 import { router } from 'expo-router';
 import { useAchievements } from '@/contexts/AchievementContext';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
-}
-
-interface QuranVerse {
-  surah: number;
-  verse: number;
-  arabic: string;
-  translation: string;
-}
-
-interface Hadith {
-  source: string;
-  text: string;
-}
-
-interface Miracle {
-  id: string;
-  title: string;
-  description: string;
-  details: string;
-  explanation: string;
-  reference: string;
-  image_url: string;
-  quran_verses: QuranVerse[];
-  hadiths: Hadith[];
 }
 
 const { width } = Dimensions.get('window');
@@ -109,116 +86,65 @@ export default function HomeScreen() {
     return monday.toISOString().split('T')[0];
   };
 
+  const findMiracleById = (id: string): Miracle | null => {
+    for (const category of miracleCategories) {
+      const miracle = category.miracles.find(m => m.id === id);
+      if (miracle) return miracle;
+    }
+    return null;
+  };
+
   const loadWeeklyMiracle = useCallback(async () => {
     try {
       const weekStart = getWeekStartDate();
       console.log('Loading weekly miracle for week starting:', weekStart);
       
-      if (!isSupabaseConfigured()) {
-        console.log('Supabase not configured, skipping weekly miracle');
-        return;
-      }
-
-      // Check if we already have a miracle for this week
-      const { data: existingWeeklyMiracle, error: fetchError } = await supabase
-        .from('weekly_miracles')
-        .select('miracle_id')
-        .eq('week_start_date', weekStart)
-        .single();
-
-      if (existingWeeklyMiracle && !fetchError) {
-        console.log('Found existing weekly miracle:', existingWeeklyMiracle.miracle_id);
-        
-        // Fetch the full miracle details
-        const { data: miracleData, error: miracleError } = await supabase
-          .from('miracles')
-          .select('*')
-          .eq('id', existingWeeklyMiracle.miracle_id)
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from('weekly_lectures')
+          .select('miracle_id')
+          .eq('week_start_date', weekStart)
           .single();
 
-        if (miracleData && !miracleError) {
-          // Fetch verses and hadiths
-          const { data: verses } = await supabase
-            .from('miracle_quran_verses')
-            .select('*')
-            .eq('miracle_id', miracleData.id)
-            .order('order_index', { ascending: true });
-
-          const { data: hadiths } = await supabase
-            .from('miracle_hadiths')
-            .select('*')
-            .eq('miracle_id', miracleData.id)
-            .order('order_index', { ascending: true });
-
-          setWeeklyMiracle({
-            ...miracleData,
-            quran_verses: verses || [],
-            hadiths: hadiths || [],
-          });
-          return;
+        if (data && !error) {
+          console.log('Found weekly miracle in database:', data.miracle_id);
+          const miracle = findMiracleById(data.miracle_id);
+          if (miracle) {
+            setWeeklyMiracle(miracle);
+            return;
+          }
+        } else {
+          console.log('No weekly miracle found in database, selecting new one');
         }
       }
 
-      // No miracle for this week yet, select a random one
-      console.log('No weekly miracle found, selecting new one');
-      
-      // Get all miracles
-      const { data: allMiracles, error: allMiraclesError } = await supabase
-        .from('miracles')
-        .select('id');
+      const allMiracles: Miracle[] = [];
+      miracleCategories.forEach(category => {
+        allMiracles.push(...category.miracles);
+      });
 
-      if (allMiraclesError || !allMiracles || allMiracles.length === 0) {
-        console.error('Error fetching miracles:', allMiraclesError);
-        return;
-      }
+      if (allMiracles.length > 0) {
+        const randomIndex = Math.floor(Math.random() * allMiracles.length);
+        const selectedMiracle = allMiracles[randomIndex];
+        console.log('Selected new weekly miracle:', selectedMiracle.id);
+        setWeeklyMiracle(selectedMiracle);
 
-      // Select a random miracle
-      const randomIndex = Math.floor(Math.random() * allMiracles.length);
-      const selectedMiracleId = allMiracles[randomIndex].id;
-      console.log('Selected new weekly miracle:', selectedMiracleId);
-
-      // Save it to the database
-      const { error: insertError } = await supabase
-        .from('weekly_miracles')
-        .upsert({
-          week_start_date: weekStart,
-          miracle_id: selectedMiracleId,
-        }, {
-          onConflict: 'week_start_date'
-        });
-
-      if (insertError) {
-        console.error('Error saving weekly miracle:', insertError);
-      } else {
-        console.log('Weekly miracle saved to database');
-      }
-
-      // Fetch the full miracle details
-      const { data: miracleData, error: miracleError } = await supabase
-        .from('miracles')
-        .select('*')
-        .eq('id', selectedMiracleId)
-        .single();
-
-      if (miracleData && !miracleError) {
-        // Fetch verses and hadiths
-        const { data: verses } = await supabase
-          .from('miracle_quran_verses')
-          .select('*')
-          .eq('miracle_id', miracleData.id)
-          .order('order_index', { ascending: true });
-
-        const { data: hadiths } = await supabase
-          .from('miracle_hadiths')
-          .select('*')
-          .eq('miracle_id', miracleData.id)
-          .order('order_index', { ascending: true });
-
-        setWeeklyMiracle({
-          ...miracleData,
-          quran_verses: verses || [],
-          hadiths: hadiths || [],
-        });
+        if (isSupabaseConfigured()) {
+          const { error: insertError } = await supabase
+            .from('weekly_lectures')
+            .upsert({
+              week_start_date: weekStart,
+              miracle_id: selectedMiracle.id,
+            }, {
+              onConflict: 'week_start_date'
+            });
+          
+          if (insertError) {
+            console.error('Error saving weekly miracle:', insertError);
+          } else {
+            console.log('Weekly miracle saved to database');
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading weekly miracle:', error);
@@ -622,10 +548,10 @@ export default function HomeScreen() {
               <Text style={styles.modalSectionTitle}>Explanation</Text>
               <Text style={styles.modalText}>{weeklyMiracle?.explanation}</Text>
 
-              {weeklyMiracle?.quran_verses && weeklyMiracle.quran_verses.length > 0 && (
+              {weeklyMiracle?.quranVerses && weeklyMiracle.quranVerses.length > 0 && (
                 <React.Fragment>
                   <Text style={styles.modalSectionTitle}>Quranic References</Text>
-                  {weeklyMiracle.quran_verses.map((verse, index) => (
+                  {weeklyMiracle.quranVerses.map((verse, index) => (
                     <View key={`verse-${index}`} style={styles.verseCard}>
                       <Text style={styles.verseArabic}>{verse.arabic}</Text>
                       <Text style={styles.verseTranslation}>{verse.translation}</Text>

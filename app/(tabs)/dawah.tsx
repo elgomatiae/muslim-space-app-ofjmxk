@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -56,7 +56,11 @@ export default function DawahScreen() {
   const [miracles, setMiracles] = useState<Miracle[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchMiracles = useCallback(async () => {
+  useEffect(() => {
+    fetchMiracles();
+  }, [selectedTab]);
+
+  const fetchMiracles = async () => {
     try {
       setLoading(true);
       
@@ -100,11 +104,7 @@ export default function DawahScreen() {
     } finally {
       setLoading(false);
     }
-  }, [selectedTab]);
-
-  useEffect(() => {
-    fetchMiracles();
-  }, [fetchMiracles]);
+  };
 
   const selectedCategory = miracleCategories.find(cat => cat.id === selectedTab);
 
