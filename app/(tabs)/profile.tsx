@@ -20,6 +20,7 @@ import { router } from 'expo-router';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { importIslamicLectures, importQuranRecitations, importAllVideos, cleanupBrokenVideos } from '@/utils/importYouTubeVideos';
 import { importIslamNetLectures, getLecturesCount, getRecitationsCount } from '@/utils/populateIslamNetLectures';
+import { importYouTubePlaylist, getLecturesByCategory } from '@/utils/importYouTubePlaylist';
 
 interface NotificationSettings {
   prayer_reminders: boolean;
@@ -44,6 +45,7 @@ export default function ProfileScreen() {
   const [importing, setImporting] = useState(false);
   const [lecturesCount, setLecturesCount] = useState(0);
   const [recitationsCount, setRecitationsCount] = useState(0);
+  const [playlistUrl, setPlaylistUrl] = useState('');
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     prayer_reminders: true,
     dhikr_reminders: true,
@@ -492,6 +494,53 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleImportPlaylist = async () => {
+    if (!playlistUrl.trim()) {
+      Alert.alert('Error', 'Please enter a YouTube playlist URL');
+      return;
+    }
+
+    Alert.alert(
+      'Import YouTube Playlist',
+      `This will import all videos from the playlist and automatically categorize them.\n\nPlaylist URL: ${playlistUrl}\n\nCurrent lectures: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes depending on the playlist size. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importYouTubePlaylist(playlistUrl);
+              if (result.success) {
+                await loadCounts();
+                const categoryCounts = await getLecturesByCategory();
+                const categoryBreakdown = Object.entries(categoryCounts)
+                  .map(([cat, count]) => `${cat}: ${count}`)
+                  .join('\n');
+                
+                Alert.alert(
+                  'Success', 
+                  `${result.message}\n\nImported: ${result.imported}\nFailed: ${result.failed}\nTotal: ${result.total}\n\nCategory Breakdown:\n${categoryBreakdown}`
+                );
+                setPlaylistUrl(''); // Clear the input
+              } else {
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import playlist.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleAuth = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
@@ -769,6 +818,45 @@ export default function ProfileScreen() {
                   color={colors.card}
                 />
                 <Text style={styles.adminButtonText}>Import 50 Lectures + 50 Recitations</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.adminSectionTitle}>Import from YouTube Playlist</Text>
+              <Text style={styles.adminDescription}>
+                Import all videos from any YouTube playlist. Videos will be automatically categorized based on their titles.
+              </Text>
+
+              <View style={styles.playlistInputContainer}>
+                <IconSymbol
+                  ios_icon_name="link"
+                  android_material_icon_name="link"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+                <TextInput
+                  style={styles.playlistInput}
+                  placeholder="Paste YouTube playlist URL here"
+                  placeholderTextColor={colors.textSecondary}
+                  value={playlistUrl}
+                  onChangeText={setPlaylistUrl}
+                  autoCapitalize="none"
+                  editable={!importing}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
+                onPress={handleImportPlaylist}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="arrow.down.circle.fill"
+                  android_material_icon_name="download"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import Playlist</Text>
               </TouchableOpacity>
 
               <View style={styles.divider} />
@@ -1871,6 +1959,24 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 120,
+  },
+  playlistInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  playlistInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    paddingVertical: 12,
+    paddingLeft: 12,
   },
   authCard: {
     backgroundColor: colors.card,
