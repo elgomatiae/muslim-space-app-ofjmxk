@@ -477,6 +477,7 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log(`Starting import for playlist: ${playlistId} to ${destination}`);
+    console.log(`IMPORTANT: Videos will be permanently stored in the ${destination} table and will NOT be automatically deleted.`);
 
     // Fetch all videos from the playlist
     const videos = await fetchPlaylistVideos(playlistId);
@@ -506,7 +507,8 @@ Deno.serve(async (req: Request) => {
     // Get the current max order_index for each category
     const categoryOrderIndexes: { [key: string]: number } = {};
 
-    // Import each video
+    // Import each video - PERMANENT STORAGE
+    // These videos will remain in the database indefinitely unless manually removed by an admin
     for (const video of videos) {
       try {
         const speakerOrReciter = extractSpeaker(video.title, video.channelTitle);
@@ -554,6 +556,7 @@ Deno.serve(async (req: Request) => {
               order_index: categoryOrderIndexes[categoryId],
             };
 
+        // PERMANENT INSERT - This data will persist indefinitely
         const { error } = await supabase
           .from(destination)
           .insert(insertData);
@@ -563,7 +566,7 @@ Deno.serve(async (req: Request) => {
           failed++;
           failedTitles.push(video.title);
         } else {
-          console.log(`Successfully imported: ${video.title} (Category: ${categoryId}) to ${destination}`);
+          console.log(`✓ PERMANENTLY STORED: ${video.title} (Category: ${categoryId}) in ${destination}`);
           imported++;
         }
       } catch (error) {
@@ -579,11 +582,12 @@ Deno.serve(async (req: Request) => {
       imported,
       failed,
       total: videos.length,
-      message: `Successfully imported ${imported} out of ${videos.length} videos to ${destinationName}`,
+      message: `Successfully imported ${imported} out of ${videos.length} videos to ${destinationName}. These videos are now permanently stored in your database.`,
       failedTitles: failedTitles.length > 0 ? failedTitles : undefined,
     };
 
     console.log('Import complete:', result);
+    console.log(`${imported} videos are now permanently stored in the ${destination} table.`);
 
     return new Response(JSON.stringify(result), {
       headers: {

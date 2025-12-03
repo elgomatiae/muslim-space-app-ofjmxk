@@ -218,11 +218,11 @@ export default function ProfileScreen() {
   const handleImport50Lectures = async () => {
     Alert.alert(
       'Import 50 More Lectures',
-      `This will import 50 additional Islamic lectures using the YouTube Data API.\n\nCurrent lectures: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes. Continue?`,
+      `This will import 50 additional Islamic lectures using the YouTube Data API.\n\nCurrent lectures: ${lecturesCount}\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
@@ -230,8 +230,8 @@ export default function ProfileScreen() {
               if (result.success) {
                 await loadCounts();
                 Alert.alert(
-                  'Success', 
-                  `${result.message}\n\nImported: ${result.lecturesImported}\nFailed: ${result.lecturesFailed || 0}`
+                  'Success - Videos Permanently Stored', 
+                  `${result.message}\n\nImported: ${result.lecturesImported}\nFailed: ${result.lecturesFailed || 0}\n\n✓ These videos are now permanently stored in your database and will remain until manually removed.`
                 );
               } else {
                 Alert.alert(
@@ -254,11 +254,11 @@ export default function ProfileScreen() {
   const handleImport50Recitations = async () => {
     Alert.alert(
       'Import 50 Recitations',
-      `This will import 50 Quran recitations using the YouTube Data API.\n\nCurrent recitations: ${recitationsCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes. Continue?`,
+      `This will import 50 Quran recitations using the YouTube Data API.\n\nCurrent recitations: ${recitationsCount}\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
@@ -266,8 +266,8 @@ export default function ProfileScreen() {
               if (result.success) {
                 await loadCounts();
                 Alert.alert(
-                  'Success', 
-                  `${result.message}\n\nImported: ${result.recitationsImported}\nFailed: ${result.recitationsFailed || 0}`
+                  'Success - Videos Permanently Stored', 
+                  `${result.message}\n\nImported: ${result.recitationsImported}\nFailed: ${result.recitationsFailed || 0}\n\n✓ These videos are now permanently stored in your database and will remain until manually removed.`
                 );
               } else {
                 Alert.alert(
@@ -290,11 +290,11 @@ export default function ProfileScreen() {
   const handleImportBoth = async () => {
     Alert.alert(
       'Import 50 Lectures + 50 Recitations',
-      `This will import 50 lectures and 50 recitations (100 videos total) using the YouTube Data API.\n\nCurrent: ${lecturesCount} lectures, ${recitationsCount} recitations\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take 10-15 minutes. Continue?`,
+      `This will import 50 lectures and 50 recitations (100 videos total) using the YouTube Data API.\n\nCurrent: ${lecturesCount} lectures, ${recitationsCount} recitations\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take 10-15 minutes. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import Both',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
@@ -302,8 +302,8 @@ export default function ProfileScreen() {
               if (result.success) {
                 await loadCounts();
                 Alert.alert(
-                  'Success', 
-                  `${result.message}\n\nLectures: ${result.lecturesImported} imported, ${result.lecturesFailed || 0} failed\nRecitations: ${result.recitationsImported} imported, ${result.recitationsFailed || 0} failed`
+                  'Success - Videos Permanently Stored', 
+                  `${result.message}\n\nLectures: ${result.lecturesImported} imported, ${result.lecturesFailed || 0} failed\nRecitations: ${result.recitationsImported} imported, ${result.recitationsFailed || 0} failed\n\n✓ These videos are now permanently stored in your database and will remain until manually removed.`
                 );
               } else {
                 Alert.alert(
@@ -326,11 +326,11 @@ export default function ProfileScreen() {
   const handleImportOriginal43 = async () => {
     Alert.alert(
       'Import Original 43 Lectures',
-      `This will import the original 43 specific Islamic lectures from Islam Net using the YouTube Data API.\n\nCurrent lectures: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take a few minutes. Continue?`,
+      `This will import the original 43 specific Islamic lectures from Islam Net using the YouTube Data API.\n\nCurrent lectures: ${lecturesCount}\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take a few minutes. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
@@ -338,8 +338,8 @@ export default function ProfileScreen() {
               if (result.success) {
                 await loadCounts();
                 Alert.alert(
-                  'Success', 
-                  `${result.message}\n\nImported: ${result.lecturesImported}\nFailed: ${result.lecturesFailed || 0}`
+                  'Success - Videos Permanently Stored', 
+                  `${result.message}\n\nImported: ${result.lecturesImported}\nFailed: ${result.lecturesFailed || 0}\n\n✓ These videos are now permanently stored in your database and will remain until manually removed.`
                 );
               } else {
                 Alert.alert(
@@ -362,18 +362,18 @@ export default function ProfileScreen() {
   const handleImportLectures = async () => {
     Alert.alert(
       'Import Islamic Lectures',
-      'This will fetch the first 100 Islamic lecture videos from YouTube and import them into the database.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take a few minutes. Continue?',
+      'This will fetch the first 100 Islamic lecture videos from YouTube and import them into the database.\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take a few minutes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
               const result = await importIslamicLectures();
               if (result.success) {
                 await loadCounts();
-                Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
+                Alert.alert('Success - Videos Permanently Stored', `${result.message}\n\nImported ${result.imported} videos.\n\n✓ These videos are now permanently stored in your database.`);
               } else {
                 Alert.alert(
                   'Error', 
@@ -395,18 +395,18 @@ export default function ProfileScreen() {
   const handleImportRecitations = async () => {
     Alert.alert(
       'Import Quran Recitations',
-      'This will fetch the first 100 Quran recitation videos from YouTube and import them into the database.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take a few minutes. Continue?',
+      'This will fetch the first 100 Quran recitation videos from YouTube and import them into the database.\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take a few minutes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
               const result = await importQuranRecitations();
               if (result.success) {
                 await loadCounts();
-                Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
+                Alert.alert('Success - Videos Permanently Stored', `${result.message}\n\nImported ${result.imported} videos.\n\n✓ These videos are now permanently stored in your database.`);
               } else {
                 Alert.alert(
                   'Error', 
@@ -428,11 +428,11 @@ export default function ProfileScreen() {
   const handleImportAll = async () => {
     Alert.alert(
       'Import All Videos',
-      'This will fetch and import both Islamic lectures and Quran recitations from YouTube (up to 200 videos total).\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take several minutes. Continue?',
+      'This will fetch and import both Islamic lectures and Quran recitations from YouTube (up to 200 videos total).\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets.\n\nThis may take several minutes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import All',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
@@ -451,8 +451,8 @@ export default function ProfileScreen() {
               await loadCounts();
               
               Alert.alert(
-                overallSuccess ? 'Import Complete' : 'Import Failed', 
-                `${lecturesMsg}\n\n${recitationsMsg}`
+                overallSuccess ? 'Import Complete - Videos Permanently Stored' : 'Import Failed', 
+                `${lecturesMsg}\n\n${recitationsMsg}\n\n${overallSuccess ? '✓ These videos are now permanently stored in your database.' : ''}`
               );
             } catch (error) {
               Alert.alert('Error', 'An unexpected error occurred');
@@ -505,12 +505,12 @@ export default function ProfileScreen() {
     const currentCount = playlistDestination === 'lectures' ? lecturesCount : recitationsCount;
 
     Alert.alert(
-      'Import YouTube Playlist',
-      `This will import all videos from the playlist to ${destinationName} and automatically categorize them.\n\nPlaylist URL: ${playlistUrl}\n\nCurrent ${destinationName.toLowerCase()}: ${currentCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes depending on the playlist size. Continue?`,
+      'Import YouTube Playlist - Permanent Storage',
+      `This will import all videos from the playlist to ${destinationName} and automatically categorize them.\n\nPlaylist URL: ${playlistUrl}\n\nCurrent ${destinationName.toLowerCase()}: ${currentCount}\n\n⚠️ IMPORTANT: Once imported, these videos will be PERMANENTLY stored in your database and will NOT be automatically deleted. They will remain in your app forever unless you manually remove them.\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes depending on the playlist size. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Import',
+          text: 'Import Permanently',
           onPress: async () => {
             setImporting(true);
             try {
@@ -523,8 +523,8 @@ export default function ProfileScreen() {
                   .join('\n');
                 
                 Alert.alert(
-                  'Success', 
-                  `${result.message}\n\nImported to: ${destinationName}\nImported: ${result.imported}\nFailed: ${result.failed}\nTotal: ${result.total}\n\nCategory Breakdown:\n${categoryBreakdown}`
+                  'Success - Videos Permanently Stored', 
+                  `${result.message}\n\nImported to: ${destinationName}\nImported: ${result.imported}\nFailed: ${result.failed}\nTotal: ${result.total}\n\nCategory Breakdown:\n${categoryBreakdown}\n\n✓ These videos are now permanently stored in your database and will remain until manually removed.`
                 );
                 setPlaylistUrl(''); // Clear the input
               } else {
@@ -765,6 +765,18 @@ export default function ProfileScreen() {
                 </Text>
               </View>
 
+              <View style={styles.permanentStorageNotice}>
+                <IconSymbol
+                  ios_icon_name="checkmark.shield.fill"
+                  android_material_icon_name="verified-user"
+                  size={20}
+                  color={colors.success}
+                />
+                <Text style={styles.permanentStorageText}>
+                  ✓ All imported videos are permanently stored in your database and will NOT be automatically deleted. They will remain in your app forever unless you manually remove them.
+                </Text>
+              </View>
+
               <View style={styles.statsRow}>
                 <IconSymbol
                   ios_icon_name="video.fill"
@@ -779,7 +791,7 @@ export default function ProfileScreen() {
 
               <Text style={styles.adminSectionTitle}>Import 50 More Videos (Recommended)</Text>
               <Text style={styles.adminDescription}>
-                Import 50 additional lectures and/or recitations with correct video URLs and thumbnails.
+                Import 50 additional lectures and/or recitations with correct video URLs and thumbnails. Videos will be permanently stored.
               </Text>
 
               <TouchableOpacity
@@ -828,7 +840,7 @@ export default function ProfileScreen() {
 
               <Text style={styles.adminSectionTitle}>Import from YouTube Playlist</Text>
               <Text style={styles.adminDescription}>
-                Import all videos from any YouTube playlist. Videos will be automatically categorized based on their titles.
+                Import all videos from any YouTube playlist. Videos will be automatically categorized based on their titles and permanently stored.
               </Text>
 
               <View style={styles.playlistInputContainer}>
@@ -909,14 +921,14 @@ export default function ProfileScreen() {
                   size={20}
                   color={colors.card}
                 />
-                <Text style={styles.adminButtonText}>Import Playlist</Text>
+                <Text style={styles.adminButtonText}>Import Playlist (Permanent)</Text>
               </TouchableOpacity>
 
               <View style={styles.divider} />
 
               <Text style={styles.adminSectionTitle}>Original Islam Net Lectures</Text>
               <Text style={styles.adminDescription}>
-                Import the original 43 specific Islamic lectures from Islam Net.
+                Import the original 43 specific Islamic lectures from Islam Net. Videos will be permanently stored.
               </Text>
 
               <TouchableOpacity
@@ -937,7 +949,7 @@ export default function ProfileScreen() {
 
               <Text style={styles.adminSectionTitle}>General Import</Text>
               <Text style={styles.adminDescription}>
-                Import YouTube videos into the database. This will replace all existing videos with fresh, validated content from YouTube.
+                Import YouTube videos into the database. Videos will be permanently stored and will not be automatically deleted.
               </Text>
 
               <TouchableOpacity
@@ -1632,7 +1644,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 12,
     gap: 8,
   },
   adminWarningText: {
@@ -1640,6 +1652,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     lineHeight: 18,
+  },
+  permanentStorageNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: `${colors.success}15`,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.success,
+  },
+  permanentStorageText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   statsRow: {
     flexDirection: 'row',
