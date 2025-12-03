@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Dimensions, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -48,13 +48,7 @@ export default function HomeScreen() {
   const [weeklyMiracle, setWeeklyMiracle] = useState<Miracle | null>(null);
   const [showMiracleModal, setShowMiracleModal] = useState(false);
 
-  useEffect(() => {
-    loadDailyContent();
-    loadWeeklyMiracle();
-    syncWeeklyChallenges();
-  }, []);
-
-  const syncWeeklyChallenges = async () => {
+  const syncWeeklyChallenges = useCallback(async () => {
     try {
       console.log('Syncing weekly challenges from home screen...');
       const weeklyStats = await getWeeklyStats();
@@ -66,9 +60,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error syncing weekly challenges:', error);
     }
-  };
+  }, [getWeeklyStats, updateChallengeProgress]);
 
-  const loadDailyContent = async () => {
+  const loadDailyContent = useCallback(async () => {
     try {
       console.log('Loading daily content...');
       const content = await getDailyContent();
@@ -80,7 +74,7 @@ export default function HomeScreen() {
     } finally {
       setLoadingDailyContent(false);
     }
-  };
+  }, []);
 
   const getWeekStartDate = () => {
     const now = new Date();
@@ -92,7 +86,15 @@ export default function HomeScreen() {
     return monday.toISOString().split('T')[0];
   };
 
-  const loadWeeklyMiracle = async () => {
+  const findMiracleById = (id: string): Miracle | null => {
+    for (const category of miracleCategories) {
+      const miracle = category.miracles.find(m => m.id === id);
+      if (miracle) return miracle;
+    }
+    return null;
+  };
+
+  const loadWeeklyMiracle = useCallback(async () => {
     try {
       const weekStart = getWeekStartDate();
       console.log('Loading weekly miracle for week starting:', weekStart);
@@ -147,55 +149,15 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error loading weekly miracle:', error);
     }
-  };
-
-  const findMiracleById = (id: string): Miracle | null => {
-    for (const category of miracleCategories) {
-      const miracle = category.miracles.find(m => m.id === id);
-      if (miracle) return miracle;
-    }
-    return null;
-  };
-
-  useEffect(() => {
-    loadPrayerStatus();
   }, []);
 
   useEffect(() => {
-    requestLocationPermission();
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+    loadDailyContent();
+    loadWeeklyMiracle();
+    syncWeeklyChallenges();
+  }, [loadDailyContent, loadWeeklyMiracle, syncWeeklyChallenges]);
 
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (location) {
-      const prayerTimes = calculatePrayerTimes(location, currentTime);
-      setPrayers(prevPrayers => {
-        return prayerTimes.map((pt, index) => ({
-          ...pt,
-          completed: prevPrayers[index]?.completed || false
-        }));
-      });
-    }
-  }, [location]);
-
-  useEffect(() => {
-    const result = getNextPrayer(prayers, currentTime);
-    if (result) {
-      setNextPrayer(result.prayer);
-      setTimeUntilNext(result.timeUntil);
-    }
-  }, [currentTime, prayers, getNextPrayer]);
-
-  const getTodayDateString = () => {
-    const today = new Date();
-    return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-  };
-
-  const loadPrayerStatus = async () => {
+  const loadPrayerStatus = useCallback(async () => {
     try {
       const savedDate = await AsyncStorage.getItem(PRAYER_DATE_KEY);
       const todayDate = getTodayDateString();
@@ -221,6 +183,44 @@ export default function HomeScreen() {
     } catch (error) {
       console.log('Error loading prayer status:', error);
     }
+  }, []);
+
+  useEffect(() => {
+    loadPrayerStatus();
+  }, [loadPrayerStatus]);
+
+  useEffect(() => {
+    requestLocationPermission();
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (location) {
+      const prayerTimes = calculatePrayerTimes(location, currentTime);
+      setPrayers(prevPrayers => {
+        return prayerTimes.map((pt, index) => ({
+          ...pt,
+          completed: prevPrayers[index]?.completed || false
+        }));
+      });
+    }
+  }, [location, currentTime]);
+
+  useEffect(() => {
+    const result = getNextPrayer(prayers, currentTime);
+    if (result) {
+      setNextPrayer(result.prayer);
+      setTimeUntilNext(result.timeUntil);
+    }
+  }, [prayers, currentTime]);
+
+  const getTodayDateString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
   };
 
   const savePrayerStatus = async (updatedPrayers: Prayer[]) => {
@@ -275,12 +275,13 @@ export default function HomeScreen() {
 
   const handleProfilePress = () => {
     console.log('=== PROFILE BUTTON PRESSED ===');
-    console.log('Navigating to profile screen...');
+    console.log('Attempting to navigate to profile...');
     try {
-      router.push('/(tabs)/profile' as any);
-      console.log('Navigation command sent');
+      router.push('/(tabs)/profile');
+      console.log('Navigation command sent successfully');
     } catch (error) {
       console.error('Navigation error:', error);
+      Alert.alert('Navigation Error', 'Failed to open profile. Please try again.');
     }
   };
 
