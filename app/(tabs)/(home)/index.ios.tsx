@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Dimensions, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -48,13 +48,7 @@ export default function HomeScreen() {
   const [weeklyMiracle, setWeeklyMiracle] = useState<Miracle | null>(null);
   const [showMiracleModal, setShowMiracleModal] = useState(false);
 
-  useEffect(() => {
-    loadDailyContent();
-    loadWeeklyMiracle();
-    syncWeeklyChallenges();
-  }, []);
-
-  const syncWeeklyChallenges = async () => {
+  const syncWeeklyChallenges = useCallback(async () => {
     try {
       const weeklyStats = await getWeeklyStats();
       
@@ -64,33 +58,9 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error syncing weekly challenges:', error);
     }
-  };
+  }, [getWeeklyStats, updateChallengeProgress]);
 
-  const loadDailyContent = async () => {
-    try {
-      console.log('Loading daily content...');
-      const content = await getDailyContent();
-      setDailyVerse(content.verse);
-      setDailyHadith(content.hadith);
-      console.log('Daily content loaded successfully');
-    } catch (error) {
-      console.error('Error loading daily content:', error);
-    } finally {
-      setLoadingDailyContent(false);
-    }
-  };
-
-  const getWeekStartDate = () => {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
-    monday.setHours(0, 0, 0, 0);
-    return monday.toISOString().split('T')[0];
-  };
-
-  const loadWeeklyMiracle = async () => {
+  const loadWeeklyMiracle = useCallback(async () => {
     try {
       const weekStart = getWeekStartDate();
       console.log('Loading weekly miracle for week starting:', weekStart);
@@ -145,6 +115,36 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Error loading weekly miracle:', error);
     }
+  }, []);
+
+  useEffect(() => {
+    loadDailyContent();
+    loadWeeklyMiracle();
+    syncWeeklyChallenges();
+  }, [loadWeeklyMiracle, syncWeeklyChallenges]);
+
+  const loadDailyContent = async () => {
+    try {
+      console.log('Loading daily content...');
+      const content = await getDailyContent();
+      setDailyVerse(content.verse);
+      setDailyHadith(content.hadith);
+      console.log('Daily content loaded successfully');
+    } catch (error) {
+      console.error('Error loading daily content:', error);
+    } finally {
+      setLoadingDailyContent(false);
+    }
+  };
+
+  const getWeekStartDate = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString().split('T')[0];
   };
 
   const findMiracleById = (id: string): Miracle | null => {
@@ -155,45 +155,7 @@ export default function HomeScreen() {
     return null;
   };
 
-  useEffect(() => {
-    loadPrayerStatus();
-  }, []);
-
-  useEffect(() => {
-    requestLocationPermission();
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (location) {
-      const prayerTimes = calculatePrayerTimes(location, currentTime);
-      setPrayers(prevPrayers => {
-        return prayerTimes.map((pt, index) => ({
-          ...pt,
-          completed: prevPrayers[index]?.completed || false
-        }));
-      });
-    }
-  }, [location]);
-
-  useEffect(() => {
-    const result = getNextPrayer(prayers, currentTime);
-    if (result) {
-      setNextPrayer(result.prayer);
-      setTimeUntilNext(result.timeUntil);
-    }
-  }, [currentTime, prayers, getNextPrayer]);
-
-  const getTodayDateString = () => {
-    const today = new Date();
-    return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-  };
-
-  const loadPrayerStatus = async () => {
+  const loadPrayerStatus = useCallback(async () => {
     try {
       const savedDate = await AsyncStorage.getItem(PRAYER_DATE_KEY);
       const todayDate = getTodayDateString();
@@ -219,6 +181,44 @@ export default function HomeScreen() {
     } catch (error) {
       console.log('Error loading prayer status:', error);
     }
+  }, []);
+
+  useEffect(() => {
+    loadPrayerStatus();
+  }, [loadPrayerStatus]);
+
+  useEffect(() => {
+    requestLocationPermission();
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (location && currentTime) {
+      const prayerTimes = calculatePrayerTimes(location, currentTime);
+      setPrayers(prevPrayers => {
+        return prayerTimes.map((pt, index) => ({
+          ...pt,
+          completed: prevPrayers[index]?.completed || false
+        }));
+      });
+    }
+  }, [location, currentTime]);
+
+  useEffect(() => {
+    const result = getNextPrayer(prayers, currentTime);
+    if (result) {
+      setNextPrayer(result.prayer);
+      setTimeUntilNext(result.timeUntil);
+    }
+  }, [currentTime, prayers]);
+
+  const getTodayDateString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
   };
 
   const savePrayerStatus = async (updatedPrayers: Prayer[]) => {
