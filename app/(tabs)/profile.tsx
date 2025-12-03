@@ -19,7 +19,7 @@ import { useTracker } from '@/contexts/TrackerContext';
 import { router } from 'expo-router';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { importIslamicLectures, importQuranRecitations, importAllVideos, cleanupBrokenVideos } from '@/utils/importYouTubeVideos';
-import { importIslamNetLectures, getLecturesCount } from '@/utils/populateIslamNetLectures';
+import { importIslamNetLectures, getLecturesCount, getRecitationsCount } from '@/utils/populateIslamNetLectures';
 
 interface NotificationSettings {
   prayer_reminders: boolean;
@@ -43,6 +43,7 @@ export default function ProfileScreen() {
   const [adminTapCount, setAdminTapCount] = useState(0);
   const [importing, setImporting] = useState(false);
   const [lecturesCount, setLecturesCount] = useState(0);
+  const [recitationsCount, setRecitationsCount] = useState(0);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     prayer_reminders: true,
     dhikr_reminders: true,
@@ -62,13 +63,15 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (showAdminPanel) {
-      loadLecturesCount();
+      loadCounts();
     }
   }, [showAdminPanel]);
 
-  const loadLecturesCount = async () => {
-    const count = await getLecturesCount();
-    setLecturesCount(count);
+  const loadCounts = async () => {
+    const lectures = await getLecturesCount();
+    const recitations = await getRecitationsCount();
+    setLecturesCount(lectures);
+    setRecitationsCount(recitations);
   };
 
   const loadNotificationSettings = async () => {
@@ -209,10 +212,10 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleImportIslamNetLectures = async () => {
+  const handleImport50Lectures = async () => {
     Alert.alert(
-      'Import Islam Net Lectures',
-      `This will import 43 specific Islamic lectures from Islam Net using the YouTube Data API.\n\nCurrent lectures in database: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take a few minutes. Continue?`,
+      'Import 50 More Lectures',
+      `This will import 50 additional Islamic lectures using the YouTube Data API.\n\nCurrent lectures: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -220,17 +223,125 @@ export default function ProfileScreen() {
           onPress: async () => {
             setImporting(true);
             try {
-              const result = await importIslamNetLectures();
+              const result = await importIslamNetLectures('lectures', 50);
               if (result.success) {
-                await loadLecturesCount();
+                await loadCounts();
                 Alert.alert(
                   'Success', 
-                  `${result.message}\n\nImported: ${result.imported}\nFailed: ${result.failed || 0}\nTotal: ${result.total || 0}`
+                  `${result.message}\n\nImported: ${result.lecturesImported}\nFailed: ${result.lecturesFailed || 0}`
                 );
               } else {
                 Alert.alert(
                   'Error', 
-                  result.error || 'Failed to import Islam Net lectures.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                  result.error || 'Failed to import lectures.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleImport50Recitations = async () => {
+    Alert.alert(
+      'Import 50 Recitations',
+      `This will import 50 Quran recitations using the YouTube Data API.\n\nCurrent recitations: ${recitationsCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importIslamNetLectures('recitations', 50);
+              if (result.success) {
+                await loadCounts();
+                Alert.alert(
+                  'Success', 
+                  `${result.message}\n\nImported: ${result.recitationsImported}\nFailed: ${result.recitationsFailed || 0}`
+                );
+              } else {
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import recitations.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleImportBoth = async () => {
+    Alert.alert(
+      'Import 50 Lectures + 50 Recitations',
+      `This will import 50 lectures and 50 recitations (100 videos total) using the YouTube Data API.\n\nCurrent: ${lecturesCount} lectures, ${recitationsCount} recitations\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take 10-15 minutes. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import Both',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importIslamNetLectures('both', 50);
+              if (result.success) {
+                await loadCounts();
+                Alert.alert(
+                  'Success', 
+                  `${result.message}\n\nLectures: ${result.lecturesImported} imported, ${result.lecturesFailed || 0} failed\nRecitations: ${result.recitationsImported} imported, ${result.recitationsFailed || 0} failed`
+                );
+              } else {
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import videos.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleImportOriginal43 = async () => {
+    Alert.alert(
+      'Import Original 43 Lectures',
+      `This will import the original 43 specific Islamic lectures from Islam Net using the YouTube Data API.\n\nCurrent lectures: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take a few minutes. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importIslamNetLectures('lectures', 43);
+              if (result.success) {
+                await loadCounts();
+                Alert.alert(
+                  'Success', 
+                  `${result.message}\n\nImported: ${result.lecturesImported}\nFailed: ${result.lecturesFailed || 0}`
+                );
+              } else {
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import lectures.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
                 );
               }
             } catch (error) {
@@ -258,7 +369,7 @@ export default function ProfileScreen() {
             try {
               const result = await importIslamicLectures();
               if (result.success) {
-                await loadLecturesCount();
+                await loadCounts();
                 Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
               } else {
                 Alert.alert(
@@ -291,6 +402,7 @@ export default function ProfileScreen() {
             try {
               const result = await importQuranRecitations();
               if (result.success) {
+                await loadCounts();
                 Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
               } else {
                 Alert.alert(
@@ -333,7 +445,7 @@ export default function ProfileScreen() {
               
               const overallSuccess = results.lectures.success || results.recitations.success;
               
-              await loadLecturesCount();
+              await loadCounts();
               
               Alert.alert(
                 overallSuccess ? 'Import Complete' : 'Import Failed', 
@@ -363,7 +475,7 @@ export default function ProfileScreen() {
             setImporting(true);
             try {
               const result = await cleanupBrokenVideos();
-              await loadLecturesCount();
+              await loadCounts();
               Alert.alert(
                 'Cleanup Complete',
                 `Removed ${result.lecturesRemoved} broken lecture(s) and ${result.recitationsRemoved} broken recitation(s).`
@@ -608,18 +720,46 @@ export default function ProfileScreen() {
                   color={colors.primary}
                 />
                 <Text style={styles.statsText}>
-                  Current lectures in database: <Text style={styles.statsValue}>{lecturesCount}</Text>
+                  Lectures: <Text style={styles.statsValue}>{lecturesCount}</Text> | Recitations: <Text style={styles.statsValue}>{recitationsCount}</Text>
                 </Text>
               </View>
 
-              <Text style={styles.adminSectionTitle}>Islam Net Lectures (Recommended)</Text>
+              <Text style={styles.adminSectionTitle}>Import 50 More Videos (Recommended)</Text>
               <Text style={styles.adminDescription}>
-                Import 43 specific Islamic lectures from Islam Net with correct video URLs and thumbnails.
+                Import 50 additional lectures and/or recitations with correct video URLs and thumbnails.
               </Text>
 
               <TouchableOpacity
                 style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
-                onPress={handleImportIslamNetLectures}
+                onPress={handleImport50Lectures}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="video.fill"
+                  android_material_icon_name="video-library"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import 50 More Lectures</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
+                onPress={handleImport50Recitations}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="book.fill"
+                  android_material_icon_name="menu-book"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import 50 Recitations</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
+                onPress={handleImportBoth}
                 disabled={importing}
               >
                 <IconSymbol
@@ -628,7 +768,28 @@ export default function ProfileScreen() {
                   size={20}
                   color={colors.card}
                 />
-                <Text style={styles.adminButtonText}>Import Islam Net Lectures (43)</Text>
+                <Text style={styles.adminButtonText}>Import 50 Lectures + 50 Recitations</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.adminSectionTitle}>Original Islam Net Lectures</Text>
+              <Text style={styles.adminDescription}>
+                Import the original 43 specific Islamic lectures from Islam Net.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.adminButton, importing && styles.adminButtonDisabled]}
+                onPress={handleImportOriginal43}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="star.fill"
+                  android_material_icon_name="star"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import Original 43 Lectures</Text>
               </TouchableOpacity>
 
               <View style={styles.divider} />
@@ -710,7 +871,7 @@ export default function ProfileScreen() {
               {importing && (
                 <View style={styles.importingIndicator}>
                   <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.importingText}>Processing... This may take a few minutes.</Text>
+                  <Text style={styles.importingText}>Processing... This may take several minutes.</Text>
                 </View>
               )}
             </View>
