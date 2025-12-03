@@ -19,6 +19,7 @@ import { useTracker } from '@/contexts/TrackerContext';
 import { router } from 'expo-router';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { importIslamicLectures, importQuranRecitations, importAllVideos, cleanupBrokenVideos } from '@/utils/importYouTubeVideos';
+import { importIslamNetLectures, getLecturesCount } from '@/utils/populateIslamNetLectures';
 
 interface NotificationSettings {
   prayer_reminders: boolean;
@@ -41,6 +42,7 @@ export default function ProfileScreen() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminTapCount, setAdminTapCount] = useState(0);
   const [importing, setImporting] = useState(false);
+  const [lecturesCount, setLecturesCount] = useState(0);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     prayer_reminders: true,
     dhikr_reminders: true,
@@ -57,6 +59,17 @@ export default function ProfileScreen() {
       loadNotificationSettings();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (showAdminPanel) {
+      loadLecturesCount();
+    }
+  }, [showAdminPanel]);
+
+  const loadLecturesCount = async () => {
+    const count = await getLecturesCount();
+    setLecturesCount(count);
+  };
 
   const loadNotificationSettings = async () => {
     if (!user || !isSupabaseConfigured()) return;
@@ -196,6 +209,42 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleImportIslamNetLectures = async () => {
+    Alert.alert(
+      'Import Islam Net Lectures',
+      `This will import 43 specific Islamic lectures from Islam Net using the YouTube Data API.\n\nCurrent lectures in database: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take a few minutes. Continue?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Import',
+          onPress: async () => {
+            setImporting(true);
+            try {
+              const result = await importIslamNetLectures();
+              if (result.success) {
+                await loadLecturesCount();
+                Alert.alert(
+                  'Success', 
+                  `${result.message}\n\nImported: ${result.imported}\nFailed: ${result.failed || 0}\nTotal: ${result.total || 0}`
+                );
+              } else {
+                Alert.alert(
+                  'Error', 
+                  result.error || 'Failed to import Islam Net lectures.\n\nMake sure YOUTUBE_API_KEY is set in Supabase Edge Function secrets.'
+                );
+              }
+            } catch (error) {
+              Alert.alert('Error', 'An unexpected error occurred');
+              console.error('Import error:', error);
+            } finally {
+              setImporting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleImportLectures = async () => {
     Alert.alert(
       'Import Islamic Lectures',
@@ -209,6 +258,7 @@ export default function ProfileScreen() {
             try {
               const result = await importIslamicLectures();
               if (result.success) {
+                await loadLecturesCount();
                 Alert.alert('Success', `${result.message}\n\nImported ${result.imported} videos.`);
               } else {
                 Alert.alert(
@@ -283,6 +333,8 @@ export default function ProfileScreen() {
               
               const overallSuccess = results.lectures.success || results.recitations.success;
               
+              await loadLecturesCount();
+              
               Alert.alert(
                 overallSuccess ? 'Import Complete' : 'Import Failed', 
                 `${lecturesMsg}\n\n${recitationsMsg}`
@@ -311,6 +363,7 @@ export default function ProfileScreen() {
             setImporting(true);
             try {
               const result = await cleanupBrokenVideos();
+              await loadLecturesCount();
               Alert.alert(
                 'Cleanup Complete',
                 `Removed ${result.lecturesRemoved} broken lecture(s) and ${result.recitationsRemoved} broken recitation(s).`
@@ -543,10 +596,44 @@ export default function ProfileScreen() {
                   color={colors.accent}
                 />
                 <Text style={styles.adminWarningText}>
-                  These tools require a YouTube API key to be configured in Supabase Edge Function secrets.
+                  These tools require a YouTube API key to be configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).
                 </Text>
               </View>
 
+              <View style={styles.statsRow}>
+                <IconSymbol
+                  ios_icon_name="video.fill"
+                  android_material_icon_name="video-library"
+                  size={20}
+                  color={colors.primary}
+                />
+                <Text style={styles.statsText}>
+                  Current lectures in database: <Text style={styles.statsValue}>{lecturesCount}</Text>
+                </Text>
+              </View>
+
+              <Text style={styles.adminSectionTitle}>Islam Net Lectures (Recommended)</Text>
+              <Text style={styles.adminDescription}>
+                Import 43 specific Islamic lectures from Islam Net with correct video URLs and thumbnails.
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
+                onPress={handleImportIslamNetLectures}
+                disabled={importing}
+              >
+                <IconSymbol
+                  ios_icon_name="star.fill"
+                  android_material_icon_name="star"
+                  size={20}
+                  color={colors.card}
+                />
+                <Text style={styles.adminButtonText}>Import Islam Net Lectures (43)</Text>
+              </TouchableOpacity>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.adminSectionTitle}>General Import</Text>
               <Text style={styles.adminDescription}>
                 Import YouTube videos into the database. This will replace all existing videos with fresh, validated content from YouTube.
               </Text>
@@ -562,7 +649,7 @@ export default function ProfileScreen() {
                   size={20}
                   color={colors.card}
                 />
-                <Text style={styles.adminButtonText}>Import Islamic Lectures</Text>
+                <Text style={styles.adminButtonText}>Import Islamic Lectures (100)</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -576,11 +663,11 @@ export default function ProfileScreen() {
                   size={20}
                   color={colors.card}
                 />
-                <Text style={styles.adminButtonText}>Import Quran Recitations</Text>
+                <Text style={styles.adminButtonText}>Import Quran Recitations (100)</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.adminButtonPrimary, importing && styles.adminButtonDisabled]}
+                style={[styles.adminButton, importing && styles.adminButtonDisabled]}
                 onPress={handleImportAll}
                 disabled={importing}
               >
@@ -594,13 +681,14 @@ export default function ProfileScreen() {
                       size={20}
                       color={colors.card}
                     />
-                    <Text style={styles.adminButtonText}>Import All Videos</Text>
+                    <Text style={styles.adminButtonText}>Import All Videos (200)</Text>
                   </React.Fragment>
                 )}
               </TouchableOpacity>
 
               <View style={styles.divider} />
 
+              <Text style={styles.adminSectionTitle}>Maintenance</Text>
               <Text style={styles.adminDescription}>
                 Clean up broken or invalid video links from the database.
               </Text>
@@ -1250,6 +1338,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     lineHeight: 18,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  statsText: {
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+  },
+  statsValue: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  adminSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+    marginTop: 4,
   },
   adminDescription: {
     fontSize: 14,
