@@ -20,8 +20,8 @@ function extractPlaylistId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-// Function to categorize videos based on title keywords
-function categorizeVideo(title: string, speaker: string): string {
+// Function to categorize videos for lectures based on title keywords
+function categorizeVideoForLectures(title: string, speaker: string): string {
   const lowerTitle = title.toLowerCase();
   const lowerSpeaker = speaker.toLowerCase();
   
@@ -169,11 +169,118 @@ function categorizeVideo(title: string, speaker: string): string {
     return 'seerah';
   }
   
-  // Short clips (based on duration)
-  // This will be handled separately based on duration
-  
   // Default to motivational if no clear category
   return 'motivational';
+}
+
+// Function to categorize videos for recitations based on title keywords
+function categorizeVideoForRecitations(title: string, reciter: string): string {
+  const lowerTitle = title.toLowerCase();
+  
+  // Short Surahs (Juz Amma - Surah 78-114)
+  if (
+    lowerTitle.includes('juz amma') ||
+    lowerTitle.includes('juz 30') ||
+    lowerTitle.includes('al-naba') ||
+    lowerTitle.includes('an-naziat') ||
+    lowerTitle.includes('abasa') ||
+    lowerTitle.includes('at-takwir') ||
+    lowerTitle.includes('al-infitar') ||
+    lowerTitle.includes('al-mutaffifin') ||
+    lowerTitle.includes('al-inshiqaq') ||
+    lowerTitle.includes('al-buruj') ||
+    lowerTitle.includes('at-tariq') ||
+    lowerTitle.includes('al-ala') ||
+    lowerTitle.includes('al-ghashiyah') ||
+    lowerTitle.includes('al-fajr') ||
+    lowerTitle.includes('al-balad') ||
+    lowerTitle.includes('ash-shams') ||
+    lowerTitle.includes('al-lail') ||
+    lowerTitle.includes('ad-duha') ||
+    lowerTitle.includes('ash-sharh') ||
+    lowerTitle.includes('at-tin') ||
+    lowerTitle.includes('al-alaq') ||
+    lowerTitle.includes('al-qadr') ||
+    lowerTitle.includes('al-bayyinah') ||
+    lowerTitle.includes('az-zalzalah') ||
+    lowerTitle.includes('al-adiyat') ||
+    lowerTitle.includes('al-qariah') ||
+    lowerTitle.includes('at-takathur') ||
+    lowerTitle.includes('al-asr') ||
+    lowerTitle.includes('al-humazah') ||
+    lowerTitle.includes('al-fil') ||
+    lowerTitle.includes('quraish') ||
+    lowerTitle.includes('al-maun') ||
+    lowerTitle.includes('al-kawthar') ||
+    lowerTitle.includes('al-kafirun') ||
+    lowerTitle.includes('an-nasr') ||
+    lowerTitle.includes('al-masad') ||
+    lowerTitle.includes('al-ikhlas') ||
+    lowerTitle.includes('al-falaq') ||
+    lowerTitle.includes('an-nas') ||
+    lowerTitle.includes('short surah')
+  ) {
+    return 'short-surahs';
+  }
+  
+  // Long Surahs
+  if (
+    lowerTitle.includes('al-baqarah') ||
+    lowerTitle.includes('ali imran') ||
+    lowerTitle.includes('an-nisa') ||
+    lowerTitle.includes('al-maidah') ||
+    lowerTitle.includes('al-anam') ||
+    lowerTitle.includes('al-araf') ||
+    lowerTitle.includes('al-anfal') ||
+    lowerTitle.includes('at-tawbah') ||
+    lowerTitle.includes('yunus') ||
+    lowerTitle.includes('hud') ||
+    lowerTitle.includes('yusuf') ||
+    lowerTitle.includes('ar-rad') ||
+    lowerTitle.includes('ibrahim') ||
+    lowerTitle.includes('al-hijr') ||
+    lowerTitle.includes('an-nahl') ||
+    lowerTitle.includes('al-isra') ||
+    lowerTitle.includes('al-kahf') ||
+    lowerTitle.includes('maryam') ||
+    lowerTitle.includes('ta-ha') ||
+    lowerTitle.includes('long surah')
+  ) {
+    return 'long-surahs';
+  }
+  
+  // Emotional recitations
+  if (
+    lowerTitle.includes('emotional') ||
+    lowerTitle.includes('crying') ||
+    lowerTitle.includes('tears') ||
+    lowerTitle.includes('heart touching') ||
+    lowerTitle.includes('beautiful') ||
+    lowerTitle.includes('powerful')
+  ) {
+    return 'emotional';
+  }
+  
+  // Famous Qaris
+  if (
+    lowerTitle.includes('mishary') ||
+    lowerTitle.includes('sudais') ||
+    lowerTitle.includes('shuraim') ||
+    lowerTitle.includes('ajmi') ||
+    lowerTitle.includes('ghamdi') ||
+    lowerTitle.includes('husary') ||
+    lowerTitle.includes('minshawi') ||
+    lowerTitle.includes('basfar') ||
+    lowerTitle.includes('jibreen') ||
+    reciter.toLowerCase().includes('mishary') ||
+    reciter.toLowerCase().includes('sudais') ||
+    reciter.toLowerCase().includes('shuraim')
+  ) {
+    return 'famous-qaris';
+  }
+  
+  // Default to beautiful recitations
+  return 'beautiful';
 }
 
 // Function to fetch all videos from a playlist
@@ -278,7 +385,7 @@ function parseDuration(isoDuration: string): string {
   }
 }
 
-// Function to extract speaker name from title
+// Function to extract speaker/reciter name from title
 function extractSpeaker(title: string, channelTitle: string): string {
   // Common patterns for speaker names in titles
   const patterns = [
@@ -316,13 +423,29 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { playlistUrl } = await req.json();
+    const { playlistUrl, destination = 'lectures' } = await req.json();
     
     if (!playlistUrl) {
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Playlist URL is required',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
+
+    if (destination !== 'lectures' && destination !== 'recitations') {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid destination. Must be "lectures" or "recitations"',
         }),
         {
           status: 400,
@@ -353,7 +476,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log(`Starting import for playlist: ${playlistId}`);
+    console.log(`Starting import for playlist: ${playlistId} to ${destination}`);
 
     // Fetch all videos from the playlist
     const videos = await fetchPlaylistVideos(playlistId);
@@ -386,13 +509,15 @@ Deno.serve(async (req: Request) => {
     // Import each video
     for (const video of videos) {
       try {
-        const speaker = extractSpeaker(video.title, video.channelTitle);
-        const categoryId = categorizeVideo(video.title, speaker);
+        const speakerOrReciter = extractSpeaker(video.title, video.channelTitle);
+        const categoryId = destination === 'lectures' 
+          ? categorizeVideoForLectures(video.title, speakerOrReciter)
+          : categorizeVideoForRecitations(video.title, speakerOrReciter);
         
         // Get or initialize order index for this category
         if (!(categoryId in categoryOrderIndexes)) {
           const { data: maxOrderData } = await supabase
-            .from('lectures')
+            .from(destination)
             .select('order_index')
             .eq('category_id', categoryId)
             .order('order_index', { ascending: false })
@@ -408,24 +533,37 @@ Deno.serve(async (req: Request) => {
         
         const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
         
+        // Prepare the data based on destination
+        const insertData = destination === 'lectures' 
+          ? {
+              category_id: categoryId,
+              title: video.title,
+              speaker: speakerOrReciter,
+              duration: video.duration,
+              video_url: videoUrl,
+              thumbnail_url: video.thumbnailUrl,
+              order_index: categoryOrderIndexes[categoryId],
+            }
+          : {
+              category_id: categoryId,
+              title: video.title,
+              reciter: speakerOrReciter,
+              duration: video.duration,
+              video_url: videoUrl,
+              thumbnail_url: video.thumbnailUrl,
+              order_index: categoryOrderIndexes[categoryId],
+            };
+
         const { error } = await supabase
-          .from('lectures')
-          .insert({
-            category_id: categoryId,
-            title: video.title,
-            speaker: speaker,
-            duration: video.duration,
-            video_url: videoUrl,
-            thumbnail_url: video.thumbnailUrl,
-            order_index: categoryOrderIndexes[categoryId],
-          });
+          .from(destination)
+          .insert(insertData);
 
         if (error) {
           console.error(`Failed to insert video "${video.title}":`, error);
           failed++;
           failedTitles.push(video.title);
         } else {
-          console.log(`Successfully imported: ${video.title} (Category: ${categoryId})`);
+          console.log(`Successfully imported: ${video.title} (Category: ${categoryId}) to ${destination}`);
           imported++;
         }
       } catch (error) {
@@ -435,12 +573,13 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    const destinationName = destination === 'lectures' ? 'Quran Lectures' : 'Quran Recitations';
     const result = {
       success: true,
       imported,
       failed,
       total: videos.length,
-      message: `Successfully imported ${imported} out of ${videos.length} videos`,
+      message: `Successfully imported ${imported} out of ${videos.length} videos to ${destinationName}`,
       failedTitles: failedTitles.length > 0 ? failedTitles : undefined,
     };
 

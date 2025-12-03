@@ -12,16 +12,20 @@ export interface PlaylistImportResult {
 }
 
 /**
- * Import all videos from a YouTube playlist to Islamic lectures
+ * Import all videos from a YouTube playlist to either lectures or recitations
  * @param playlistUrl - The full YouTube playlist URL
+ * @param destination - The destination table ('lectures' or 'recitations')
  * @returns Import result with statistics
  */
-export async function importYouTubePlaylist(playlistUrl: string): Promise<PlaylistImportResult> {
+export async function importYouTubePlaylist(
+  playlistUrl: string,
+  destination: 'lectures' | 'recitations' = 'lectures'
+): Promise<PlaylistImportResult> {
   try {
-    console.log('Starting import of YouTube playlist:', playlistUrl);
+    console.log(`Starting import of YouTube playlist to ${destination}:`, playlistUrl);
     
     const { data, error } = await supabase.functions.invoke('import-youtube-playlist', {
-      body: { playlistUrl }
+      body: { playlistUrl, destination }
     });
 
     if (error) {
@@ -86,31 +90,32 @@ export async function getLecturesCount(): Promise<number> {
 }
 
 /**
- * Get lectures grouped by category
+ * Get lectures or recitations grouped by category
+ * @param table - The table to query ('lectures' or 'recitations')
  */
-export async function getLecturesByCategory(): Promise<{ [key: string]: number }> {
+export async function getLecturesByCategory(table: 'lectures' | 'recitations' = 'lectures'): Promise<{ [key: string]: number }> {
   try {
     const { data, error } = await supabase
-      .from('lectures')
+      .from(table)
       .select('category_id');
 
     if (error) {
-      console.error('Error getting lectures by category:', error);
+      console.error(`Error getting ${table} by category:`, error);
       return {};
     }
 
     const categoryCounts: { [key: string]: number } = {};
     
     if (data) {
-      for (const lecture of data) {
-        const category = lecture.category_id;
+      for (const item of data) {
+        const category = item.category_id;
         categoryCounts[category] = (categoryCounts[category] || 0) + 1;
       }
     }
 
     return categoryCounts;
   } catch (error) {
-    console.error('Error getting lectures by category:', error);
+    console.error(`Error getting ${table} by category:`, error);
     return {};
   }
 }

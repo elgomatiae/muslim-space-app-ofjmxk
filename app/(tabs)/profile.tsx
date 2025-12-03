@@ -46,6 +46,7 @@ export default function ProfileScreen() {
   const [lecturesCount, setLecturesCount] = useState(0);
   const [recitationsCount, setRecitationsCount] = useState(0);
   const [playlistUrl, setPlaylistUrl] = useState('');
+  const [playlistDestination, setPlaylistDestination] = useState<'lectures' | 'recitations'>('lectures');
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     prayer_reminders: true,
     dhikr_reminders: true,
@@ -500,9 +501,12 @@ export default function ProfileScreen() {
       return;
     }
 
+    const destinationName = playlistDestination === 'lectures' ? 'Quran Lectures' : 'Quran Recitations';
+    const currentCount = playlistDestination === 'lectures' ? lecturesCount : recitationsCount;
+
     Alert.alert(
       'Import YouTube Playlist',
-      `This will import all videos from the playlist and automatically categorize them.\n\nPlaylist URL: ${playlistUrl}\n\nCurrent lectures: ${lecturesCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes depending on the playlist size. Continue?`,
+      `This will import all videos from the playlist to ${destinationName} and automatically categorize them.\n\nPlaylist URL: ${playlistUrl}\n\nCurrent ${destinationName.toLowerCase()}: ${currentCount}\n\nNote: You need a valid YouTube API key configured in Supabase Edge Function secrets (YOUTUBE_API_KEY).\n\nThis may take several minutes depending on the playlist size. Continue?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -510,17 +514,17 @@ export default function ProfileScreen() {
           onPress: async () => {
             setImporting(true);
             try {
-              const result = await importYouTubePlaylist(playlistUrl);
+              const result = await importYouTubePlaylist(playlistUrl, playlistDestination);
               if (result.success) {
                 await loadCounts();
-                const categoryCounts = await getLecturesByCategory();
+                const categoryCounts = await getLecturesByCategory(playlistDestination);
                 const categoryBreakdown = Object.entries(categoryCounts)
                   .map(([cat, count]) => `${cat}: ${count}`)
                   .join('\n');
                 
                 Alert.alert(
                   'Success', 
-                  `${result.message}\n\nImported: ${result.imported}\nFailed: ${result.failed}\nTotal: ${result.total}\n\nCategory Breakdown:\n${categoryBreakdown}`
+                  `${result.message}\n\nImported to: ${destinationName}\nImported: ${result.imported}\nFailed: ${result.failed}\nTotal: ${result.total}\n\nCategory Breakdown:\n${categoryBreakdown}`
                 );
                 setPlaylistUrl(''); // Clear the input
               } else {
@@ -843,6 +847,55 @@ export default function ProfileScreen() {
                   autoCapitalize="none"
                   editable={!importing}
                 />
+              </View>
+
+              <View style={styles.destinationSelector}>
+                <Text style={styles.destinationLabel}>Import to:</Text>
+                <View style={styles.destinationButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.destinationButton,
+                      playlistDestination === 'lectures' && styles.destinationButtonActive
+                    ]}
+                    onPress={() => setPlaylistDestination('lectures')}
+                    disabled={importing}
+                  >
+                    <IconSymbol
+                      ios_icon_name="video.fill"
+                      android_material_icon_name="video-library"
+                      size={18}
+                      color={playlistDestination === 'lectures' ? colors.card : colors.text}
+                    />
+                    <Text style={[
+                      styles.destinationButtonText,
+                      playlistDestination === 'lectures' && styles.destinationButtonTextActive
+                    ]}>
+                      Quran Lectures
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.destinationButton,
+                      playlistDestination === 'recitations' && styles.destinationButtonActive
+                    ]}
+                    onPress={() => setPlaylistDestination('recitations')}
+                    disabled={importing}
+                  >
+                    <IconSymbol
+                      ios_icon_name="book.fill"
+                      android_material_icon_name="menu-book"
+                      size={18}
+                      color={playlistDestination === 'recitations' ? colors.card : colors.text}
+                    />
+                    <Text style={[
+                      styles.destinationButtonText,
+                      playlistDestination === 'recitations' && styles.destinationButtonTextActive
+                    ]}>
+                      Quran Recitations
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <TouchableOpacity
@@ -1977,6 +2030,43 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 12,
     paddingLeft: 12,
+  },
+  destinationSelector: {
+    marginBottom: 16,
+  },
+  destinationLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  destinationButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  destinationButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+    gap: 6,
+  },
+  destinationButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  destinationButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  destinationButtonTextActive: {
+    color: colors.card,
   },
   authCard: {
     backgroundColor: colors.card,
