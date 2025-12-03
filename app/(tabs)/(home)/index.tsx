@@ -273,36 +273,10 @@ export default function HomeScreen() {
 
   const completedCount = prayers.filter(p => p.completed).length;
 
-  const handleProfilePress = () => {
-    console.log('=== PROFILE BUTTON PRESSED ===');
-    console.log('Navigating to profile screen...');
-    try {
-      router.push('/(tabs)/profile' as any);
-      console.log('Navigation command sent');
-    } catch (error) {
-      console.error('Navigation error:', error);
-    }
-  };
-
   console.log('Home screen rendering with challenges:', weeklyChallenges.length);
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerButtonsContainer} pointerEvents="box-none">
-        <TouchableOpacity
-          onPress={handleProfilePress}
-          style={styles.profileButton}
-          activeOpacity={0.7}
-        >
-          <IconSymbol
-            ios_icon_name="person.circle.fill"
-            android_material_icon_name="account-circle"
-            size={32}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
-      
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Text style={styles.greeting}>As-salamu alaykum</Text>
@@ -583,22 +557,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  headerButtonsContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? 48 : 60,
-    right: 16,
-    zIndex: 1000,
-  },
-  profileButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.card,
-    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
   },
   scrollView: {
     flex: 1,

@@ -30,6 +30,10 @@ export default function TabLayout() {
         <Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis.circle.fill' }} />
         <Label>Faith</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger key="profile" name="profile">
+        <Icon sf={{ default: 'person.circle', selected: 'person.circle.fill' }} />
+        <Label>Profile</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

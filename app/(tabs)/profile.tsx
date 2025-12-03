@@ -459,21 +459,9 @@ export default function ProfileScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol
-              ios_icon_name="chevron.left"
-              android_material_icon_name="arrow-back"
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
           <TouchableOpacity onPress={handleHeaderTap}>
             <Text style={styles.headerTitle}>Profile</Text>
           </TouchableOpacity>
-          <View style={styles.backButton} />
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -502,21 +490,9 @@ export default function ProfileScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol
-              ios_icon_name="chevron.left"
-              android_material_icon_name="arrow-back"
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
           <TouchableOpacity onPress={handleHeaderTap}>
             <Text style={styles.headerTitle}>Profile</Text>
           </TouchableOpacity>
-          <View style={styles.backButton} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -529,21 +505,9 @@ export default function ProfileScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol
-              ios_icon_name="chevron.left"
-              android_material_icon_name="arrow-back"
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
           <TouchableOpacity onPress={handleHeaderTap}>
             <Text style={styles.headerTitle}>Profile</Text>
           </TouchableOpacity>
-          <View style={styles.backButton} />
         </View>
 
         <ScrollView 
@@ -1038,21 +1002,9 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow-back"
-            size={24}
-            color={colors.text}
-          />
-        </TouchableOpacity>
         <TouchableOpacity onPress={handleHeaderTap}>
           <Text style={styles.headerTitle}>{isSignUp ? 'Sign Up' : 'Sign In'}</Text>
         </TouchableOpacity>
-        <View style={styles.backButton} />
       </View>
 
       <ScrollView 
@@ -1236,19 +1188,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingTop: Platform.OS === 'android' ? 48 : 60,
     paddingHorizontal: 16,
     paddingBottom: 16,
     backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,

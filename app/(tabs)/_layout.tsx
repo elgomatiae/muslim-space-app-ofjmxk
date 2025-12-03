@@ -35,6 +35,12 @@ export default function TabLayout() {
       icon: 'trending-up',
       label: 'Faith',
     },
+    {
+      name: 'profile',
+      route: '/(tabs)/profile',
+      icon: 'person',
+      label: 'Profile',
+    },
   ];
 
   return (
