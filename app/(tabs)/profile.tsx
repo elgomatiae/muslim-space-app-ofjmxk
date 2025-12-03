@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Modal,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -30,6 +31,8 @@ interface NotificationSettings {
   achievement_notifications: boolean;
 }
 
+const ADMIN_PIN = '2218';
+
 export default function ProfileScreen() {
   const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
   const { trackerData } = useTracker();
@@ -42,6 +45,8 @@ export default function ProfileScreen() {
   const [loadingStats, setLoadingStats] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [adminTapCount, setAdminTapCount] = useState(0);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
   const [importing, setImporting] = useState(false);
   const [lecturesCount, setLecturesCount] = useState(0);
   const [recitationsCount, setRecitationsCount] = useState(0);
@@ -209,10 +214,26 @@ export default function ProfileScreen() {
     setAdminTapCount(newCount);
     
     if (newCount >= 7) {
-      setShowAdminPanel(true);
       setAdminTapCount(0);
-      Alert.alert('Admin Panel', 'Admin panel unlocked!');
+      setShowPinModal(true);
     }
+  };
+
+  const handlePinSubmit = () => {
+    if (pinInput === ADMIN_PIN) {
+      setShowPinModal(false);
+      setShowAdminPanel(true);
+      setPinInput('');
+      Alert.alert('Admin Panel', 'Admin panel unlocked!');
+    } else {
+      Alert.alert('Incorrect PIN', 'The PIN you entered is incorrect. Please try again.');
+      setPinInput('');
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinModal(false);
+    setPinInput('');
   };
 
   const handleImport50Lectures = async () => {
@@ -727,6 +748,63 @@ export default function ProfileScreen() {
             <Text style={styles.headerTitle}>Profile</Text>
           </TouchableOpacity>
         </View>
+
+        {/* PIN Modal */}
+        <Modal
+          visible={showPinModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handlePinCancel}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.pinModal}>
+              <View style={styles.pinHeader}>
+                <IconSymbol
+                  ios_icon_name="lock.shield.fill"
+                  android_material_icon_name="security"
+                  size={48}
+                  color={colors.primary}
+                />
+                <Text style={styles.pinTitle}>Enter Admin PIN</Text>
+                <Text style={styles.pinSubtitle}>Enter the 4-digit PIN to access the admin panel</Text>
+              </View>
+
+              <View style={styles.pinInputContainer}>
+                <TextInput
+                  style={styles.pinInput}
+                  value={pinInput}
+                  onChangeText={setPinInput}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  placeholder="••••"
+                  placeholderTextColor={colors.textSecondary}
+                  secureTextEntry={true}
+                  autoFocus={true}
+                  onSubmitEditing={handlePinSubmit}
+                />
+              </View>
+
+              <View style={styles.pinButtons}>
+                <TouchableOpacity
+                  style={styles.pinButtonCancel}
+                  onPress={handlePinCancel}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.pinButtonCancelText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.pinButtonSubmit, pinInput.length !== 4 && styles.pinButtonDisabled]}
+                  onPress={handlePinSubmit}
+                  disabled={pinInput.length !== 4}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.pinButtonSubmitText}>Unlock</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <ScrollView 
           style={styles.content} 
@@ -1614,6 +1692,91 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  pinModal: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 32,
+    width: '100%',
+    maxWidth: 400,
+    boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.3)',
+    elevation: 8,
+  },
+  pinHeader: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  pinTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  pinSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  pinInputContainer: {
+    marginBottom: 24,
+  },
+  pinInput: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 20,
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    letterSpacing: 16,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  pinButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pinButtonCancel: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  pinButtonCancelText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  pinButtonSubmit: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 4px 12px rgba(63, 81, 181, 0.3)',
+    elevation: 3,
+  },
+  pinButtonDisabled: {
+    opacity: 0.5,
+  },
+  pinButtonSubmitText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.card,
   },
   adminPanel: {
     backgroundColor: colors.card,
