@@ -19,7 +19,7 @@ export default function ProfileButton() {
       <IconSymbol
         ios_icon_name="person.circle.fill"
         android_material_icon_name="account-circle"
-        size={32}
+        size={28}
         color={user ? colors.primary : colors.textSecondary}
       />
     </TouchableOpacity>
@@ -28,18 +28,21 @@ export default function ProfileButton() {
 
 const styles = StyleSheet.create({
   button: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.card,
-    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.15)',
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: colors.border,
   },
   buttonActive: {
     backgroundColor: colors.card,
-    borderWidth: 2,
     borderColor: colors.primary,
+    boxShadow: '0px 3px 10px rgba(63, 81, 181, 0.3)',
+    elevation: 5,
   },
 });

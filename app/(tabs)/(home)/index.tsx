@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Dimensions, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
+import ProfileButton from '@/components/ProfileButton';
 import * as Location from 'expo-location';
 import { calculatePrayerTimes, getNextPrayer, PrayerTime } from '@/utils/prayerTimes';
 import { getDailyContent, DailyHadith, DailyVerse } from '@/data/dailyContent';
@@ -277,6 +278,10 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.profileButtonContainer}>
+        <ProfileButton />
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <Text style={styles.greeting}>As-salamu alaykum</Text>
@@ -557,6 +562,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  profileButtonContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 16 : 60,
+    right: 16,
+    zIndex: 1000,
   },
   scrollView: {
     flex: 1,

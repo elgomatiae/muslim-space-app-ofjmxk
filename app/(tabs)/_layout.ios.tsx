@@ -31,9 +31,9 @@ export default function TabLayout() {
         <Label>Faith</Label>
       </NativeTabs.Trigger>
       
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: 'person.circle', selected: 'person.circle.fill' }} />
-        <Label>Profile</Label>
+      <NativeTabs.Trigger name="wellness">
+        <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
+        <Label>Wellness</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

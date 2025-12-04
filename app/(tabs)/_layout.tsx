@@ -83,13 +83,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="wellness"
         options={{
-          title: 'Profile',
+          title: 'Wellness',
           tabBarIcon: ({ color, focused }) => (
             <IconSymbol
-              ios_icon_name={focused ? 'person.circle.fill' : 'person.circle'}
-              android_material_icon_name="person"
+              ios_icon_name={focused ? 'heart.fill' : 'heart'}
+              android_material_icon_name="favorite"
               size={24}
               color={color}
             />
@@ -99,7 +99,7 @@ export default function TabLayout() {
       
       {/* Hidden screens - accessible from other tabs */}
       <Tabs.Screen
-        name="wellness"
+        name="profile"
         options={{
           href: null,
         }}
