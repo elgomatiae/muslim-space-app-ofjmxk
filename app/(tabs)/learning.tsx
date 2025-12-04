@@ -165,6 +165,7 @@ export default function LearningScreen() {
       if (error) throw error;
 
       if (data) {
+        console.log('Fetched recitations:', data.length);
         const grouped: { [key: string]: Recitation[] } = {};
         data.forEach((recitation) => {
           if (!grouped[recitation.category_id]) {
@@ -173,12 +174,15 @@ export default function LearningScreen() {
           grouped[recitation.category_id].push(recitation);
         });
 
+        console.log('Grouped recitations by category:', Object.keys(grouped));
+
         const categories: RecitationCategory[] = Object.keys(grouped).map((categoryId) => ({
           id: categoryId,
           title: recitationCategoryTitles[categoryId] || categoryId,
           recitations: grouped[categoryId],
         }));
 
+        console.log('Recitation categories:', categories.map(c => `${c.title} (${c.recitations.length})`));
         setRecitationCategories(categories);
       }
     } catch (error) {

@@ -218,7 +218,15 @@ function categorizeVideoForRecitations(title: string, reciter: string): string {
     lowerTitle.includes('al-ikhlas') ||
     lowerTitle.includes('al-falaq') ||
     lowerTitle.includes('an-nas') ||
-    lowerTitle.includes('short surah')
+    lowerTitle.includes('short surah') ||
+    lowerTitle.includes('ar-rahman') ||
+    lowerTitle.includes('rahman') ||
+    lowerTitle.includes('mulk') ||
+    lowerTitle.includes('al-mulk') ||
+    lowerTitle.includes('yasin') ||
+    lowerTitle.includes('yaseen') ||
+    lowerTitle.includes('al-waqiah') ||
+    lowerTitle.includes('waqiah')
   ) {
     return 'short-surahs';
   }
@@ -226,13 +234,21 @@ function categorizeVideoForRecitations(title: string, reciter: string): string {
   // Long Surahs
   if (
     lowerTitle.includes('al-baqarah') ||
+    lowerTitle.includes('baqarah') ||
     lowerTitle.includes('ali imran') ||
+    lowerTitle.includes('al-imran') ||
     lowerTitle.includes('an-nisa') ||
+    lowerTitle.includes('nisa') ||
     lowerTitle.includes('al-maidah') ||
+    lowerTitle.includes('maidah') ||
     lowerTitle.includes('al-anam') ||
+    lowerTitle.includes('anam') ||
     lowerTitle.includes('al-araf') ||
+    lowerTitle.includes('araf') ||
     lowerTitle.includes('al-anfal') ||
+    lowerTitle.includes('anfal') ||
     lowerTitle.includes('at-tawbah') ||
+    lowerTitle.includes('tawbah') ||
     lowerTitle.includes('yunus') ||
     lowerTitle.includes('hud') ||
     lowerTitle.includes('yusuf') ||
@@ -242,8 +258,10 @@ function categorizeVideoForRecitations(title: string, reciter: string): string {
     lowerTitle.includes('an-nahl') ||
     lowerTitle.includes('al-isra') ||
     lowerTitle.includes('al-kahf') ||
+    lowerTitle.includes('kahf') ||
     lowerTitle.includes('maryam') ||
     lowerTitle.includes('ta-ha') ||
+    lowerTitle.includes('taha') ||
     lowerTitle.includes('long surah')
   ) {
     return 'long-surahs';
@@ -255,28 +273,21 @@ function categorizeVideoForRecitations(title: string, reciter: string): string {
     lowerTitle.includes('crying') ||
     lowerTitle.includes('tears') ||
     lowerTitle.includes('heart touching') ||
-    lowerTitle.includes('beautiful') ||
-    lowerTitle.includes('powerful')
+    lowerTitle.includes('heart-touching') ||
+    lowerTitle.includes('touching')
   ) {
     return 'emotional';
   }
   
-  // Famous Qaris
+  // Beautiful recitations (check before famous qaris since many beautiful recitations mention qari names)
   if (
-    lowerTitle.includes('mishary') ||
-    lowerTitle.includes('sudais') ||
-    lowerTitle.includes('shuraim') ||
-    lowerTitle.includes('ajmi') ||
-    lowerTitle.includes('ghamdi') ||
-    lowerTitle.includes('husary') ||
-    lowerTitle.includes('minshawi') ||
-    lowerTitle.includes('basfar') ||
-    lowerTitle.includes('jibreen') ||
-    reciter.toLowerCase().includes('mishary') ||
-    reciter.toLowerCase().includes('sudais') ||
-    reciter.toLowerCase().includes('shuraim')
+    lowerTitle.includes('beautiful') ||
+    lowerTitle.includes('soothing') ||
+    lowerTitle.includes('calming') ||
+    lowerTitle.includes('peaceful') ||
+    lowerTitle.includes('relaxing')
   ) {
-    return 'famous-qaris';
+    return 'beautiful';
   }
   
   // Default to beautiful recitations
