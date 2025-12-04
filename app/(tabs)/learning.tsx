@@ -376,49 +376,47 @@ export default function LearningScreen() {
                     </Text>
                   </View>
                 ) : (
-                  <React.Fragment>
-                    {lectureCategories.map((category) => (
-                      <View key={category.id} style={styles.categorySection}>
-                        <Text style={styles.categoryTitle}>{category.title}</Text>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.videoScroll}
-                        >
-                          {category.videos.map((video) => (
-                            <TouchableOpacity
-                              key={video.id}
-                              style={styles.videoCard}
-                              onPress={() => openVideo(video.video_url)}
-                            >
-                              <Image 
-                                source={{ uri: video.thumbnail_url }} 
-                                style={styles.thumbnail}
-                                resizeMode="cover"
+                  lectureCategories.map((category, categoryIndex) => (
+                    <View key={`category-${categoryIndex}-${category.id}`} style={styles.categorySection}>
+                      <Text style={styles.categoryTitle}>{category.title}</Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.videoScroll}
+                      >
+                        {category.videos.map((video, videoIndex) => (
+                          <TouchableOpacity
+                            key={`video-${categoryIndex}-${videoIndex}-${video.id}`}
+                            style={styles.videoCard}
+                            onPress={() => openVideo(video.video_url)}
+                          >
+                            <Image 
+                              source={{ uri: video.thumbnail_url }} 
+                              style={styles.thumbnail}
+                              resizeMode="cover"
+                            />
+                            <View style={styles.playIconOverlay}>
+                              <IconSymbol
+                                ios_icon_name="play.circle.fill"
+                                android_material_icon_name="play-circle"
+                                size={48}
+                                color="rgba(255, 255, 255, 0.9)"
                               />
-                              <View style={styles.playIconOverlay}>
-                                <IconSymbol
-                                  ios_icon_name="play.circle.fill"
-                                  android_material_icon_name="play-circle"
-                                  size={48}
-                                  color="rgba(255, 255, 255, 0.9)"
-                                />
-                              </View>
-                              <View style={styles.videoInfo}>
-                                <Text style={styles.videoTitle} numberOfLines={2}>
-                                  {video.title}
-                                </Text>
-                                <Text style={styles.videoSpeaker} numberOfLines={1}>
-                                  {video.speaker}
-                                </Text>
-                                <Text style={styles.videoDuration}>{video.duration}</Text>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      </View>
-                    ))}
-                  </React.Fragment>
+                            </View>
+                            <View style={styles.videoInfo}>
+                              <Text style={styles.videoTitle} numberOfLines={2}>
+                                {video.title}
+                              </Text>
+                              <Text style={styles.videoSpeaker} numberOfLines={1}>
+                                {video.speaker}
+                              </Text>
+                              <Text style={styles.videoDuration}>{video.duration}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ))
                 )}
               </React.Fragment>
             )}
@@ -439,49 +437,47 @@ export default function LearningScreen() {
                     </Text>
                   </View>
                 ) : (
-                  <React.Fragment>
-                    {recitationCategories.map((category) => (
-                      <View key={category.id} style={styles.categorySection}>
-                        <Text style={styles.categoryTitle}>{category.title}</Text>
-                        <ScrollView
-                          horizontal
-                          showsHorizontalScrollIndicator={false}
-                          contentContainerStyle={styles.videoScroll}
-                        >
-                          {category.recitations.map((recitation) => (
-                            <TouchableOpacity
-                              key={recitation.id}
-                              style={styles.videoCard}
-                              onPress={() => openVideo(recitation.video_url)}
-                            >
-                              <Image 
-                                source={{ uri: recitation.thumbnail_url }} 
-                                style={styles.thumbnail}
-                                resizeMode="cover"
+                  recitationCategories.map((category, categoryIndex) => (
+                    <View key={`recitation-category-${categoryIndex}-${category.id}`} style={styles.categorySection}>
+                      <Text style={styles.categoryTitle}>{category.title}</Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.videoScroll}
+                      >
+                        {category.recitations.map((recitation, recitationIndex) => (
+                          <TouchableOpacity
+                            key={`recitation-${categoryIndex}-${recitationIndex}-${recitation.id}`}
+                            style={styles.videoCard}
+                            onPress={() => openVideo(recitation.video_url)}
+                          >
+                            <Image 
+                              source={{ uri: recitation.thumbnail_url }} 
+                              style={styles.thumbnail}
+                              resizeMode="cover"
+                            />
+                            <View style={styles.playIconOverlay}>
+                              <IconSymbol
+                                ios_icon_name="play.circle.fill"
+                                android_material_icon_name="play-circle"
+                                size={48}
+                                color="rgba(255, 255, 255, 0.9)"
                               />
-                              <View style={styles.playIconOverlay}>
-                                <IconSymbol
-                                  ios_icon_name="play.circle.fill"
-                                  android_material_icon_name="play-circle"
-                                  size={48}
-                                  color="rgba(255, 255, 255, 0.9)"
-                                />
-                              </View>
-                              <View style={styles.videoInfo}>
-                                <Text style={styles.videoTitle} numberOfLines={2}>
-                                  {recitation.title}
-                                </Text>
-                                <Text style={styles.videoSpeaker} numberOfLines={1}>
-                                  {recitation.reciter}
-                                </Text>
-                                <Text style={styles.videoDuration}>{recitation.duration}</Text>
-                              </View>
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
-                      </View>
-                    ))}
-                  </React.Fragment>
+                            </View>
+                            <View style={styles.videoInfo}>
+                              <Text style={styles.videoTitle} numberOfLines={2}>
+                                {recitation.title}
+                              </Text>
+                              <Text style={styles.videoSpeaker} numberOfLines={1}>
+                                {recitation.reciter}
+                              </Text>
+                              <Text style={styles.videoDuration}>{recitation.duration}</Text>
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  ))
                 )}
               </React.Fragment>
             )}
@@ -503,9 +499,9 @@ export default function LearningScreen() {
                   </View>
                 ) : (
                   <View style={styles.quizzesGrid}>
-                    {quizzes.map((quiz) => (
+                    {quizzes.map((quiz, quizIndex) => (
                       <TouchableOpacity 
-                        key={quiz.quiz_id} 
+                        key={`quiz-${quizIndex}-${quiz.quiz_id}`} 
                         style={styles.quizCard}
                         onPress={() => openQuiz(quiz.quiz_id)}
                         activeOpacity={0.7}
@@ -575,9 +571,9 @@ export default function LearningScreen() {
                       </View>
                     ) : (
                       <View style={styles.duaCategoriesGrid}>
-                        {duaCategories.map((category) => (
+                        {duaCategories.map((category, index) => (
                           <TouchableOpacity
-                            key={category.id}
+                            key={`dua-cat-${index}`}
                             style={[styles.duaCategoryCard, { backgroundColor: category.color }]}
                             onPress={() => openDuaCategory(category.id)}
                             activeOpacity={0.8}
@@ -625,10 +621,10 @@ export default function LearningScreen() {
                           </View>
                         </View>
 
-                        {categoryDuas.map((dua) => (
-                          <View key={dua.id} style={styles.duaCard}>
+                        {categoryDuas.map((dua, index) => (
+                          <View key={`dua-${index}`} style={styles.duaCard}>
                             <View style={[styles.duaNumber, { backgroundColor: dua.category_color }]}>
-                              <Text style={styles.duaNumberText}>{dua.order_index + 1}</Text>
+                              <Text style={styles.duaNumberText}>{index + 1}</Text>
                             </View>
                             <Text style={styles.duaArabic}>{dua.arabic}</Text>
                             <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
