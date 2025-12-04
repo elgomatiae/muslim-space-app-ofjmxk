@@ -4,6 +4,8 @@ import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { colors } from '@/styles/commonStyles';
 
 export default function TabLayout() {
+  console.log('iOS TabLayout rendering with Profile tab');
+  
   return (
     <NativeTabs
       tintColor={colors.primary}

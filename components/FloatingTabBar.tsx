@@ -20,6 +20,9 @@ export default function FloatingTabBar({ tabs }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  console.log('FloatingTabBar rendering with tabs:', tabs.map(t => t.label).join(', '));
+  console.log('Current pathname:', pathname);
+
   const isActive = (route: string) => {
     return pathname.startsWith(route);
   };
@@ -33,7 +36,10 @@ export default function FloatingTabBar({ tabs }: FloatingTabBarProps) {
             <TouchableOpacity
               key={index}
               style={styles.tab}
-              onPress={() => router.push(tab.route as any)}
+              onPress={() => {
+                console.log('Tab pressed:', tab.label, 'Route:', tab.route);
+                router.push(tab.route as any);
+              }}
               activeOpacity={0.7}
             >
               <IconSymbol

@@ -43,6 +43,8 @@ export default function TabLayout() {
     },
   ];
 
+  console.log('TabLayout rendering with tabs:', tabs.map(t => t.label).join(', '));
+
   return (
     <>
       <Stack
