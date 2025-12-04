@@ -26,11 +26,6 @@ export default function TabLayout() {
         <Label>Dawah</Label>
       </NativeTabs.Trigger>
       
-      <NativeTabs.Trigger name="wellness">
-        <Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
-        <Label>Wellness</Label>
-      </NativeTabs.Trigger>
-      
       <NativeTabs.Trigger name="tracker">
         <Icon sf={{ default: 'chart.line.uptrend.xyaxis', selected: 'chart.line.uptrend.xyaxis.circle.fill' }} />
         <Label>Faith</Label>

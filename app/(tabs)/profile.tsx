@@ -94,7 +94,6 @@ export default function ProfileScreen() {
         .single();
 
       if (error) {
-        // If no settings exist, create default ones
         if (error.code === 'PGRST116') {
           const { error: insertError } = await supabase
             .from('user_settings')
@@ -135,7 +134,6 @@ export default function ProfileScreen() {
   const updateNotificationSetting = async (key: keyof NotificationSettings, value: boolean) => {
     if (!user || !isSupabaseConfigured()) return;
 
-    // Update local state immediately for better UX
     setNotificationSettings(prev => ({ ...prev, [key]: value }));
 
     setSavingSettings(true);
@@ -147,13 +145,11 @@ export default function ProfileScreen() {
 
       if (error) {
         console.error('Error updating setting:', error);
-        // Revert on error
         setNotificationSettings(prev => ({ ...prev, [key]: !value }));
         Alert.alert('Error', 'Failed to update notification setting');
       }
     } catch (error) {
       console.error('Error updating notification setting:', error);
-      // Revert on error
       setNotificationSettings(prev => ({ ...prev, [key]: !value }));
       Alert.alert('Error', 'An unexpected error occurred');
     } finally {
@@ -547,7 +543,7 @@ export default function ProfileScreen() {
                   'Success - Videos Permanently Stored', 
                   `${result.message}\n\nImported to: ${destinationName}\nImported: ${result.imported}\nFailed: ${result.failed}\nTotal: ${result.total}\n\nCategory Breakdown:\n${categoryBreakdown}\n\n✓ These videos are now permanently stored in your database and will remain until manually removed.`
                 );
-                setPlaylistUrl(''); // Clear the input
+                setPlaylistUrl('');
               } else {
                 Alert.alert(
                   'Error', 
@@ -590,7 +586,6 @@ export default function ProfileScreen() {
         if (error) {
           Alert.alert('Sign Up Error', error.message || 'Failed to create account');
         } else {
-          // Navigate to email verification screen
           router.push('/email-verification');
         }
       } else {
@@ -608,7 +603,6 @@ export default function ProfileScreen() {
             Alert.alert('Sign In Error', error.message || 'Failed to sign in');
           }
         }
-        // Navigation to profile happens automatically when user state changes
       }
     } catch (error) {
       console.log('Auth error:', error);
@@ -625,7 +619,6 @@ export default function ProfileScreen() {
       if (error) {
         Alert.alert('Google Sign In Error', error.message || 'Failed to sign in with Google');
       }
-      // Navigation to profile happens automatically when user state changes
     } catch (error) {
       console.log('Google sign in error:', error);
       Alert.alert('Error', 'An unexpected error occurred');
@@ -662,7 +655,6 @@ export default function ProfileScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            // Second confirmation
             Alert.alert(
               'Final Confirmation',
               'This will permanently delete your account and all associated data. Are you absolutely sure?',
@@ -673,8 +665,6 @@ export default function ProfileScreen() {
                   style: 'destructive',
                   onPress: async () => {
                     try {
-                      // Note: Account deletion should be handled by a Supabase Edge Function
-                      // for security reasons. For now, we'll just sign out.
                       Alert.alert(
                         'Account Deletion',
                         'Please contact support to delete your account. For now, you will be signed out.'
@@ -720,6 +710,60 @@ export default function ProfileScreen() {
               You&apos;ll need to create a Supabase project first if you don&apos;t have one.
             </Text>
           </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Access</Text>
+            
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/wellness')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.quickAccessLeft}>
+                <IconSymbol
+                  ios_icon_name="heart.fill"
+                  android_material_icon_name="favorite"
+                  size={28}
+                  color={colors.error}
+                />
+                <View style={styles.quickAccessTextContainer}>
+                  <Text style={styles.quickAccessTitle}>Wellness</Text>
+                  <Text style={styles.quickAccessDescription}>Mental & Physical Health</Text>
+                </View>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/duas')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.quickAccessLeft}>
+                <IconSymbol
+                  ios_icon_name="hands.sparkles.fill"
+                  android_material_icon_name="auto-awesome"
+                  size={28}
+                  color={colors.accent}
+                />
+                <View style={styles.quickAccessTextContainer}>
+                  <Text style={styles.quickAccessTitle}>Duas</Text>
+                  <Text style={styles.quickAccessDescription}>Browse Islamic Supplications</Text>
+                </View>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </View>
     );
@@ -749,7 +793,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* PIN Modal */}
         <Modal
           visible={showPinModal}
           transparent={true}
@@ -1122,6 +1165,60 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quick Access</Text>
+            
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/wellness')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.quickAccessLeft}>
+                <IconSymbol
+                  ios_icon_name="heart.fill"
+                  android_material_icon_name="favorite"
+                  size={28}
+                  color={colors.error}
+                />
+                <View style={styles.quickAccessTextContainer}>
+                  <Text style={styles.quickAccessTitle}>Wellness</Text>
+                  <Text style={styles.quickAccessDescription}>Mental & Physical Health</Text>
+                </View>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/duas')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.quickAccessLeft}>
+                <IconSymbol
+                  ios_icon_name="hands.sparkles.fill"
+                  android_material_icon_name="auto-awesome"
+                  size={28}
+                  color={colors.accent}
+                />
+                <View style={styles.quickAccessTextContainer}>
+                  <Text style={styles.quickAccessTitle}>Duas</Text>
+                  <Text style={styles.quickAccessDescription}>Browse Islamic Supplications</Text>
+                </View>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Today&apos;s Progress</Text>
             
             <View style={styles.statsGrid}>
@@ -1472,7 +1569,6 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Extra padding at bottom to prevent tab bar overlap */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
@@ -1653,7 +1749,60 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        {/* Extra padding at bottom to prevent tab bar overlap */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          
+          <TouchableOpacity 
+            style={styles.quickAccessCard}
+            onPress={() => router.push('/wellness')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.quickAccessLeft}>
+              <IconSymbol
+                ios_icon_name="heart.fill"
+                android_material_icon_name="favorite"
+                size={28}
+                color={colors.error}
+              />
+              <View style={styles.quickAccessTextContainer}>
+                <Text style={styles.quickAccessTitle}>Wellness</Text>
+                <Text style={styles.quickAccessDescription}>Mental & Physical Health</Text>
+              </View>
+            </View>
+            <IconSymbol
+              ios_icon_name="chevron.right"
+              android_material_icon_name="chevron-right"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.quickAccessCard}
+            onPress={() => router.push('/duas')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.quickAccessLeft}>
+              <IconSymbol
+                ios_icon_name="hands.sparkles.fill"
+                android_material_icon_name="auto-awesome"
+                size={28}
+                color={colors.accent}
+              />
+              <View style={styles.quickAccessTextContainer}>
+                <Text style={styles.quickAccessTitle}>Duas</Text>
+                <Text style={styles.quickAccessDescription}>Browse Islamic Supplications</Text>
+              </View>
+            </View>
+            <IconSymbol
+              ios_icon_name="chevron.right"
+              android_material_icon_name="chevron-right"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
@@ -1926,6 +2075,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
+    marginBottom: 24,
     boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
@@ -1986,6 +2136,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 12,
+  },
+  quickAccessCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
+    elevation: 2,
+  },
+  quickAccessLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  quickAccessTextContainer: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  quickAccessTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  quickAccessDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -2150,6 +2330,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
+    marginBottom: 24,
     boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
     elevation: 2,
   },
