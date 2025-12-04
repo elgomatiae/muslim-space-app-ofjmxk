@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -94,6 +94,15 @@ const recitationCategoryTitles: { [key: string]: string } = {
   'juz-amma': 'Juz Amma',
 };
 
+// Cache for data
+const dataCache: {
+  lectures?: VideoCategory[];
+  recitations?: RecitationCategory[];
+  quizzes?: Quiz[];
+  duaCategories?: DuaCategory[];
+  categoryDuas?: { [key: string]: Dua[] };
+} = {};
+
 export default function LearningScreen() {
   const [selectedTab, setSelectedTab] = useState<TabType>('lectures');
   const [lectureCategories, setLectureCategories] = useState<VideoCategory[]>([]);
@@ -102,30 +111,40 @@ export default function LearningScreen() {
   const [duaCategories, setDuaCategories] = useState<DuaCategory[]>([]);
   const [selectedDuaCategory, setSelectedDuaCategory] = useState<string | null>(null);
   const [categoryDuas, setCategoryDuas] = useState<Dua[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { incrementLectureCount } = useAchievements();
 
+  // Lazy load data only when tab is selected
   useEffect(() => {
-    if (selectedTab === 'lectures') {
+    if (selectedTab === 'lectures' && !dataCache.lectures) {
       fetchLectures();
-    } else if (selectedTab === 'recitations') {
+    } else if (selectedTab === 'lectures' && dataCache.lectures) {
+      setLectureCategories(dataCache.lectures);
+    } else if (selectedTab === 'recitations' && !dataCache.recitations) {
       fetchRecitations();
-    } else if (selectedTab === 'quizzes') {
+    } else if (selectedTab === 'recitations' && dataCache.recitations) {
+      setRecitationCategories(dataCache.recitations);
+    } else if (selectedTab === 'quizzes' && !dataCache.quizzes) {
       fetchQuizzes();
-    } else if (selectedTab === 'duas') {
+    } else if (selectedTab === 'quizzes' && dataCache.quizzes) {
+      setQuizzes(dataCache.quizzes);
+    } else if (selectedTab === 'duas' && !dataCache.duaCategories) {
       fetchDuaCategories();
+    } else if (selectedTab === 'duas' && dataCache.duaCategories) {
+      setDuaCategories(dataCache.duaCategories);
     }
   }, [selectedTab]);
 
-  const fetchLectures = async () => {
+  const fetchLectures = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('lectures')
         .select('*')
         .order('category_id', { ascending: true })
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .limit(100);
 
       if (error) throw error;
 
@@ -144,6 +163,7 @@ export default function LearningScreen() {
           videos: grouped[categoryId],
         }));
 
+        dataCache.lectures = categories;
         setLectureCategories(categories);
       }
     } catch (error) {
@@ -151,16 +171,17 @@ export default function LearningScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchRecitations = async () => {
+  const fetchRecitations = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('recitations')
         .select('*')
         .order('category_id', { ascending: true })
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .limit(100);
 
       if (error) throw error;
 
@@ -183,6 +204,7 @@ export default function LearningScreen() {
         }));
 
         console.log('Recitation categories:', categories.map(c => `${c.title} (${c.recitations.length})`));
+        dataCache.recitations = categories;
         setRecitationCategories(categories);
       }
     } catch (error) {
@@ -190,27 +212,29 @@ export default function LearningScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('quizzes')
         .select('*')
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .limit(50);
 
       if (error) throw error;
 
+      dataCache.quizzes = data || [];
       setQuizzes(data || []);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchDuaCategories = async () => {
+  const fetchDuaCategories = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -220,7 +244,6 @@ export default function LearningScreen() {
       if (error) throw error;
 
       if (data) {
-        // Group by category and count
         const categoryMap: { [key: string]: DuaCategory } = {};
         data.forEach((dua) => {
           if (!categoryMap[dua.category_id]) {
@@ -235,16 +258,24 @@ export default function LearningScreen() {
           categoryMap[dua.category_id].count++;
         });
 
-        setDuaCategories(Object.values(categoryMap));
+        const categories = Object.values(categoryMap);
+        dataCache.duaCategories = categories;
+        setDuaCategories(categories);
       }
     } catch (error) {
       console.error('Error fetching dua categories:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchCategoryDuas = async (categoryId: string) => {
+  const fetchCategoryDuas = useCallback(async (categoryId: string) => {
+    // Check cache first
+    if (dataCache.categoryDuas && dataCache.categoryDuas[categoryId]) {
+      setCategoryDuas(dataCache.categoryDuas[categoryId]);
+      return;
+    }
+
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -255,33 +286,336 @@ export default function LearningScreen() {
 
       if (error) throw error;
 
-      setCategoryDuas(data || []);
+      if (data) {
+        if (!dataCache.categoryDuas) {
+          dataCache.categoryDuas = {};
+        }
+        dataCache.categoryDuas[categoryId] = data;
+        setCategoryDuas(data);
+      }
     } catch (error) {
       console.error('Error fetching category duas:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const openVideo = async (url: string) => {
+  const openVideo = useCallback(async (url: string) => {
     console.log('Opening lecture video, incrementing lecture count...');
     await incrementLectureCount();
     Linking.openURL(url);
-  };
+  }, [incrementLectureCount]);
 
-  const openQuiz = (quizId: string) => {
+  const openQuiz = useCallback((quizId: string) => {
     router.push(`/quiz?quizId=${quizId}` as any);
-  };
+  }, [router]);
 
-  const openDuaCategory = (categoryId: string) => {
+  const openDuaCategory = useCallback((categoryId: string) => {
     setSelectedDuaCategory(categoryId);
     fetchCategoryDuas(categoryId);
-  };
+  }, [fetchCategoryDuas]);
 
-  const closeDuaCategory = () => {
+  const closeDuaCategory = useCallback(() => {
     setSelectedDuaCategory(null);
     setCategoryDuas([]);
-  };
+  }, []);
+
+  // Memoize rendered content to prevent unnecessary re-renders
+  const renderContent = useMemo(() => {
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading content...</Text>
+        </View>
+      );
+    }
+
+    if (selectedTab === 'lectures') {
+      if (lectureCategories.length === 0) {
+        return (
+          <View style={styles.emptyState}>
+            <IconSymbol
+              ios_icon_name="play.rectangle"
+              android_material_icon_name="play-circle-outline"
+              size={64}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.emptyStateTitle}>No Lectures Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Lectures will appear here once they are added to the database.
+            </Text>
+          </View>
+        );
+      }
+
+      return lectureCategories.map((category, categoryIndex) => (
+        <View key={`category-${categoryIndex}-${category.id}`} style={styles.categorySection}>
+          <Text style={styles.categoryTitle}>{category.title}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.videoScroll}
+          >
+            {category.videos.map((video, videoIndex) => (
+              <TouchableOpacity
+                key={`video-${categoryIndex}-${videoIndex}-${video.id}`}
+                style={styles.videoCard}
+                onPress={() => openVideo(video.video_url)}
+              >
+                <Image 
+                  source={{ uri: video.thumbnail_url }} 
+                  style={styles.thumbnail}
+                  resizeMode="cover"
+                />
+                <View style={styles.playIconOverlay}>
+                  <IconSymbol
+                    ios_icon_name="play.circle.fill"
+                    android_material_icon_name="play-circle"
+                    size={48}
+                    color="rgba(255, 255, 255, 0.9)"
+                  />
+                </View>
+                <View style={styles.videoInfo}>
+                  <Text style={styles.videoTitle} numberOfLines={2}>
+                    {video.title}
+                  </Text>
+                  <Text style={styles.videoSpeaker} numberOfLines={1}>
+                    {video.speaker}
+                  </Text>
+                  <Text style={styles.videoDuration}>{video.duration}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ));
+    }
+
+    if (selectedTab === 'recitations') {
+      if (recitationCategories.length === 0) {
+        return (
+          <View style={styles.emptyState}>
+            <IconSymbol
+              ios_icon_name="book"
+              android_material_icon_name="menu-book"
+              size={64}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.emptyStateTitle}>No Recitations Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Recitations will appear here once they are added to the database.
+            </Text>
+          </View>
+        );
+      }
+
+      return recitationCategories.map((category, categoryIndex) => (
+        <View key={`recitation-category-${categoryIndex}-${category.id}`} style={styles.categorySection}>
+          <Text style={styles.categoryTitle}>{category.title}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.videoScroll}
+          >
+            {category.recitations.map((recitation, recitationIndex) => (
+              <TouchableOpacity
+                key={`recitation-${categoryIndex}-${recitationIndex}-${recitation.id}`}
+                style={styles.videoCard}
+                onPress={() => openVideo(recitation.video_url)}
+              >
+                <Image 
+                  source={{ uri: recitation.thumbnail_url }} 
+                  style={styles.thumbnail}
+                  resizeMode="cover"
+                />
+                <View style={styles.playIconOverlay}>
+                  <IconSymbol
+                    ios_icon_name="play.circle.fill"
+                    android_material_icon_name="play-circle"
+                    size={48}
+                    color="rgba(255, 255, 255, 0.9)"
+                  />
+                </View>
+                <View style={styles.videoInfo}>
+                  <Text style={styles.videoTitle} numberOfLines={2}>
+                    {recitation.title}
+                  </Text>
+                  <Text style={styles.videoSpeaker} numberOfLines={1}>
+                    {recitation.reciter}
+                  </Text>
+                  <Text style={styles.videoDuration}>{recitation.duration}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ));
+    }
+
+    if (selectedTab === 'quizzes') {
+      if (quizzes.length === 0) {
+        return (
+          <View style={styles.emptyState}>
+            <IconSymbol
+              ios_icon_name="questionmark.circle"
+              android_material_icon_name="quiz"
+              size={64}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.emptyStateTitle}>No Quizzes Yet</Text>
+            <Text style={styles.emptyStateText}>
+              Quizzes will appear here once they are added to the database.
+            </Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.quizzesGrid}>
+          {quizzes.map((quiz, quizIndex) => (
+            <TouchableOpacity 
+              key={`quiz-${quizIndex}-${quiz.quiz_id}`} 
+              style={styles.quizCard}
+              onPress={() => openQuiz(quiz.quiz_id)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
+                <IconSymbol
+                  ios_icon_name="questionmark.circle.fill"
+                  android_material_icon_name="quiz"
+                  size={32}
+                  color={colors.card}
+                />
+              </View>
+              <View style={styles.quizInfo}>
+                <Text style={styles.quizTitle}>{quiz.title}</Text>
+                <Text style={styles.quizDescription}>{quiz.description}</Text>
+                <View style={styles.quizMeta}>
+                  <View style={styles.quizMetaItem}>
+                    <IconSymbol
+                      ios_icon_name="list.bullet"
+                      android_material_icon_name="list"
+                      size={14}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.quizMetaText}>10 questions</Text>
+                  </View>
+                  <Text style={styles.quizMetaText}>•</Text>
+                  <View style={styles.quizMetaItem}>
+                    <IconSymbol
+                      ios_icon_name="chart.bar.fill"
+                      android_material_icon_name="bar-chart"
+                      size={14}
+                      color={colors.textSecondary}
+                    />
+                    <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
+                  </View>
+                </View>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={24}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      );
+    }
+
+    if (selectedTab === 'duas') {
+      if (!selectedDuaCategory) {
+        if (duaCategories.length === 0) {
+          return (
+            <View style={styles.emptyState}>
+              <IconSymbol
+                ios_icon_name="hands.sparkles"
+                android_material_icon_name="volunteer-activism"
+                size={64}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.emptyStateTitle}>No Duas Yet</Text>
+              <Text style={styles.emptyStateText}>
+                Duas will appear here once they are added to the database.
+              </Text>
+            </View>
+          );
+        }
+
+        return (
+          <View style={styles.duaCategoriesGrid}>
+            {duaCategories.map((category, index) => (
+              <TouchableOpacity
+                key={`dua-cat-${index}`}
+                style={[styles.duaCategoryCard, { backgroundColor: category.color }]}
+                onPress={() => openDuaCategory(category.id)}
+                activeOpacity={0.8}
+              >
+                <IconSymbol
+                  ios_icon_name={category.icon as any}
+                  android_material_icon_name={category.icon as any}
+                  size={32}
+                  color={colors.card}
+                />
+                <Text style={styles.duaCategoryTitle}>{category.title}</Text>
+                <Text style={styles.duaCategoryCount}>{category.count} duas</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        );
+      }
+
+      return (
+        <React.Fragment>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={closeDuaCategory}
+          >
+            <IconSymbol
+              ios_icon_name="chevron.left"
+              android_material_icon_name="chevron-left"
+              size={24}
+              color={colors.text}
+            />
+            <Text style={styles.backButtonText}>Back to Categories</Text>
+          </TouchableOpacity>
+
+          {categoryDuas.length > 0 && (
+            <React.Fragment>
+              <View style={[styles.duaCategoryBanner, { backgroundColor: categoryDuas[0].category_color }]}>
+                <IconSymbol
+                  ios_icon_name={categoryDuas[0].category_icon as any}
+                  android_material_icon_name={categoryDuas[0].category_icon as any}
+                  size={36}
+                  color={colors.card}
+                />
+                <View style={styles.duaCategoryBannerText}>
+                  <Text style={styles.duaCategoryBannerTitle}>{categoryDuas[0].category_title} Duas</Text>
+                  <Text style={styles.duaCategoryBannerSubtitle}>{categoryDuas.length} supplications</Text>
+                </View>
+              </View>
+
+              {categoryDuas.map((dua, index) => (
+                <View key={`dua-${index}`} style={styles.duaCard}>
+                  <View style={[styles.duaNumber, { backgroundColor: dua.category_color }]}>
+                    <Text style={styles.duaNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.duaArabic}>{dua.arabic}</Text>
+                  <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
+                  <Text style={styles.duaTranslation}>{dua.translation}</Text>
+                  <Text style={styles.duaReference}>{dua.reference}</Text>
+                </View>
+              ))}
+            </React.Fragment>
+          )}
+        </React.Fragment>
+      );
+    }
+
+    return null;
+  }, [loading, selectedTab, lectureCategories, recitationCategories, quizzes, duaCategories, selectedDuaCategory, categoryDuas, openVideo, openQuiz, openDuaCategory, closeDuaCategory]);
 
   return (
     <View style={styles.container}>
@@ -353,293 +687,7 @@ export default function LearningScreen() {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading content...</Text>
-          </View>
-        ) : (
-          <React.Fragment>
-            {selectedTab === 'lectures' && (
-              <React.Fragment>
-                {lectureCategories.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <IconSymbol
-                      ios_icon_name="play.rectangle"
-                      android_material_icon_name="play-circle-outline"
-                      size={64}
-                      color={colors.textSecondary}
-                    />
-                    <Text style={styles.emptyStateTitle}>No Lectures Yet</Text>
-                    <Text style={styles.emptyStateText}>
-                      Lectures will appear here once they are added to the database.
-                    </Text>
-                  </View>
-                ) : (
-                  lectureCategories.map((category, categoryIndex) => (
-                    <View key={`category-${categoryIndex}-${category.id}`} style={styles.categorySection}>
-                      <Text style={styles.categoryTitle}>{category.title}</Text>
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.videoScroll}
-                      >
-                        {category.videos.map((video, videoIndex) => (
-                          <TouchableOpacity
-                            key={`video-${categoryIndex}-${videoIndex}-${video.id}`}
-                            style={styles.videoCard}
-                            onPress={() => openVideo(video.video_url)}
-                          >
-                            <Image 
-                              source={{ uri: video.thumbnail_url }} 
-                              style={styles.thumbnail}
-                              resizeMode="cover"
-                            />
-                            <View style={styles.playIconOverlay}>
-                              <IconSymbol
-                                ios_icon_name="play.circle.fill"
-                                android_material_icon_name="play-circle"
-                                size={48}
-                                color="rgba(255, 255, 255, 0.9)"
-                              />
-                            </View>
-                            <View style={styles.videoInfo}>
-                              <Text style={styles.videoTitle} numberOfLines={2}>
-                                {video.title}
-                              </Text>
-                              <Text style={styles.videoSpeaker} numberOfLines={1}>
-                                {video.speaker}
-                              </Text>
-                              <Text style={styles.videoDuration}>{video.duration}</Text>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  ))
-                )}
-              </React.Fragment>
-            )}
-
-            {selectedTab === 'recitations' && (
-              <React.Fragment>
-                {recitationCategories.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <IconSymbol
-                      ios_icon_name="book"
-                      android_material_icon_name="menu-book"
-                      size={64}
-                      color={colors.textSecondary}
-                    />
-                    <Text style={styles.emptyStateTitle}>No Recitations Yet</Text>
-                    <Text style={styles.emptyStateText}>
-                      Recitations will appear here once they are added to the database.
-                    </Text>
-                  </View>
-                ) : (
-                  recitationCategories.map((category, categoryIndex) => (
-                    <View key={`recitation-category-${categoryIndex}-${category.id}`} style={styles.categorySection}>
-                      <Text style={styles.categoryTitle}>{category.title}</Text>
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.videoScroll}
-                      >
-                        {category.recitations.map((recitation, recitationIndex) => (
-                          <TouchableOpacity
-                            key={`recitation-${categoryIndex}-${recitationIndex}-${recitation.id}`}
-                            style={styles.videoCard}
-                            onPress={() => openVideo(recitation.video_url)}
-                          >
-                            <Image 
-                              source={{ uri: recitation.thumbnail_url }} 
-                              style={styles.thumbnail}
-                              resizeMode="cover"
-                            />
-                            <View style={styles.playIconOverlay}>
-                              <IconSymbol
-                                ios_icon_name="play.circle.fill"
-                                android_material_icon_name="play-circle"
-                                size={48}
-                                color="rgba(255, 255, 255, 0.9)"
-                              />
-                            </View>
-                            <View style={styles.videoInfo}>
-                              <Text style={styles.videoTitle} numberOfLines={2}>
-                                {recitation.title}
-                              </Text>
-                              <Text style={styles.videoSpeaker} numberOfLines={1}>
-                                {recitation.reciter}
-                              </Text>
-                              <Text style={styles.videoDuration}>{recitation.duration}</Text>
-                            </View>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
-                  ))
-                )}
-              </React.Fragment>
-            )}
-
-            {selectedTab === 'quizzes' && (
-              <React.Fragment>
-                {quizzes.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <IconSymbol
-                      ios_icon_name="questionmark.circle"
-                      android_material_icon_name="quiz"
-                      size={64}
-                      color={colors.textSecondary}
-                    />
-                    <Text style={styles.emptyStateTitle}>No Quizzes Yet</Text>
-                    <Text style={styles.emptyStateText}>
-                      Quizzes will appear here once they are added to the database.
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.quizzesGrid}>
-                    {quizzes.map((quiz, quizIndex) => (
-                      <TouchableOpacity 
-                        key={`quiz-${quizIndex}-${quiz.quiz_id}`} 
-                        style={styles.quizCard}
-                        onPress={() => openQuiz(quiz.quiz_id)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={[styles.quizIcon, { backgroundColor: quiz.color }]}>
-                          <IconSymbol
-                            ios_icon_name="questionmark.circle.fill"
-                            android_material_icon_name="quiz"
-                            size={32}
-                            color={colors.card}
-                          />
-                        </View>
-                        <View style={styles.quizInfo}>
-                          <Text style={styles.quizTitle}>{quiz.title}</Text>
-                          <Text style={styles.quizDescription}>{quiz.description}</Text>
-                          <View style={styles.quizMeta}>
-                            <View style={styles.quizMetaItem}>
-                              <IconSymbol
-                                ios_icon_name="list.bullet"
-                                android_material_icon_name="list"
-                                size={14}
-                                color={colors.textSecondary}
-                              />
-                              <Text style={styles.quizMetaText}>10 questions</Text>
-                            </View>
-                            <Text style={styles.quizMetaText}>•</Text>
-                            <View style={styles.quizMetaItem}>
-                              <IconSymbol
-                                ios_icon_name="chart.bar.fill"
-                                android_material_icon_name="bar-chart"
-                                size={14}
-                                color={colors.textSecondary}
-                              />
-                              <Text style={styles.quizMetaText}>{quiz.difficulty}</Text>
-                            </View>
-                          </View>
-                        </View>
-                        <IconSymbol
-                          ios_icon_name="chevron.right"
-                          android_material_icon_name="chevron-right"
-                          size={24}
-                          color={colors.textSecondary}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </React.Fragment>
-            )}
-
-            {selectedTab === 'duas' && (
-              <React.Fragment>
-                {!selectedDuaCategory ? (
-                  <React.Fragment>
-                    {duaCategories.length === 0 ? (
-                      <View style={styles.emptyState}>
-                        <IconSymbol
-                          ios_icon_name="hands.sparkles"
-                          android_material_icon_name="volunteer-activism"
-                          size={64}
-                          color={colors.textSecondary}
-                        />
-                        <Text style={styles.emptyStateTitle}>No Duas Yet</Text>
-                        <Text style={styles.emptyStateText}>
-                          Duas will appear here once they are added to the database.
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={styles.duaCategoriesGrid}>
-                        {duaCategories.map((category, index) => (
-                          <TouchableOpacity
-                            key={`dua-cat-${index}`}
-                            style={[styles.duaCategoryCard, { backgroundColor: category.color }]}
-                            onPress={() => openDuaCategory(category.id)}
-                            activeOpacity={0.8}
-                          >
-                            <IconSymbol
-                              ios_icon_name={category.icon as any}
-                              android_material_icon_name={category.icon as any}
-                              size={32}
-                              color={colors.card}
-                            />
-                            <Text style={styles.duaCategoryTitle}>{category.title}</Text>
-                            <Text style={styles.duaCategoryCount}>{category.count} duas</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </React.Fragment>
-                ) : (
-                  <React.Fragment>
-                    <TouchableOpacity
-                      style={styles.backButton}
-                      onPress={closeDuaCategory}
-                    >
-                      <IconSymbol
-                        ios_icon_name="chevron.left"
-                        android_material_icon_name="chevron-left"
-                        size={24}
-                        color={colors.text}
-                      />
-                      <Text style={styles.backButtonText}>Back to Categories</Text>
-                    </TouchableOpacity>
-
-                    {categoryDuas.length > 0 && (
-                      <React.Fragment>
-                        <View style={[styles.duaCategoryBanner, { backgroundColor: categoryDuas[0].category_color }]}>
-                          <IconSymbol
-                            ios_icon_name={categoryDuas[0].category_icon as any}
-                            android_material_icon_name={categoryDuas[0].category_icon as any}
-                            size={36}
-                            color={colors.card}
-                          />
-                          <View style={styles.duaCategoryBannerText}>
-                            <Text style={styles.duaCategoryBannerTitle}>{categoryDuas[0].category_title} Duas</Text>
-                            <Text style={styles.duaCategoryBannerSubtitle}>{categoryDuas.length} supplications</Text>
-                          </View>
-                        </View>
-
-                        {categoryDuas.map((dua, index) => (
-                          <View key={`dua-${index}`} style={styles.duaCard}>
-                            <View style={[styles.duaNumber, { backgroundColor: dua.category_color }]}>
-                              <Text style={styles.duaNumberText}>{index + 1}</Text>
-                            </View>
-                            <Text style={styles.duaArabic}>{dua.arabic}</Text>
-                            <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
-                            <Text style={styles.duaTranslation}>{dua.translation}</Text>
-                            <Text style={styles.duaReference}>{dua.reference}</Text>
-                          </View>
-                        ))}
-                      </React.Fragment>
-                    )}
-                  </React.Fragment>
-                )}
-              </React.Fragment>
-            )}
-          </React.Fragment>
-        )}
+        {renderContent}
       </ScrollView>
     </View>
   );

@@ -66,12 +66,14 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 25,
     paddingVertical: 8,
     paddingHorizontal: 8,
     boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
     elevation: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tab: {
     flex: 1,
