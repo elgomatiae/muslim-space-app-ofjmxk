@@ -4,7 +4,7 @@ import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
 import { colors } from '@/styles/commonStyles';
 
 export default function TabLayout() {
-  console.log('iOS TabLayout rendering with Profile tab');
+  console.log('🍎 iOS TabLayout rendering - Profile tab should be visible');
   
   return (
     <NativeTabs

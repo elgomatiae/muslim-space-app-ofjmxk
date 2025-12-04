@@ -4,6 +4,8 @@ import { Stack } from 'expo-router';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 
 export default function TabLayout() {
+  console.log('🔄 Android/Web TabLayout rendering - Profile tab should be visible');
+  
   const tabs: TabBarItem[] = [
     {
       name: '(home)',
@@ -43,6 +45,8 @@ export default function TabLayout() {
     },
   ];
 
+  console.log('📋 Tab configuration:', tabs.map(t => t.label).join(', '));
+
   return (
     <React.Fragment>
       <Stack
@@ -59,6 +63,8 @@ export default function TabLayout() {
         <Stack.Screen name="wellness" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="achievements" />
+        <Stack.Screen name="quiz" />
+        <Stack.Screen name="trends" />
       </Stack>
       <FloatingTabBar tabs={tabs} />
     </React.Fragment>
