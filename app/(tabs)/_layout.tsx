@@ -97,35 +97,40 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Hidden screens - accessible from other tabs */}
+      {/* Hidden screens - accessible via navigation but not shown in tab bar */}
       <Tabs.Screen
         name="profile"
         options={{
           href: null,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="duas"
         options={{
           href: null,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="achievements"
         options={{
           href: null,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="quiz"
         options={{
           href: null,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="trends"
         options={{
           href: null,
+          headerShown: false,
         }}
       />
     </Tabs>

@@ -11,7 +11,12 @@ export default function ProfileButton() {
 
   const handlePress = () => {
     console.log('Profile button pressed, navigating to profile...');
-    router.navigate('/(tabs)/profile');
+    try {
+      router.push('/(tabs)/profile');
+      console.log('Navigation to profile initiated');
+    } catch (error) {
+      console.error('Error navigating to profile:', error);
+    }
   };
 
   return (
