@@ -3,17 +3,21 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { IconSymbol } from './IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProfileButton() {
-  const router = useRouter();
   const { user } = useAuth();
+
+  const handlePress = () => {
+    console.log('Profile button pressed, navigating to profile...');
+    router.navigate('/(tabs)/profile');
+  };
 
   return (
     <TouchableOpacity
       style={[styles.button, user && styles.buttonActive]}
-      onPress={() => router.push('/(tabs)/profile')}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
       <IconSymbol
