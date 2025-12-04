@@ -43,26 +43,24 @@ export default function TabLayout() {
     },
   ];
 
-  console.log('TabLayout rendering with tabs:', tabs.map(t => t.label).join(', '));
-
   return (
-    <>
+    <React.Fragment>
       <Stack
         screenOptions={{
           headerShown: false,
           animation: 'none',
         }}
       >
-        <Stack.Screen key="home" name="(home)" />
-        <Stack.Screen key="learning" name="learning" />
-        <Stack.Screen key="dawah" name="dawah" />
-        <Stack.Screen key="tracker" name="tracker" />
-        <Stack.Screen key="duas" name="duas" />
-        <Stack.Screen key="wellness" name="wellness" />
-        <Stack.Screen key="profile" name="profile" />
-        <Stack.Screen key="achievements" name="achievements" />
+        <Stack.Screen name="(home)" />
+        <Stack.Screen name="learning" />
+        <Stack.Screen name="dawah" />
+        <Stack.Screen name="tracker" />
+        <Stack.Screen name="duas" />
+        <Stack.Screen name="wellness" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="achievements" />
       </Stack>
       <FloatingTabBar tabs={tabs} />
-    </>
+    </React.Fragment>
   );
 }

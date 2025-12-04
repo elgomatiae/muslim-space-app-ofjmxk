@@ -7,10 +7,12 @@ import { WidgetProvider } from '@/contexts/WidgetContext';
 import { AchievementProvider } from '@/contexts/AchievementContext';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { colors } from '@/styles/commonStyles';
+import { setupErrorLogging } from '@/utils/errorLogger';
 
 export default function RootLayout() {
   useEffect(() => {
     setBackgroundColorAsync(colors.background);
+    setupErrorLogging();
   }, []);
 
   return (

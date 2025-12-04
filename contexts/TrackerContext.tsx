@@ -62,7 +62,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       const todayDate = getTodayDateString();
 
       if (savedDate !== todayDate) {
-        console.log('New day detected, resetting tracker data');
         await AsyncStorage.setItem(TRACKER_DATE_KEY, todayDate);
         await AsyncStorage.removeItem(TRACKER_STORAGE_KEY);
         
@@ -76,20 +75,18 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       if (savedData) {
         const parsed = JSON.parse(savedData);
         setTrackerData(parsed);
-        console.log('Loaded tracker data from local storage:', parsed);
       }
 
       if (user && isSupabaseConfigured()) {
         await syncWithDatabase();
       }
     } catch (error) {
-      console.log('Error loading tracker data:', error);
+      console.error('Error loading tracker data:', error);
     }
   };
 
   const syncWithDatabase = async () => {
     if (!user || !isSupabaseConfigured()) {
-      console.log('Cannot sync: user not logged in or Supabase not configured');
       return;
     }
 
@@ -130,7 +127,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         };
         setTrackerData(dbData);
         await AsyncStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(dbData));
-        console.log('Synced tracker data from database:', dbData);
       }
     } catch (error) {
       console.error('Error syncing with database:', error);
@@ -139,7 +135,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
   const saveToDatabase = async (data: TrackerData) => {
     if (!user || !isSupabaseConfigured()) {
-      console.log('Cannot save to database: user not logged in or Supabase not configured');
       return;
     }
 
@@ -169,8 +164,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error saving to database:', error);
-      } else {
-        console.log('Saved tracker data to database');
       }
     } catch (error) {
       console.error('Error saving to database:', error);
@@ -189,12 +182,10 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         wellnessStreak: 0,
       };
 
-      // Accumulate lifetime stats
       const previousData = await AsyncStorage.getItem(TRACKER_STORAGE_KEY);
       const previous = previousData ? JSON.parse(previousData) : null;
 
       if (previous) {
-        // Only add the difference to avoid double counting
         stats.totalDhikr += Math.max(0, data.dhikr.count - previous.dhikr.count);
         stats.totalQuranPages += Math.max(0, data.quran.pages - previous.quran.pages);
         stats.totalQuranVerses += Math.max(0, data.quran.versesMemorized - previous.quran.versesMemorized);
@@ -205,7 +196,6 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       }
 
       await AsyncStorage.setItem(LIFETIME_STATS_KEY, JSON.stringify(stats));
-      console.log('Updated lifetime stats:', stats);
     } catch (error) {
       console.error('Error updating lifetime stats:', error);
     }
@@ -218,14 +208,12 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
       let weeklyStats;
       if (savedWeekStart !== weekStart) {
-        // New week, reset stats
         weeklyStats = {
           weekStart,
           dhikrCount: data.dhikr.count,
           quranPages: data.quran.pages,
           prayerDays: data.prayers.completed === data.prayers.total ? 1 : 0,
         };
-        console.log('New week detected, resetting weekly stats:', weeklyStats);
       } else {
         const savedStats = await AsyncStorage.getItem(WEEKLY_STATS_KEY);
         weeklyStats = savedStats ? JSON.parse(savedStats) : {
@@ -235,33 +223,27 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           prayerDays: 0,
         };
 
-        // Add only the difference from today
         if (previousData) {
           const dhikrDiff = Math.max(0, data.dhikr.count - previousData.dhikr.count);
           const quranDiff = Math.max(0, data.quran.pages - previousData.quran.pages);
           
           weeklyStats.dhikrCount += dhikrDiff;
           weeklyStats.quranPages += quranDiff;
-          
-          console.log(`Added dhikr diff: ${dhikrDiff}, quran diff: ${quranDiff}`);
         } else {
           weeklyStats.dhikrCount += data.dhikr.count;
           weeklyStats.quranPages += data.quran.pages;
         }
 
-        // Check if all prayers completed today (and weren't completed before)
         const wasCompleted = previousData && previousData.prayers.completed === previousData.prayers.total;
         const isNowCompleted = data.prayers.completed === data.prayers.total;
         
         if (isNowCompleted && !wasCompleted) {
           weeklyStats.prayerDays += 1;
-          console.log('All prayers completed today! Incrementing prayer days to:', weeklyStats.prayerDays);
         }
       }
 
       await AsyncStorage.setItem(WEEKLY_STATS_KEY, JSON.stringify(weeklyStats));
       await AsyncStorage.setItem(WEEKLY_STATS_DATE_KEY, weekStart);
-      console.log('Updated weekly stats:', weeklyStats);
     } catch (error) {
       console.error('Error updating weekly stats:', error);
     }
