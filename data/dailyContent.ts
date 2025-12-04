@@ -68,6 +68,17 @@ const fallbackVerses: DailyVerse[] = [
 let cachedContent: DailyContentResponse | null = null;
 let cachedDate: string | null = null;
 
+function getFallbackContent(today: string): DailyContentResponse {
+  const dayOfYear = Math.floor(
+    (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+  );
+  return {
+    verse: fallbackVerses[dayOfYear % fallbackVerses.length],
+    hadith: fallbackHadiths[dayOfYear % fallbackHadiths.length],
+    date: today,
+  };
+}
+
 export async function getDailyContent(): Promise<DailyContentResponse> {
   const today = new Date().toISOString().split('T')[0];
 
@@ -80,33 +91,28 @@ export async function getDailyContent(): Promise<DailyContentResponse> {
   // If Supabase is not configured, use fallback data
   if (!isSupabaseConfigured() || !supabase) {
     console.log('Supabase not configured, using fallback daily content');
-    const dayOfYear = Math.floor(
-      (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-    );
-    return {
-      verse: fallbackVerses[dayOfYear % fallbackVerses.length],
-      hadith: fallbackHadiths[dayOfYear % fallbackHadiths.length],
-      date: today,
-    };
+    return getFallbackContent(today);
   }
 
   try {
     console.log('Fetching daily content from Edge Function...');
     
-    // Get the project URL
-    const supabaseUrl = 'https://teemloiwfnwrogwnoxsa.supabase.co';
-    const response = await fetch(`${supabaseUrl}/functions/v1/get-daily-content`, {
+    // Use Supabase client's functions.invoke which automatically includes auth headers
+    const { data, error } = await supabase.functions.invoke('get-daily-content', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch daily content: ${response.statusText}`);
+    if (error) {
+      console.log('Edge Function error:', error);
+      throw error;
     }
 
-    const data = await response.json();
+    // Validate the response data
+    if (!data || !data.verse || !data.hadith) {
+      console.log('Invalid data structure from Edge Function, using fallback');
+      return getFallbackContent(today);
+    }
+
     console.log('Successfully fetched daily content from database');
 
     // Cache the content
@@ -115,18 +121,10 @@ export async function getDailyContent(): Promise<DailyContentResponse> {
 
     return data;
   } catch (error) {
-    console.error('Error fetching daily content:', error);
-    console.log('Falling back to local data');
+    console.log('Error fetching daily content, using fallback:', error instanceof Error ? error.message : String(error));
     
     // Use fallback data
-    const dayOfYear = Math.floor(
-      (new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-    );
-    return {
-      verse: fallbackVerses[dayOfYear % fallbackVerses.length],
-      hadith: fallbackHadiths[dayOfYear % fallbackHadiths.length],
-      date: today,
-    };
+    return getFallbackContent(today);
   }
 }
 
