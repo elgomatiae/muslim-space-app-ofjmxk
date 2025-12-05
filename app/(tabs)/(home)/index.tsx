@@ -316,15 +316,13 @@ export default function HomeScreen() {
             )}
           </View>
           {nextPrayer && (
-            <React.Fragment>
-              <View style={styles.nextPrayerContent}>
-                <View>
-                  <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
-                  <Text style={styles.countdown}>in {timeUntilNext}</Text>
-                </View>
-                <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
+            <View style={styles.nextPrayerContent}>
+              <View>
+                <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
+                <Text style={styles.countdown}>in {timeUntilNext}</Text>
               </View>
-            </React.Fragment>
+              <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
+            </View>
           )}
         </View>
 
@@ -391,7 +389,7 @@ export default function HomeScreen() {
           {weeklyChallenges.length > 0 && (
             <View style={styles.challengesPreview}>
               {weeklyChallenges.slice(0, 3).map((challenge, index) => (
-                <View key={`challenge-preview-${challenge.id}-${index}`} style={styles.challengePreviewItem}>
+                <View key={`challenge-preview-${challenge.id}`} style={styles.challengePreviewItem}>
                   <View style={styles.challengePreviewBar}>
                     <View 
                       style={[
@@ -530,7 +528,7 @@ export default function HomeScreen() {
                 <React.Fragment>
                   <Text style={styles.modalSectionTitle}>Quranic References</Text>
                   {weeklyMiracle.quranVerses.map((verse, index) => (
-                    <View key={`verse-${index}`} style={styles.verseCard}>
+                    <View key={`verse-${verse.surah}-${verse.verse}-${index}`} style={styles.verseCard}>
                       <Text style={styles.verseArabic}>{verse.arabic}</Text>
                       <Text style={styles.verseTranslation}>{verse.translation}</Text>
                       <Text style={styles.verseReference}>Quran {verse.surah}:{verse.verse}</Text>
@@ -543,7 +541,7 @@ export default function HomeScreen() {
                 <React.Fragment>
                   <Text style={styles.modalSectionTitle}>Hadith References</Text>
                   {weeklyMiracle.hadiths.map((hadith, index) => (
-                    <View key={`hadith-${index}`} style={styles.hadithCard}>
+                    <View key={`hadith-${hadith.source}-${index}`} style={styles.hadithCard}>
                       <Text style={styles.hadithText}>{hadith.text}</Text>
                       <Text style={styles.hadithReference}>{hadith.source}</Text>
                     </View>
