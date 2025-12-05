@@ -50,6 +50,17 @@ const miracleCategories: MiracleCategory[] = [
   { id: 'prophetic', title: 'Prophetic', icon: 'star', color: '#9C27B0' },
 ];
 
+const dawahTips = [
+  'Start with common ground and shared values',
+  'Listen actively and show genuine interest',
+  'Use clear examples and relatable stories',
+  'Be patient and respectful at all times',
+  'Focus on the beauty and wisdom of Islam',
+  'Share personal experiences and transformations',
+  'Use these miracles as conversation starters',
+  'Always maintain good character - it\'s the best Dawah',
+];
+
 export default function DawahScreen() {
   const [selectedTab, setSelectedTab] = useState('scientific');
   const [expandedMiracle, setExpandedMiracle] = useState<string | null>(null);
@@ -230,8 +241,8 @@ export default function DawahScreen() {
                                       Quranic Evidence
                                     </Text>
                                   </View>
-                                  {miracle.quran_verses.map((verse) => (
-                                    <View key={`verse-${miracle.id}-${verse.surah}-${verse.verse}-${verse.order_index}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
+                                  {miracle.quran_verses.map((verse, verseIndex) => (
+                                    <View key={`verse-${miracle.id}-${verse.surah}-${verse.verse}-${verseIndex}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.verseReference, { backgroundColor: selectedCategory.color }]}>
                                         <IconSymbol
                                           ios_icon_name="book.closed.fill"
@@ -309,8 +320,8 @@ export default function DawahScreen() {
                                       Supporting Hadiths
                                     </Text>
                                   </View>
-                                  {miracle.hadiths.map((hadith) => (
-                                    <View key={`hadith-${miracle.id}-${hadith.source}-${hadith.order_index}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
+                                  {miracle.hadiths.map((hadith, hadithIndex) => (
+                                    <View key={`hadith-${miracle.id}-${hadith.source}-${hadithIndex}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.hadithSource, { backgroundColor: selectedCategory.color }]}>
                                         <Text style={styles.hadithSourceText}>{hadith.source}</Text>
                                       </View>
@@ -367,17 +378,8 @@ export default function DawahScreen() {
             <Text style={styles.tipsTitle}>Quick Dawah Tips</Text>
           </View>
           <View style={styles.tipsList}>
-            {[
-              'Start with common ground and shared values',
-              'Listen actively and show genuine interest',
-              'Use clear examples and relatable stories',
-              'Be patient and respectful at all times',
-              'Focus on the beauty and wisdom of Islam',
-              'Share personal experiences and transformations',
-              'Use these miracles as conversation starters',
-              'Always maintain good character - it\'s the best Dawah',
-            ].map((tip, index) => (
-              <View key={`dawah-tip-${index}`} style={styles.tipItem}>
+            {dawahTips.map((tip, index) => (
+              <View key={`dawah-tip-${index}-${tip.substring(0, 20)}`} style={styles.tipItem}>
                 <View style={styles.tipBullet} />
                 <Text style={styles.tipText}>{tip}</Text>
               </View>

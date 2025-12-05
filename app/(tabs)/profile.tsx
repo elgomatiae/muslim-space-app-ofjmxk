@@ -33,6 +33,12 @@ interface NotificationSettings {
 
 const ADMIN_PIN = '2218';
 
+const streakLabels = [
+  { key: 'prayers', label: 'Prayers' },
+  { key: 'dhikr', label: 'Dhikr' },
+  { key: 'quran', label: 'Quran' },
+];
+
 export default function ProfileScreen() {
   const { user, signIn, signUp, signInWithGoogle, signOut, loading, isConfigured } = useAuth();
   const { trackerData } = useTracker();
@@ -1326,33 +1332,19 @@ export default function ProfileScreen() {
                 <View style={styles.streaksRow}>
                   <Text style={styles.streaksTitle}>Best Streaks</Text>
                   <View style={styles.streaksList}>
-                    <View style={styles.streakItem}>
-                      <IconSymbol
-                        ios_icon_name="flame.fill"
-                        android_material_icon_name="local-fire-department"
-                        size={16}
-                        color={colors.warning}
-                      />
-                      <Text style={styles.streakText}>Prayers: {weeklyStats.maxPrayerStreak} days</Text>
-                    </View>
-                    <View style={styles.streakItem}>
-                      <IconSymbol
-                        ios_icon_name="flame.fill"
-                        android_material_icon_name="local-fire-department"
-                        size={16}
-                        color={colors.warning}
-                      />
-                      <Text style={styles.streakText}>Dhikr: {weeklyStats.maxDhikrStreak} days</Text>
-                    </View>
-                    <View style={styles.streakItem}>
-                      <IconSymbol
-                        ios_icon_name="flame.fill"
-                        android_material_icon_name="local-fire-department"
-                        size={16}
-                        color={colors.warning}
-                      />
-                      <Text style={styles.streakText}>Quran: {weeklyStats.maxQuranStreak} days</Text>
-                    </View>
+                    {streakLabels.map((streak, streakIndex) => (
+                      <View key={`streak-${streak.key}-${streakIndex}`} style={styles.streakItem}>
+                        <IconSymbol
+                          ios_icon_name="flame.fill"
+                          android_material_icon_name="local-fire-department"
+                          size={16}
+                          color={colors.warning}
+                        />
+                        <Text style={styles.streakText}>
+                          {streak.label}: {weeklyStats[`max${streak.key.charAt(0).toUpperCase() + streak.key.slice(1)}Streak`]} days
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 </View>
               </View>

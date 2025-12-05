@@ -414,9 +414,9 @@ export default function DuasScreen() {
       {!selectedCategory ? (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
           <View style={styles.categoriesGrid}>
-            {duaCategories.map((cat) => (
+            {duaCategories.map((cat, catIndex) => (
               <TouchableOpacity
-                key={`dua-category-${cat.id}`}
+                key={`dua-category-${cat.id}-${catIndex}`}
                 style={[styles.categoryCard, { backgroundColor: cat.color }]}
                 onPress={() => setSelectedCategory(cat.id)}
                 activeOpacity={0.8}
@@ -464,10 +464,10 @@ export default function DuasScreen() {
                   </View>
                 </View>
 
-                {category.duas.map((dua) => (
-                  <View key={`dua-${dua.id}`} style={styles.duaCard}>
+                {category.duas.map((dua, duaIndex) => (
+                  <View key={`dua-${dua.id}-${duaIndex}`} style={styles.duaCard}>
                     <View style={[styles.duaNumber, { backgroundColor: category.color }]}>
-                      <Text style={styles.duaNumberText}>{category.duas.indexOf(dua) + 1}</Text>
+                      <Text style={styles.duaNumberText}>{duaIndex + 1}</Text>
                     </View>
                     <Text style={styles.duaArabic}>{dua.arabic}</Text>
                     <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
