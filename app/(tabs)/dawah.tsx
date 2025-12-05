@@ -126,9 +126,9 @@ export default function DawahScreen() {
           style={styles.tabsScroll}
           contentContainerStyle={styles.tabsContent}
         >
-          {miracleCategories.map((category, index) => (
+          {miracleCategories.map((category) => (
             <TouchableOpacity
-              key={index}
+              key={`miracle-category-${category.id}`}
               style={[
                 styles.tabButton,
                 selectedTab === category.id && styles.tabButtonActive,
@@ -183,11 +183,11 @@ export default function DawahScreen() {
               </View>
             ) : (
               <View style={styles.miraclesGrid}>
-                {miracles.map((miracle, index) => {
+                {miracles.map((miracle) => {
                   const isExpanded = expandedMiracle === miracle.id;
                   return (
                     <TouchableOpacity
-                      key={index}
+                      key={`miracle-${miracle.id}`}
                       style={styles.miracleCard}
                       onPress={() => toggleMiracle(miracle.id)}
                       activeOpacity={0.8}
@@ -199,7 +199,7 @@ export default function DawahScreen() {
                           resizeMode="cover"
                         />
                         <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
-                          <Text style={styles.miracleNumberText}>{index + 1}</Text>
+                          <Text style={styles.miracleNumberText}>{miracle.order_index + 1}</Text>
                         </View>
                       </View>
                       
@@ -230,8 +230,8 @@ export default function DawahScreen() {
                                       Quranic Evidence
                                     </Text>
                                   </View>
-                                  {miracle.quran_verses.map((verse, i) => (
-                                    <View key={i} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
+                                  {miracle.quran_verses.map((verse) => (
+                                    <View key={`verse-${miracle.id}-${verse.surah}-${verse.verse}-${verse.order_index}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.verseReference, { backgroundColor: selectedCategory.color }]}>
                                         <IconSymbol
                                           ios_icon_name="book.closed.fill"
@@ -309,8 +309,8 @@ export default function DawahScreen() {
                                       Supporting Hadiths
                                     </Text>
                                   </View>
-                                  {miracle.hadiths.map((hadith, i) => (
-                                    <View key={i} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
+                                  {miracle.hadiths.map((hadith) => (
+                                    <View key={`hadith-${miracle.id}-${hadith.source}-${hadith.order_index}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.hadithSource, { backgroundColor: selectedCategory.color }]}>
                                         <Text style={styles.hadithSourceText}>{hadith.source}</Text>
                                       </View>
@@ -377,7 +377,7 @@ export default function DawahScreen() {
               'Use these miracles as conversation starters',
               'Always maintain good character - it\'s the best Dawah',
             ].map((tip, index) => (
-              <View key={index} style={styles.tipItem}>
+              <View key={`dawah-tip-${index}`} style={styles.tipItem}>
                 <View style={styles.tipBullet} />
                 <Text style={styles.tipText}>{tip}</Text>
               </View>
