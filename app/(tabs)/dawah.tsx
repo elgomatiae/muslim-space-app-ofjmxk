@@ -239,7 +239,7 @@ export default function DawahScreen() {
                                     </Text>
                                   </View>
                                   {miracle.quran_verses.map((verse, verseIndex) => (
-                                    <View key={`verse-${miracle.id}-${verseIndex}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
+                                    <View key={`verse-${miracle.id}-${verse.surah}-${verse.verse}-${verseIndex}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.verseReference, { backgroundColor: selectedCategory.color }]}>
                                         <IconSymbol
                                           ios_icon_name="book.closed.fill"
@@ -315,7 +315,7 @@ export default function DawahScreen() {
                                     </Text>
                                   </View>
                                   {miracle.hadiths.map((hadith, hadithIndex) => (
-                                    <View key={`hadith-${miracle.id}-${hadithIndex}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
+                                    <View key={`hadith-${miracle.id}-${hadith.source}-${hadithIndex}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.hadithSource, { backgroundColor: selectedCategory.color }]}>
                                         <Text style={styles.hadithSourceText}>{hadith.source}</Text>
                                       </View>
