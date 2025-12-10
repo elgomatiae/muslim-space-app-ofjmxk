@@ -12,11 +12,18 @@ export const colors = {
   secondaryLight: '#FFC107',
   secondaryDark: '#FF6F00',
   
+  // Accent Blue
+  accent: '#03A9F4',
+  accentLight: '#4FC3F7',
+  accentDark: '#0288D1',
+  
   // Neutral Colors
   background: '#FFFFFF',
   backgroundDark: '#121212',
   surface: '#F5F5F5',
   surfaceDark: '#1E1E1E',
+  card: '#FFFFFF',
+  cardDark: '#2C2C2C',
   
   // Text Colors
   text: '#212121',
@@ -36,6 +43,10 @@ export const colors = {
   asr: '#FFB74D',
   maghrib: '#EF5350',
   isha: '#7E57C2',
+  
+  // UI Elements
+  border: '#E0E0E0',
+  borderDark: '#424242',
   
   // Transparent
   transparent: 'transparent',
