@@ -203,7 +203,7 @@ export default function QuizScreen() {
 
             return (
               <TouchableOpacity
-                key={index}
+                key={`option-${currentQuestion.id}-${index}`}
                 style={[
                   styles.optionButton,
                   isSelected && !showExplanation && styles.optionButtonSelected,
