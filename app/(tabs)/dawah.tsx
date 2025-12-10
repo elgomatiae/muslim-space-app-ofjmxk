@@ -75,7 +75,6 @@ export default function DawahScreen() {
     try {
       setLoading(true);
       
-      // Fetch miracles for the selected category
       const { data: miraclesData, error: miraclesError } = await supabase
         .from('miracles')
         .select('*')
@@ -85,7 +84,6 @@ export default function DawahScreen() {
       if (miraclesError) throw miraclesError;
 
       if (miraclesData) {
-        // Fetch verses and hadiths for each miracle
         const miraclesWithDetails = await Promise.all(
           miraclesData.map(async (miracle) => {
             const { data: verses } = await supabase
@@ -171,7 +169,7 @@ export default function DawahScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedCategory && (
-          <React.Fragment>
+          <React.Fragment key={`category-content-${selectedCategory.id}`}>
             <View style={[styles.categoryHeader, { backgroundColor: selectedCategory.color }]}>
               <IconSymbol
                 ios_icon_name={selectedCategory.icon as any}
@@ -224,10 +222,9 @@ export default function DawahScreen() {
                         </Text>
                         
                         {isExpanded && (
-                          <React.Fragment>
-                            {/* Quran Verses Section - Displayed First and Prominently */}
+                          <React.Fragment key={`miracle-expanded-${miracle.id}`}>
                             {miracle.quran_verses && miracle.quran_verses.length > 0 && (
-                              <React.Fragment>
+                              <React.Fragment key={`verses-section-${miracle.id}`}>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={[styles.sectionHeaderProminent, { backgroundColor: selectedCategory.color }]}>
@@ -242,7 +239,7 @@ export default function DawahScreen() {
                                     </Text>
                                   </View>
                                   {miracle.quran_verses.map((verse, verseIndex) => (
-                                    <View key={`verse-${miracle.id}-${verse.surah}-${verse.verse}-${verseIndex}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
+                                    <View key={`verse-${miracle.id}-${verseIndex}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.verseReference, { backgroundColor: selectedCategory.color }]}>
                                         <IconSymbol
                                           ios_icon_name="book.closed.fill"
@@ -266,7 +263,6 @@ export default function DawahScreen() {
                               </React.Fragment>
                             )}
 
-                            {/* Details Section */}
                             <View style={styles.divider} />
                             <View style={styles.section}>
                               <View style={styles.sectionHeader}>
@@ -283,9 +279,8 @@ export default function DawahScreen() {
                               <Text style={styles.miracleDetails}>{miracle.details}</Text>
                             </View>
 
-                            {/* Why This Is Miraculous Section */}
                             {miracle.explanation && (
-                              <React.Fragment>
+                              <React.Fragment key={`explanation-section-${miracle.id}`}>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={styles.sectionHeader}>
@@ -304,9 +299,8 @@ export default function DawahScreen() {
                               </React.Fragment>
                             )}
 
-                            {/* Hadiths Section */}
                             {miracle.hadiths && miracle.hadiths.length > 0 && (
-                              <React.Fragment>
+                              <React.Fragment key={`hadiths-section-${miracle.id}`}>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={styles.sectionHeader}>
@@ -321,7 +315,7 @@ export default function DawahScreen() {
                                     </Text>
                                   </View>
                                   {miracle.hadiths.map((hadith, hadithIndex) => (
-                                    <View key={`hadith-${miracle.id}-${hadith.source}-${hadithIndex}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
+                                    <View key={`hadith-${miracle.id}-${hadithIndex}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.hadithSource, { backgroundColor: selectedCategory.color }]}>
                                         <Text style={styles.hadithSourceText}>{hadith.source}</Text>
                                       </View>
@@ -332,7 +326,6 @@ export default function DawahScreen() {
                               </React.Fragment>
                             )}
 
-                            {/* Reference Footer */}
                             <View style={styles.miracleFooter}>
                               <IconSymbol
                                 ios_icon_name="link"
@@ -379,7 +372,7 @@ export default function DawahScreen() {
           </View>
           <View style={styles.tipsList}>
             {dawahTips.map((tip, index) => (
-              <View key={`dawah-tip-${index}-${tip.substring(0, 20)}`} style={styles.tipItem}>
+              <View key={`dawah-tip-${index}`} style={styles.tipItem}>
                 <View style={styles.tipBullet} />
                 <Text style={styles.tipText}>{tip}</Text>
               </View>
