@@ -127,7 +127,7 @@ export default function DawahScreen() {
             </View>
           )}
 
-          <View style={{ height: 100 }} />
+          <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
     );
@@ -163,34 +163,36 @@ export default function DawahScreen() {
           </Text>
 
           {categoryMiracles.length > 0 ? (
-            categoryMiracles.map((miracle, index) => (
-              <TouchableOpacity
-                key={`miracle-${miracle.id}-${index}`}
-                style={[styles.miracleListCard, isDark && styles.cardDark]}
-                onPress={() => setSelectedMiracle(miracle)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.miracleListTitle, isDark && styles.textDark]}>
-                  {miracle.title}
-                </Text>
-                <Text style={[styles.miracleListDescription, isDark && styles.textSecondaryDark]} numberOfLines={2}>
-                  {miracle.description}
-                </Text>
-                <IconSymbol
-                  ios_icon_name="chevron.right"
-                  android_material_icon_name="chevron_right"
-                  size={20}
-                  color={isDark ? colors.textSecondaryDark : colors.textSecondary}
-                />
-              </TouchableOpacity>
-            ))
+            <View>
+              {categoryMiracles.map((miracle, index) => (
+                <TouchableOpacity
+                  key={`miracle-${miracle.id}-${index}`}
+                  style={[styles.miracleListCard, isDark && styles.cardDark]}
+                  onPress={() => setSelectedMiracle(miracle)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.miracleListTitle, isDark && styles.textDark]}>
+                    {miracle.title}
+                  </Text>
+                  <Text style={[styles.miracleListDescription, isDark && styles.textSecondaryDark]} numberOfLines={2}>
+                    {miracle.description}
+                  </Text>
+                  <IconSymbol
+                    ios_icon_name="chevron.right"
+                    android_material_icon_name="chevron_right"
+                    size={20}
+                    color={isDark ? colors.textSecondaryDark : colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : (
             <Text style={[styles.emptyText, isDark && styles.textSecondaryDark]}>
               No miracles available in this category
             </Text>
           )}
 
-          <View style={{ height: 100 }} />
+          <View style={styles.bottomSpacer} />
         </ScrollView>
       </View>
     );
@@ -208,39 +210,41 @@ export default function DawahScreen() {
         Explore the miracles of Islam
       </Text>
 
-      {categories.map((category, index) => (
-        <TouchableOpacity
-          key={`category-${category.id}-${index}`}
-          style={[styles.categoryCard, isDark && styles.cardDark]}
-          onPress={() => setSelectedCategory(category.id)}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
+      <View>
+        {categories.map((category, index) => (
+          <TouchableOpacity
+            key={`category-${category.id}-${index}`}
+            style={[styles.categoryCard, isDark && styles.cardDark]}
+            onPress={() => setSelectedCategory(category.id)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
+              <IconSymbol
+                ios_icon_name={category.icon}
+                android_material_icon_name="star"
+                size={32}
+                color={category.color}
+              />
+            </View>
+            <View style={styles.categoryContent}>
+              <Text style={[styles.categoryCardTitle, isDark && styles.textDark]}>
+                {category.title}
+              </Text>
+              <Text style={[styles.categoryCount, isDark && styles.textSecondaryDark]}>
+                {getCategoryMiracles(category.id).length} miracles
+              </Text>
+            </View>
             <IconSymbol
-              ios_icon_name={category.icon}
-              android_material_icon_name="star"
-              size={32}
-              color={category.color}
+              ios_icon_name="chevron.right"
+              android_material_icon_name="chevron_right"
+              size={24}
+              color={isDark ? colors.textSecondaryDark : colors.textSecondary}
             />
-          </View>
-          <View style={styles.categoryContent}>
-            <Text style={[styles.categoryCardTitle, isDark && styles.textDark]}>
-              {category.title}
-            </Text>
-            <Text style={[styles.categoryCount, isDark && styles.textSecondaryDark]}>
-              {getCategoryMiracles(category.id).length} miracles
-            </Text>
-          </View>
-          <IconSymbol
-            ios_icon_name="chevron.right"
-            android_material_icon_name="chevron_right"
-            size={24}
-            color={isDark ? colors.textSecondaryDark : colors.textSecondary}
-          />
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      <View style={{ height: 100 }} />
+      <View style={styles.bottomSpacer} />
     </ScrollView>
   );
 }
@@ -365,6 +369,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.xl,
+  },
+  bottomSpacer: {
+    height: 100,
   },
   textDark: {
     color: colors.textDark,
