@@ -160,6 +160,7 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(PRAYER_DATE_KEY, getTodayDateString());
       console.log('Saved prayer status:', completionStatus);
       
+      // Update the Iman Tracker with prayer completion
       const completedCount = updatedPrayers.filter(p => p.completed).length;
       await updatePrayers(completedCount, updatedPrayers.length);
       

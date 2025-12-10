@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   useColorScheme,
-  TextInput,
   Platform,
   Modal,
   Alert,
@@ -35,14 +34,6 @@ export default function TrackerScreen() {
   const [dhikrPhrases, setDhikrPhrases] = useState<DhikrPhrase[]>([]);
   const [selectedPhrase, setSelectedPhrase] = useState<DhikrPhrase | null>(null);
   const [showPhraseModal, setShowPhraseModal] = useState(false);
-  const [dhikrGoalInput, setDhikrGoalInput] = useState('');
-  const [showGoalModal, setShowGoalModal] = useState(false);
-  
-  const [quranPagesInput, setQuranPagesInput] = useState('');
-  const [quranPagesGoalInput, setQuranPagesGoalInput] = useState('');
-  const [quranVersesInput, setQuranVersesInput] = useState('');
-  const [quranVersesGoalInput, setQuranVersesGoalInput] = useState('');
-  const [showQuranGoalModal, setShowQuranGoalModal] = useState(false);
 
   useEffect(() => {
     loadDhikrPhrases();
@@ -75,64 +66,24 @@ export default function TrackerScreen() {
     await updateDhikr(newCount, trackerData.dhikr.goal);
   };
 
-  const updateDhikrGoal = async () => {
-    const goal = parseInt(dhikrGoalInput);
-    if (isNaN(goal) || goal <= 0) {
-      Alert.alert('Invalid Goal', 'Please enter a valid number greater than 0');
-      return;
-    }
-
-    await updateDhikr(trackerData.dhikr.count, goal);
-    setDhikrGoalInput('');
-    setShowGoalModal(false);
-  };
-
-  const addQuranPages = async () => {
-    const pages = parseInt(quranPagesInput);
-    if (isNaN(pages) || pages <= 0) return;
-
-    const newPages = trackerData.quran.pages + pages;
+  const addQuranPage = async () => {
+    const newPages = trackerData.quran.pages + 1;
     await updateQuran(
       newPages,
       trackerData.quran.goal,
       trackerData.quran.versesMemorized,
       trackerData.quran.versesGoal
     );
-    setQuranPagesInput('');
   };
 
-  const addQuranVerses = async () => {
-    const verses = parseInt(quranVersesInput);
-    if (isNaN(verses) || verses <= 0) return;
-
-    const newVerses = trackerData.quran.versesMemorized + verses;
+  const addQuranVerse = async () => {
+    const newVerses = trackerData.quran.versesMemorized + 1;
     await updateQuran(
       trackerData.quran.pages,
       trackerData.quran.goal,
       newVerses,
       trackerData.quran.versesGoal
     );
-    setQuranVersesInput('');
-  };
-
-  const updateQuranGoals = async () => {
-    const pagesGoal = parseInt(quranPagesGoalInput);
-    const versesGoal = parseInt(quranVersesGoalInput);
-
-    if (isNaN(pagesGoal) || pagesGoal <= 0 || isNaN(versesGoal) || versesGoal <= 0) {
-      Alert.alert('Invalid Goals', 'Please enter valid numbers greater than 0');
-      return;
-    }
-
-    await updateQuran(
-      trackerData.quran.pages,
-      pagesGoal,
-      trackerData.quran.versesMemorized,
-      versesGoal
-    );
-    setQuranPagesGoalInput('');
-    setQuranVersesGoalInput('');
-    setShowQuranGoalModal(false);
   };
 
   const getProgressPercentage = (current: number, goal: number) => {
@@ -236,20 +187,6 @@ export default function TrackerScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Set Goal Button */}
-          <TouchableOpacity
-            style={styles.setGoalButton}
-            onPress={() => setShowGoalModal(true)}
-          >
-            <IconSymbol
-              ios_icon_name="target"
-              android_material_icon_name="flag"
-              size={16}
-              color={colors.primary}
-            />
-            <Text style={styles.setGoalText}>Set Daily Goal</Text>
-          </TouchableOpacity>
-
           {/* Streak */}
           <View style={styles.streakContainer}>
             <IconSymbol
@@ -302,27 +239,19 @@ export default function TrackerScreen() {
               </Text>
             </View>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={[styles.input, isDark && styles.inputDark]}
-                placeholder="Add pages..."
-                placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
-                value={quranPagesInput}
-                onChangeText={setQuranPagesInput}
-                keyboardType="number-pad"
+            {/* Quick Track Button */}
+            <TouchableOpacity
+              style={[styles.quickTrackButton, { backgroundColor: colors.primary }]}
+              onPress={addQuranPage}
+            >
+              <IconSymbol
+                ios_icon_name="plus.circle.fill"
+                android_material_icon_name="add_circle"
+                size={24}
+                color={colors.textDark}
               />
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.primary }]}
-                onPress={addQuranPages}
-              >
-                <IconSymbol
-                  ios_icon_name="plus"
-                  android_material_icon_name="add"
-                  size={20}
-                  color={colors.textDark}
-                />
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.quickTrackButtonText}>Track 1 Page</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Verses Memorized */}
@@ -347,46 +276,20 @@ export default function TrackerScreen() {
               </Text>
             </View>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={[styles.input, isDark && styles.inputDark]}
-                placeholder="Add verses..."
-                placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
-                value={quranVersesInput}
-                onChangeText={setQuranVersesInput}
-                keyboardType="number-pad"
+            {/* Quick Track Button */}
+            <TouchableOpacity
+              style={[styles.quickTrackButton, { backgroundColor: colors.accent }]}
+              onPress={addQuranVerse}
+            >
+              <IconSymbol
+                ios_icon_name="plus.circle.fill"
+                android_material_icon_name="add_circle"
+                size={24}
+                color={colors.textDark}
               />
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.accent }]}
-                onPress={addQuranVerses}
-              >
-                <IconSymbol
-                  ios_icon_name="plus"
-                  android_material_icon_name="add"
-                  size={20}
-                  color={colors.textDark}
-                />
-              </TouchableOpacity>
-            </View>
+              <Text style={styles.quickTrackButtonText}>Track 1 Verse</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Set Goals Button */}
-          <TouchableOpacity
-            style={styles.setGoalButton}
-            onPress={() => {
-              setQuranPagesGoalInput(trackerData.quran.goal.toString());
-              setQuranVersesGoalInput(trackerData.quran.versesGoal.toString());
-              setShowQuranGoalModal(true);
-            }}
-          >
-            <IconSymbol
-              ios_icon_name="target"
-              android_material_icon_name="flag"
-              size={16}
-              color={colors.primary}
-            />
-            <Text style={styles.setGoalText}>Set Daily Goals</Text>
-          </TouchableOpacity>
 
           {/* Streak */}
           <View style={styles.streakContainer}>
@@ -452,100 +355,6 @@ export default function TrackerScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Dhikr Goal Modal */}
-      <Modal
-        visible={showGoalModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowGoalModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, styles.smallModal, isDark && styles.modalContentDark]}>
-            <Text style={[styles.modalTitle, isDark && styles.textDark]}>
-              Set Daily Dhikr Goal
-            </Text>
-            <TextInput
-              style={[styles.modalInput, isDark && styles.inputDark]}
-              placeholder="Enter goal (e.g., 300)"
-              placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
-              value={dhikrGoalInput}
-              onChangeText={setDhikrGoalInput}
-              keyboardType="number-pad"
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => setShowGoalModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.primary }]}
-                onPress={updateDhikrGoal}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.textDark }]}>
-                  Set Goal
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Quran Goals Modal */}
-      <Modal
-        visible={showQuranGoalModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowQuranGoalModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, styles.smallModal, isDark && styles.modalContentDark]}>
-            <Text style={[styles.modalTitle, isDark && styles.textDark]}>
-              Set Daily Quran Goals
-            </Text>
-            <Text style={[styles.modalLabel, isDark && styles.textSecondaryDark]}>
-              Pages to Read
-            </Text>
-            <TextInput
-              style={[styles.modalInput, isDark && styles.inputDark]}
-              placeholder="Enter pages goal (e.g., 5)"
-              placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
-              value={quranPagesGoalInput}
-              onChangeText={setQuranPagesGoalInput}
-              keyboardType="number-pad"
-            />
-            <Text style={[styles.modalLabel, isDark && styles.textSecondaryDark]}>
-              Verses to Memorize
-            </Text>
-            <TextInput
-              style={[styles.modalInput, isDark && styles.inputDark]}
-              placeholder="Enter verses goal (e.g., 3)"
-              placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
-              value={quranVersesGoalInput}
-              onChangeText={setQuranVersesGoalInput}
-              keyboardType="number-pad"
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalButtonCancel]}
-                onPress={() => setShowQuranGoalModal(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: colors.primary }]}
-                onPress={updateQuranGoals}
-              >
-                <Text style={[styles.modalButtonText, { color: colors.textDark }]}>
-                  Set Goals
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -683,19 +492,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textDark,
   },
-  setGoalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  setGoalText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
-  },
   quranSubsection: {
     marginBottom: spacing.lg,
   },
@@ -724,6 +520,20 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'right',
   },
+  quickTrackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    ...shadows.small,
+  },
+  quickTrackButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textDark,
+  },
   streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -733,29 +543,6 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.text,
     marginLeft: spacing.xs,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    ...typography.body,
-    color: colors.text,
-  },
-  inputDark: {
-    backgroundColor: colors.backgroundDark,
-    color: colors.textDark,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -774,9 +561,6 @@ const styles = StyleSheet.create({
   modalContentDark: {
     backgroundColor: colors.surfaceDark,
   },
-  smallModal: {
-    maxHeight: 'auto',
-  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -785,41 +569,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     ...typography.h4,
-    color: colors.text,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
-  modalInput: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    ...typography.body,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalButtonCancel: {
-    backgroundColor: colors.border,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
     color: colors.text,
   },
   phraseList: {

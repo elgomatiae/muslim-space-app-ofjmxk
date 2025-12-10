@@ -146,8 +146,8 @@ export default function ProgressRings({
         />
       </Svg>
 
-      {/* Center Content */}
-      <View style={styles.centerContent}>
+      {/* Center Content - Centered Text */}
+      <View style={[styles.centerContent, { width: radius3 * 2, height: radius3 * 2 }]}>
         <Text style={styles.centerTitle}>Iman{'\n'}Tracker</Text>
       </View>
 
