@@ -211,7 +211,7 @@ export default function DawahScreen() {
       </Text>
 
       <View>
-        {categories.map((category, index) => (
+        {categories.map((category,  index) => (
           <TouchableOpacity
             key={`category-${category.id}-${index}`}
             style={[styles.categoryCard, isDark && styles.cardDark]}

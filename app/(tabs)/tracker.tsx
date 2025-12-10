@@ -9,6 +9,7 @@ import {
   useColorScheme,
   Platform,
   Modal,
+  TextInput,
   Alert,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/commonStyles';
@@ -34,6 +35,9 @@ export default function TrackerScreen() {
   const [dhikrPhrases, setDhikrPhrases] = useState<DhikrPhrase[]>([]);
   const [selectedPhrase, setSelectedPhrase] = useState<DhikrPhrase | null>(null);
   const [showPhraseModal, setShowPhraseModal] = useState(false);
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalType, setGoalType] = useState<'pages' | 'verses' | 'dhikr' | null>(null);
+  const [goalInput, setGoalInput] = useState('');
 
   useEffect(() => {
     loadDhikrPhrases();
@@ -86,8 +90,66 @@ export default function TrackerScreen() {
     );
   };
 
+  const openGoalModal = (type: 'pages' | 'verses' | 'dhikr') => {
+    setGoalType(type);
+    let currentGoal = 0;
+    
+    if (type === 'pages') {
+      currentGoal = trackerData.quran.goal;
+    } else if (type === 'verses') {
+      currentGoal = trackerData.quran.versesGoal;
+    } else if (type === 'dhikr') {
+      currentGoal = trackerData.dhikr.goal;
+    }
+    
+    setGoalInput(currentGoal.toString());
+    setShowGoalModal(true);
+  };
+
+  const saveGoal = async () => {
+    const newGoal = parseInt(goalInput);
+    
+    if (isNaN(newGoal) || newGoal <= 0) {
+      Alert.alert('Invalid Goal', 'Please enter a valid number greater than 0');
+      return;
+    }
+
+    try {
+      if (goalType === 'pages') {
+        await updateQuran(
+          trackerData.quran.pages,
+          newGoal,
+          trackerData.quran.versesMemorized,
+          trackerData.quran.versesGoal
+        );
+      } else if (goalType === 'verses') {
+        await updateQuran(
+          trackerData.quran.pages,
+          trackerData.quran.goal,
+          trackerData.quran.versesMemorized,
+          newGoal
+        );
+      } else if (goalType === 'dhikr') {
+        await updateDhikr(trackerData.dhikr.count, newGoal);
+      }
+      
+      setShowGoalModal(false);
+      Alert.alert('Success', 'Goal updated successfully!');
+    } catch (error) {
+      console.error('Error saving goal:', error);
+      Alert.alert('Error', 'Failed to update goal. Please try again.');
+    }
+  };
+
   const getProgressPercentage = (current: number, goal: number) => {
     return Math.min((current / goal) * 100, 100);
+  };
+
+  const getGoalModalTitle = () => {
+    if (goalType === 'pages') return 'Set Pages Goal';
+    if (goalType === 'verses') return 'Set Verses Goal';
+    if (goalType === 'dhikr') return 'Set Dhikr Goal';
+    return 'Set Goal';
   };
 
   return (
@@ -126,6 +188,17 @@ export default function TrackerScreen() {
             <Text style={[styles.cardTitle, isDark && styles.textDark]}>
               Dhikr Counter
             </Text>
+            <TouchableOpacity 
+              style={styles.goalButton}
+              onPress={() => openGoalModal('dhikr')}
+            >
+              <IconSymbol
+                ios_icon_name="target"
+                android_material_icon_name="flag"
+                size={20}
+                color={colors.secondary}
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Selected Phrase Display */}
@@ -219,9 +292,23 @@ export default function TrackerScreen() {
 
           {/* Pages Read */}
           <View style={styles.quranSubsection}>
-            <Text style={[styles.subsectionTitle, isDark && styles.textDark]}>
-              Pages Read
-            </Text>
+            <View style={styles.subsectionHeader}>
+              <Text style={[styles.subsectionTitle, isDark && styles.textDark]}>
+                Pages Read
+              </Text>
+              <TouchableOpacity 
+                style={styles.goalButtonSmall}
+                onPress={() => openGoalModal('pages')}
+              >
+                <IconSymbol
+                  ios_icon_name="target"
+                  android_material_icon_name="flag"
+                  size={18}
+                  color={colors.primary}
+                />
+                <Text style={styles.goalButtonText}>Goal</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
                 <View
@@ -256,9 +343,23 @@ export default function TrackerScreen() {
 
           {/* Verses Memorized */}
           <View style={styles.quranSubsection}>
-            <Text style={[styles.subsectionTitle, isDark && styles.textDark]}>
-              Verses Memorized
-            </Text>
+            <View style={styles.subsectionHeader}>
+              <Text style={[styles.subsectionTitle, isDark && styles.textDark]}>
+                Verses Memorized
+              </Text>
+              <TouchableOpacity 
+                style={styles.goalButtonSmall}
+                onPress={() => openGoalModal('verses')}
+              >
+                <IconSymbol
+                  ios_icon_name="target"
+                  android_material_icon_name="flag"
+                  size={18}
+                  color={colors.accent}
+                />
+                <Text style={[styles.goalButtonText, { color: colors.accent }]}>Goal</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
                 <View
@@ -359,6 +460,65 @@ export default function TrackerScreen() {
         </View>
       </Modal>
 
+      {/* Goal Setting Modal */}
+      <Modal
+        visible={showGoalModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGoalModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.goalModalContent, isDark && styles.modalContentDark]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, isDark && styles.textDark]}>
+                {getGoalModalTitle()}
+              </Text>
+              <TouchableOpacity onPress={() => setShowGoalModal(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.goalDescription, isDark && styles.textSecondaryDark]}>
+              {goalType === 'pages' && 'Set your daily goal for Quran pages to read'}
+              {goalType === 'verses' && 'Set your daily goal for verses to memorize'}
+              {goalType === 'dhikr' && 'Set your daily goal for dhikr count'}
+            </Text>
+
+            <View style={styles.goalInputContainer}>
+              <TextInput
+                style={[styles.goalInput, isDark && styles.goalInputDark]}
+                value={goalInput}
+                onChangeText={setGoalInput}
+                keyboardType="number-pad"
+                placeholder="Enter goal"
+                placeholderTextColor={colors.textSecondary}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.goalModalButtons}>
+              <TouchableOpacity
+                style={[styles.goalModalButton, styles.goalModalButtonCancel]}
+                onPress={() => setShowGoalModal(false)}
+              >
+                <Text style={styles.goalModalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.goalModalButton, styles.goalModalButtonSave]}
+                onPress={saveGoal}
+              >
+                <Text style={styles.goalModalButtonTextSave}>Save Goal</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Bottom Padding */}
       <View style={{ height: 120 }} />
     </ScrollView>
@@ -415,6 +575,10 @@ const styles = StyleSheet.create({
     ...typography.h4,
     color: colors.text,
     marginLeft: spacing.sm,
+    flex: 1,
+  },
+  goalButton: {
+    padding: spacing.xs,
   },
   phraseCard: {
     backgroundColor: colors.background,
@@ -495,11 +659,30 @@ const styles = StyleSheet.create({
   quranSubsection: {
     marginBottom: spacing.lg,
   },
+  subsectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
   subsectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.sm,
+  },
+  goalButtonSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.background,
+  },
+  goalButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
   },
   progressContainer: {
     marginBottom: spacing.md,
@@ -606,6 +789,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  goalModalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    width: '90%',
+    maxWidth: 400,
+  },
+  goalDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  goalInputContainer: {
+    marginBottom: spacing.lg,
+  },
+  goalInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  goalInputDark: {
+    backgroundColor: colors.backgroundDark,
+  },
+  goalModalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  goalModalButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalModalButtonCancel: {
+    backgroundColor: colors.border,
+  },
+  goalModalButtonSave: {
+    backgroundColor: colors.primary,
+  },
+  goalModalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  goalModalButtonTextSave: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textDark,
   },
   textDark: {
     color: colors.textDark,
