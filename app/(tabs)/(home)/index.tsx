@@ -289,7 +289,7 @@ export default function HomeScreen() {
           {weeklyChallenges.length > 0 && (
             <View style={styles.challengesPreview}>
               {weeklyChallenges.slice(0, 3).map((challenge, index) => (
-                <View key={`challenge-${challenge.id}-${index}`} style={styles.challengePreviewItem}>
+                <View key={index} style={styles.challengePreviewItem}>
                   <View style={styles.challengePreviewBar}>
                     <View 
                       style={[
@@ -386,7 +386,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Prayer Times</Text>
           {prayers.map((prayer, index) => (
             <TouchableOpacity
-              key={`prayer-${prayer.name}-${index}`}
+              key={index}
               style={[styles.prayerCard, prayer.completed && styles.prayerCardCompleted]}
               onPress={() => togglePrayer(index)}
               activeOpacity={0.7}
