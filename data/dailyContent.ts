@@ -1,5 +1,5 @@
 
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/app/integrations/supabase/client';
 
 export interface DailyHadith {
   id: string;
@@ -86,12 +86,6 @@ export async function getDailyContent(): Promise<DailyContentResponse> {
   if (cachedContent && cachedDate === today) {
     console.log('Returning cached daily content');
     return cachedContent;
-  }
-
-  // If Supabase is not configured, use fallback data
-  if (!isSupabaseConfigured() || !supabase) {
-    console.log('Supabase not configured, using fallback daily content');
-    return getFallbackContent(today);
   }
 
   try {

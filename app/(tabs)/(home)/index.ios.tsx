@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import ProfileButton from '@/components/ProfileButton';
@@ -41,6 +41,7 @@ export default function HomeScreen() {
   const [dailyHadith, setDailyHadith] = useState<DailyHadith | null>(null);
   const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
   const [loadingDailyContent, setLoadingDailyContent] = useState(true);
+  const [dailyContentError, setDailyContentError] = useState(false);
 
   const syncWeeklyChallenges = useCallback(async () => {
     try {
@@ -61,14 +62,24 @@ export default function HomeScreen() {
 
   const loadDailyContent = async () => {
     try {
-      console.log('Loading daily content...');
+      console.log('Starting to load daily content...');
+      setLoadingDailyContent(true);
+      setDailyContentError(false);
+      
       const content = await getDailyContent();
       console.log('Daily content received:', content);
-      setDailyVerse(content.verse);
-      setDailyHadith(content.hadith);
-      console.log('Daily content loaded successfully');
+      
+      if (content && content.verse && content.hadith) {
+        setDailyVerse(content.verse);
+        setDailyHadith(content.hadith);
+        console.log('Daily content loaded successfully');
+      } else {
+        console.error('Invalid daily content structure:', content);
+        setDailyContentError(true);
+      }
     } catch (error) {
       console.error('Error loading daily content:', error);
+      setDailyContentError(true);
     } finally {
       setLoadingDailyContent(false);
     }
@@ -192,6 +203,7 @@ export default function HomeScreen() {
 
   console.log('Daily verse:', dailyVerse);
   console.log('Daily hadith:', dailyHadith);
+  console.log('Loading daily content:', loadingDailyContent);
 
   return (
     <View style={styles.container}>
@@ -272,7 +284,25 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {!loadingDailyContent && dailyVerse && dailyHadith && (
+        {loadingDailyContent ? (
+          <View style={styles.dailyContentLoading}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading daily content...</Text>
+          </View>
+        ) : dailyContentError ? (
+          <View style={styles.dailyContentError}>
+            <IconSymbol
+              ios_icon_name="exclamationmark.triangle"
+              android_material_icon_name="error"
+              size={32}
+              color={colors.warning}
+            />
+            <Text style={styles.errorText}>Unable to load daily content</Text>
+            <TouchableOpacity onPress={loadDailyContent} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : dailyVerse && dailyHadith ? (
           <View style={styles.dailyContentRow}>
             <View style={styles.dailyCardVertical}>
               <View style={styles.dailyCardHeader}>
@@ -308,7 +338,7 @@ export default function HomeScreen() {
               <Text style={styles.dailyReference}>{dailyHadith.reference}</Text>
             </View>
           </View>
-        )}
+        ) : null}
 
         <View style={styles.trackerCard}>
           <ProgressRings
@@ -486,6 +516,61 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.card,
+  },
+  dailyContentLoading: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 40,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  dailyContentError: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 40,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 16,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: colors.card,
+    fontSize: 14,
+    fontWeight: '600',
   },
   dailyContentRow: {
     flexDirection: 'row',
