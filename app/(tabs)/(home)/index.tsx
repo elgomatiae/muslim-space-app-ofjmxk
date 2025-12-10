@@ -73,6 +73,7 @@ export default function HomeScreen() {
     try {
       console.log('Loading daily content...');
       const content = await getDailyContent();
+      console.log('Daily content received:', content);
       setDailyVerse(content.verse);
       setDailyHadith(content.hadith);
       console.log('Daily content loaded successfully');
@@ -99,16 +100,34 @@ export default function HomeScreen() {
       console.log('Loading weekly miracle for week starting:', weekStart);
       
       if (isSupabaseConfigured()) {
+        // Fixed: Changed from 'weekly_lectures' to 'weekly_miracles'
         const { data, error } = await supabase
-          .from('weekly_lectures')
+          .from('weekly_miracles')
           .select('miracle_id')
           .eq('week_start_date', weekStart)
           .single();
 
         if (data && !error) {
           console.log('Found weekly miracle in database:', data.miracle_id);
-          const miracle = findMiracleById(data.miracle_id);
-          if (miracle) {
+          // The miracle_id is now a UUID, so we need to fetch the miracle from the miracles table
+          const { data: miracleData, error: miracleError } = await supabase
+            .from('miracles')
+            .select('*')
+            .eq('id', data.miracle_id)
+            .single();
+
+          if (miracleData && !miracleError) {
+            console.log('Fetched miracle from database:', miracleData);
+            // Convert database miracle to app miracle format
+            const miracle: Miracle = {
+              id: miracleData.id,
+              title: miracleData.title,
+              description: miracleData.description,
+              details: miracleData.details,
+              explanation: miracleData.explanation,
+              quranVerses: [],
+              hadiths: [],
+            };
             setWeeklyMiracle(miracle);
             return;
           }
@@ -117,6 +136,7 @@ export default function HomeScreen() {
         }
       }
 
+      // Fallback: Select a random miracle from local data
       const allMiracles: Miracle[] = [];
       miracleCategories.forEach(category => {
         allMiracles.push(...category.miracles);
@@ -129,19 +149,24 @@ export default function HomeScreen() {
         setWeeklyMiracle(selectedMiracle);
 
         if (isSupabaseConfigured()) {
-          const { error: insertError } = await supabase
-            .from('weekly_lectures')
-            .upsert({
-              week_start_date: weekStart,
-              miracle_id: selectedMiracle.id,
-            }, {
-              onConflict: 'week_start_date'
-            });
-          
-          if (insertError) {
-            console.error('Error saving weekly miracle:', insertError);
-          } else {
-            console.log('Weekly miracle saved to database');
+          // Try to save to database, but don't fail if it doesn't work
+          try {
+            const { error: insertError } = await supabase
+              .from('weekly_miracles')
+              .upsert({
+                week_start_date: weekStart,
+                miracle_id: selectedMiracle.id,
+              }, {
+                onConflict: 'week_start_date'
+              });
+            
+            if (insertError) {
+              console.error('Error saving weekly miracle:', insertError);
+            } else {
+              console.log('Weekly miracle saved to database');
+            }
+          } catch (saveError) {
+            console.error('Failed to save weekly miracle:', saveError);
           }
         }
       }
@@ -275,6 +300,9 @@ export default function HomeScreen() {
   const completedCount = prayers.filter(p => p.completed).length;
 
   console.log('Home screen rendering with challenges:', weeklyChallenges.length);
+  console.log('Daily verse:', dailyVerse);
+  console.log('Daily hadith:', dailyHadith);
+  console.log('Weekly miracle:', weeklyMiracle);
 
   return (
     <View style={styles.container}>
@@ -389,7 +417,7 @@ export default function HomeScreen() {
           {weeklyChallenges.length > 0 && (
             <View style={styles.challengesPreview}>
               {weeklyChallenges.slice(0, 3).map((challenge, index) => (
-                <View key={`challenge-preview-${challenge.id}`} style={styles.challengePreviewItem}>
+                <View key={`challenge-preview-${challenge.id}-${index}`} style={styles.challengePreviewItem}>
                   <View style={styles.challengePreviewBar}>
                     <View 
                       style={[
@@ -525,7 +553,7 @@ export default function HomeScreen() {
               <Text style={styles.modalText}>{weeklyMiracle?.explanation}</Text>
 
               {weeklyMiracle?.quranVerses && weeklyMiracle.quranVerses.length > 0 && (
-                <React.Fragment>
+                <View>
                   <Text style={styles.modalSectionTitle}>Quranic References</Text>
                   {weeklyMiracle.quranVerses.map((verse, index) => (
                     <View key={`verse-${verse.surah}-${verse.verse}-${index}`} style={styles.verseCard}>
@@ -534,19 +562,19 @@ export default function HomeScreen() {
                       <Text style={styles.verseReference}>Quran {verse.surah}:{verse.verse}</Text>
                     </View>
                   ))}
-                </React.Fragment>
+                </View>
               )}
 
               {weeklyMiracle?.hadiths && weeklyMiracle.hadiths.length > 0 && (
-                <React.Fragment>
+                <View>
                   <Text style={styles.modalSectionTitle}>Hadith References</Text>
                   {weeklyMiracle.hadiths.map((hadith, index) => (
-                    <View key={`hadith-${hadith.source}-${index}`} style={styles.hadithCard}>
+                    <View key={`hadith-${index}-${hadith.source}`} style={styles.hadithCard}>
                       <Text style={styles.hadithText}>{hadith.text}</Text>
                       <Text style={styles.hadithReference}>{hadith.source}</Text>
                     </View>
                   ))}
-                </React.Fragment>
+                </View>
               )}
             </ScrollView>
           </View>
