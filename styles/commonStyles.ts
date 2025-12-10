@@ -1,96 +1,158 @@
 
-import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export const colors = {
-  background: '#F8F8FF',
+  // Primary Islamic Green Theme
+  primary: '#1B5E20',
+  primaryLight: '#4CAF50',
+  primaryDark: '#0D3D13',
+  
+  // Secondary Gold/Amber
+  secondary: '#FFA000',
+  secondaryLight: '#FFC107',
+  secondaryDark: '#FF6F00',
+  
+  // Neutral Colors
+  background: '#FFFFFF',
+  backgroundDark: '#121212',
+  surface: '#F5F5F5',
+  surfaceDark: '#1E1E1E',
+  
+  // Text Colors
   text: '#212121',
+  textDark: '#FFFFFF',
   textSecondary: '#757575',
-  primary: '#3F51B5',
-  secondary: '#E91E63',
-  accent: '#03A9F4',
-  card: '#FFFFFF',
-  highlight: '#FFD54F',
-  border: '#E0E0E0',
+  textSecondaryDark: '#B0B0B0',
+  
+  // Status Colors
   success: '#4CAF50',
   warning: '#FF9800',
   error: '#F44336',
+  info: '#2196F3',
+  
+  // Prayer Time Colors
+  fajr: '#5C6BC0',
+  dhuhr: '#FFA726',
+  asr: '#FFB74D',
+  maghrib: '#EF5350',
+  isha: '#7E57C2',
+  
+  // Transparent
+  transparent: 'transparent',
+  overlay: 'rgba(0, 0, 0, 0.5)',
 };
 
-export const buttonStyles = StyleSheet.create({
-  instructionsButton: {
-    backgroundColor: colors.primary,
-    alignSelf: 'center',
-    width: '100%',
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+};
+
+export const borderRadius = {
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  round: 999,
+};
+
+export const typography = {
+  h1: {
+    fontSize: 32,
+    fontWeight: '700' as const,
+    lineHeight: 40,
   },
-  backButton: {
-    backgroundColor: colors.card,
-    alignSelf: 'center',
-    width: '100%',
-    borderWidth: 1,
-    borderColor: colors.border,
+  h2: {
+    fontSize: 28,
+    fontWeight: '600' as const,
+    lineHeight: 36,
   },
-});
+  h3: {
+    fontSize: 24,
+    fontWeight: '600' as const,
+    lineHeight: 32,
+  },
+  h4: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+    lineHeight: 28,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: '400' as const,
+    lineHeight: 24,
+  },
+  bodySmall: {
+    fontSize: 14,
+    fontWeight: '400' as const,
+    lineHeight: 20,
+  },
+  caption: {
+    fontSize: 12,
+    fontWeight: '400' as const,
+    lineHeight: 16,
+  },
+};
+
+export const shadows = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  large: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+};
 
 export const commonStyles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: colors.background,
-    width: '100%',
-    height: '100%',
-  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  content: {
+  containerDark: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: 800,
-    width: '100%',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'center',
-    color: colors.text,
-    marginBottom: 10
-  },
-  text: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 8,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  section: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  buttonContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    backgroundColor: colors.backgroundDark,
   },
   card: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
-    width: '100%',
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.small,
   },
-  icon: {
-    width: 60,
-    height: 60,
-    tintColor: colors.primary,
+  cardDark: {
+    backgroundColor: colors.surfaceDark,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.medium,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  spaceBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
