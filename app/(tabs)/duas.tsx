@@ -434,7 +434,7 @@ export default function DuasScreen() {
           </View>
         </ScrollView>
       ) : (
-        <React.Fragment>
+        <View>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setSelectedCategory(null)}
@@ -450,7 +450,7 @@ export default function DuasScreen() {
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
             {category && (
-              <React.Fragment>
+              <View>
                 <View style={[styles.categoryBanner, { backgroundColor: category.color }]}>
                   <IconSymbol
                     ios_icon_name={category.icon as any}
@@ -475,10 +475,10 @@ export default function DuasScreen() {
                     <Text style={styles.duaReference}>{dua.reference}</Text>
                   </View>
                 ))}
-              </React.Fragment>
+              </View>
             )}
           </ScrollView>
-        </React.Fragment>
+        </View>
       )}
     </View>
   );

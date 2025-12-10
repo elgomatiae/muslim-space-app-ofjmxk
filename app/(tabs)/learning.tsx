@@ -568,7 +568,7 @@ export default function LearningScreen() {
       }
 
       return (
-        <React.Fragment>
+        <View>
           <TouchableOpacity
             style={styles.backButton}
             onPress={closeDuaCategory}
@@ -583,7 +583,7 @@ export default function LearningScreen() {
           </TouchableOpacity>
 
           {categoryDuas.length > 0 && (
-            <React.Fragment>
+            <View>
               <View style={[styles.duaCategoryBanner, { backgroundColor: categoryDuas[0].category_color }]}>
                 <IconSymbol
                   ios_icon_name={categoryDuas[0].category_icon as any}
@@ -608,9 +608,9 @@ export default function LearningScreen() {
                   <Text style={styles.duaReference}>{dua.reference}</Text>
                 </View>
               ))}
-            </React.Fragment>
+            </View>
           )}
-        </React.Fragment>
+        </View>
       );
     }
 

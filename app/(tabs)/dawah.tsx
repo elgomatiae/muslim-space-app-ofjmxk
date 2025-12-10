@@ -169,7 +169,7 @@ export default function DawahScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedCategory && (
-          <React.Fragment key={`category-content-${selectedCategory.id}`}>
+          <View key={`category-content-${selectedCategory.id}`}>
             <View style={[styles.categoryHeader, { backgroundColor: selectedCategory.color }]}>
               <IconSymbol
                 ios_icon_name={selectedCategory.icon as any}
@@ -222,9 +222,9 @@ export default function DawahScreen() {
                         </Text>
                         
                         {isExpanded && (
-                          <React.Fragment key={`miracle-expanded-${miracle.id}`}>
+                          <View key={`miracle-expanded-${miracle.id}`}>
                             {miracle.quran_verses && miracle.quran_verses.length > 0 && (
-                              <React.Fragment key={`verses-section-${miracle.id}`}>
+                              <View key={`verses-section-${miracle.id}`}>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={[styles.sectionHeaderProminent, { backgroundColor: selectedCategory.color }]}>
@@ -260,7 +260,7 @@ export default function DawahScreen() {
                                     </View>
                                   ))}
                                 </View>
-                              </React.Fragment>
+                              </View>
                             )}
 
                             <View style={styles.divider} />
@@ -280,7 +280,7 @@ export default function DawahScreen() {
                             </View>
 
                             {miracle.explanation && (
-                              <React.Fragment key={`explanation-section-${miracle.id}`}>
+                              <View key={`explanation-section-${miracle.id}`}>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={styles.sectionHeader}>
@@ -296,11 +296,11 @@ export default function DawahScreen() {
                                   </View>
                                   <Text style={styles.miracleDetails}>{miracle.explanation}</Text>
                                 </View>
-                              </React.Fragment>
+                              </View>
                             )}
 
                             {miracle.hadiths && miracle.hadiths.length > 0 && (
-                              <React.Fragment key={`hadiths-section-${miracle.id}`}>
+                              <View key={`hadiths-section-${miracle.id}`}>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={styles.sectionHeader}>
@@ -323,7 +323,7 @@ export default function DawahScreen() {
                                     </View>
                                   ))}
                                 </View>
-                              </React.Fragment>
+                              </View>
                             )}
 
                             <View style={styles.miracleFooter}>
@@ -337,7 +337,7 @@ export default function DawahScreen() {
                                 {miracle.reference}
                               </Text>
                             </View>
-                          </React.Fragment>
+                          </View>
                         )}
 
                         <View style={styles.expandButton}>
@@ -357,7 +357,7 @@ export default function DawahScreen() {
                 })}
               </View>
             )}
-          </React.Fragment>
+          </View>
         )}
 
         <View style={styles.tipsCard}>
