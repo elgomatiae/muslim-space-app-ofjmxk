@@ -1,7 +1,8 @@
+
 {
   "expo": {
     "name": "Muslim Space",
-    "slug": "Muslim Space",
+    "slug": "muslim-space",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -14,9 +15,15 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Natively",
+      "bundleIdentifier": "com.muslimspace.app",
+      "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to calculate accurate prayer times.",
+        "NSLocationAlwaysUsageDescription": "This app uses your location to calculate accurate prayer times.",
+        "NSCameraUsageDescription": "This app uses the camera to allow you to take photos for your profile.",
+        "NSPhotoLibraryUsageDescription": "This app accesses your photo library to allow you to select photos for your profile.",
+        "NSPhotoLibraryAddUsageDescription": "This app saves photos to your photo library."
       }
     },
     "android": {
@@ -25,7 +32,15 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.Natively",
+      "package": "com.muslimspace.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -52,6 +67,19 @@
       "expo-font",
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Muslim Space to use your location to calculate accurate prayer times."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Muslim Space to access your photos to set your profile picture.",
+          "cameraPermission": "Allow Muslim Space to access your camera to take profile pictures."
+        }
+      ],
+      [
         "expo-web-browser",
         {
           "experimentalLauncherActivity": false
@@ -63,8 +91,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
     }
-  },
-  "scheme": "Muslim Space"
+  }
 }
