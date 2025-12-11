@@ -50,17 +50,6 @@ const miracleCategories: MiracleCategory[] = [
   { id: 'prophetic', title: 'Prophetic', icon: 'star', color: '#9C27B0' },
 ];
 
-const dawahTips = [
-  'Start with common ground and shared values',
-  'Listen actively and show genuine interest',
-  'Use clear examples and relatable stories',
-  'Be patient and respectful at all times',
-  'Focus on the beauty and wisdom of Islam',
-  'Share personal experiences and transformations',
-  'Use these miracles as conversation starters',
-  'Always maintain good character - it\'s the best Dawah',
-];
-
 export default function DawahScreen() {
   const [selectedTab, setSelectedTab] = useState('scientific');
   const [expandedMiracle, setExpandedMiracle] = useState<string | null>(null);
@@ -75,6 +64,7 @@ export default function DawahScreen() {
     try {
       setLoading(true);
       
+      // Fetch miracles for the selected category
       const { data: miraclesData, error: miraclesError } = await supabase
         .from('miracles')
         .select('*')
@@ -84,6 +74,7 @@ export default function DawahScreen() {
       if (miraclesError) throw miraclesError;
 
       if (miraclesData) {
+        // Fetch verses and hadiths for each miracle
         const miraclesWithDetails = await Promise.all(
           miraclesData.map(async (miracle) => {
             const { data: verses } = await supabase
@@ -135,9 +126,9 @@ export default function DawahScreen() {
           style={styles.tabsScroll}
           contentContainerStyle={styles.tabsContent}
         >
-          {miracleCategories.map((category) => (
+          {miracleCategories.map((category, index) => (
             <TouchableOpacity
-              key={`miracle-category-${category.id}`}
+              key={index}
               style={[
                 styles.tabButton,
                 selectedTab === category.id && styles.tabButtonActive,
@@ -169,7 +160,7 @@ export default function DawahScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {selectedCategory && (
-          <View key={`category-content-${selectedCategory.id}`}>
+          <React.Fragment>
             <View style={[styles.categoryHeader, { backgroundColor: selectedCategory.color }]}>
               <IconSymbol
                 ios_icon_name={selectedCategory.icon as any}
@@ -192,11 +183,11 @@ export default function DawahScreen() {
               </View>
             ) : (
               <View style={styles.miraclesGrid}>
-                {miracles.map((miracle) => {
+                {miracles.map((miracle, index) => {
                   const isExpanded = expandedMiracle === miracle.id;
                   return (
                     <TouchableOpacity
-                      key={`miracle-${miracle.id}`}
+                      key={index}
                       style={styles.miracleCard}
                       onPress={() => toggleMiracle(miracle.id)}
                       activeOpacity={0.8}
@@ -208,7 +199,7 @@ export default function DawahScreen() {
                           resizeMode="cover"
                         />
                         <View style={[styles.miracleNumber, { backgroundColor: selectedCategory.color }]}>
-                          <Text style={styles.miracleNumberText}>{miracle.order_index + 1}</Text>
+                          <Text style={styles.miracleNumberText}>{index + 1}</Text>
                         </View>
                       </View>
                       
@@ -222,9 +213,10 @@ export default function DawahScreen() {
                         </Text>
                         
                         {isExpanded && (
-                          <View key={`miracle-expanded-${miracle.id}`}>
+                          <React.Fragment>
+                            {/* Quran Verses Section - Displayed First and Prominently */}
                             {miracle.quran_verses && miracle.quran_verses.length > 0 && (
-                              <View key={`verses-section-${miracle.id}`}>
+                              <React.Fragment>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={[styles.sectionHeaderProminent, { backgroundColor: selectedCategory.color }]}>
@@ -238,8 +230,8 @@ export default function DawahScreen() {
                                       Quranic Evidence
                                     </Text>
                                   </View>
-                                  {miracle.quran_verses.map((verse, verseIndex) => (
-                                    <View key={`verse-${miracle.id}-${verse.surah}-${verse.verse}-${verseIndex}`} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
+                                  {miracle.quran_verses.map((verse, i) => (
+                                    <View key={i} style={[styles.verseContainerProminent, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.verseReference, { backgroundColor: selectedCategory.color }]}>
                                         <IconSymbol
                                           ios_icon_name="book.closed.fill"
@@ -260,9 +252,10 @@ export default function DawahScreen() {
                                     </View>
                                   ))}
                                 </View>
-                              </View>
+                              </React.Fragment>
                             )}
 
+                            {/* Details Section */}
                             <View style={styles.divider} />
                             <View style={styles.section}>
                               <View style={styles.sectionHeader}>
@@ -279,8 +272,9 @@ export default function DawahScreen() {
                               <Text style={styles.miracleDetails}>{miracle.details}</Text>
                             </View>
 
+                            {/* Why This Is Miraculous Section */}
                             {miracle.explanation && (
-                              <View key={`explanation-section-${miracle.id}`}>
+                              <React.Fragment>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={styles.sectionHeader}>
@@ -296,11 +290,12 @@ export default function DawahScreen() {
                                   </View>
                                   <Text style={styles.miracleDetails}>{miracle.explanation}</Text>
                                 </View>
-                              </View>
+                              </React.Fragment>
                             )}
 
+                            {/* Hadiths Section */}
                             {miracle.hadiths && miracle.hadiths.length > 0 && (
-                              <View key={`hadiths-section-${miracle.id}`}>
+                              <React.Fragment>
                                 <View style={styles.divider} />
                                 <View style={styles.section}>
                                   <View style={styles.sectionHeader}>
@@ -314,8 +309,8 @@ export default function DawahScreen() {
                                       Supporting Hadiths
                                     </Text>
                                   </View>
-                                  {miracle.hadiths.map((hadith, hadithIndex) => (
-                                    <View key={`hadith-${miracle.id}-${hadith.source}-${hadithIndex}`} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
+                                  {miracle.hadiths.map((hadith, i) => (
+                                    <View key={i} style={[styles.hadithContainer, { borderLeftColor: selectedCategory.color }]}>
                                       <View style={[styles.hadithSource, { backgroundColor: selectedCategory.color }]}>
                                         <Text style={styles.hadithSourceText}>{hadith.source}</Text>
                                       </View>
@@ -323,9 +318,10 @@ export default function DawahScreen() {
                                     </View>
                                   ))}
                                 </View>
-                              </View>
+                              </React.Fragment>
                             )}
 
+                            {/* Reference Footer */}
                             <View style={styles.miracleFooter}>
                               <IconSymbol
                                 ios_icon_name="link"
@@ -337,7 +333,7 @@ export default function DawahScreen() {
                                 {miracle.reference}
                               </Text>
                             </View>
-                          </View>
+                          </React.Fragment>
                         )}
 
                         <View style={styles.expandButton}>
@@ -357,7 +353,7 @@ export default function DawahScreen() {
                 })}
               </View>
             )}
-          </View>
+          </React.Fragment>
         )}
 
         <View style={styles.tipsCard}>
@@ -371,8 +367,17 @@ export default function DawahScreen() {
             <Text style={styles.tipsTitle}>Quick Dawah Tips</Text>
           </View>
           <View style={styles.tipsList}>
-            {dawahTips.map((tip, index) => (
-              <View key={`dawah-tip-${index}`} style={styles.tipItem}>
+            {[
+              'Start with common ground and shared values',
+              'Listen actively and show genuine interest',
+              'Use clear examples and relatable stories',
+              'Be patient and respectful at all times',
+              'Focus on the beauty and wisdom of Islam',
+              'Share personal experiences and transformations',
+              'Use these miracles as conversation starters',
+              'Always maintain good character - it\'s the best Dawah',
+            ].map((tip, index) => (
+              <View key={index} style={styles.tipItem}>
                 <View style={styles.tipBullet} />
                 <Text style={styles.tipText}>{tip}</Text>
               </View>

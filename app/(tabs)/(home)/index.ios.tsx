@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, Dimensions, Modal } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import ProfileButton from '@/components/ProfileButton';
@@ -10,12 +10,16 @@ import { getDailyContent, DailyHadith, DailyVerse } from '@/data/dailyContent';
 import ProgressRings from '@/components/ProgressRings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTracker } from '@/contexts/TrackerContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { miracleCategories, Miracle } from '@/data/miracles';
 import { router } from 'expo-router';
 import { useAchievements } from '@/contexts/AchievementContext';
 
 interface Prayer extends PrayerTime {
   completed: boolean;
 }
+
+const { width } = Dimensions.get('window');
 
 const PRAYER_STORAGE_KEY = '@prayer_completion';
 const PRAYER_DATE_KEY = '@prayer_date';
@@ -41,7 +45,9 @@ export default function HomeScreen() {
   const [dailyHadith, setDailyHadith] = useState<DailyHadith | null>(null);
   const [dailyVerse, setDailyVerse] = useState<DailyVerse | null>(null);
   const [loadingDailyContent, setLoadingDailyContent] = useState(true);
-  const [dailyContentError, setDailyContentError] = useState(false);
+
+  const [weeklyMiracle, setWeeklyMiracle] = useState<Miracle | null>(null);
+  const [showMiracleModal, setShowMiracleModal] = useState(false);
 
   const syncWeeklyChallenges = useCallback(async () => {
     try {
@@ -55,34 +61,99 @@ export default function HomeScreen() {
     }
   }, [getWeeklyStats, updateChallengeProgress]);
 
+  const loadWeeklyMiracle = useCallback(async () => {
+    try {
+      const weekStart = getWeekStartDate();
+      console.log('Loading weekly miracle for week starting:', weekStart);
+      
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from('weekly_lectures')
+          .select('miracle_id')
+          .eq('week_start_date', weekStart)
+          .single();
+
+        if (data && !error) {
+          console.log('Found weekly miracle in database:', data.miracle_id);
+          const miracle = findMiracleById(data.miracle_id);
+          if (miracle) {
+            setWeeklyMiracle(miracle);
+            return;
+          }
+        } else {
+          console.log('No weekly miracle found in database, selecting new one');
+        }
+      }
+
+      const allMiracles: Miracle[] = [];
+      miracleCategories.forEach(category => {
+        allMiracles.push(...category.miracles);
+      });
+
+      if (allMiracles.length > 0) {
+        const randomIndex = Math.floor(Math.random() * allMiracles.length);
+        const selectedMiracle = allMiracles[randomIndex];
+        console.log('Selected new weekly miracle:', selectedMiracle.id);
+        setWeeklyMiracle(selectedMiracle);
+
+        if (isSupabaseConfigured()) {
+          const { error: insertError } = await supabase
+            .from('weekly_lectures')
+            .upsert({
+              week_start_date: weekStart,
+              miracle_id: selectedMiracle.id,
+            }, {
+              onConflict: 'week_start_date'
+            });
+          
+          if (insertError) {
+            console.error('Error saving weekly miracle:', insertError);
+          } else {
+            console.log('Weekly miracle saved to database');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading weekly miracle:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadDailyContent();
+    loadWeeklyMiracle();
     syncWeeklyChallenges();
-  }, [syncWeeklyChallenges]);
+  }, [loadWeeklyMiracle, syncWeeklyChallenges]);
 
   const loadDailyContent = async () => {
     try {
-      console.log('Starting to load daily content...');
-      setLoadingDailyContent(true);
-      setDailyContentError(false);
-      
+      console.log('Loading daily content...');
       const content = await getDailyContent();
-      console.log('Daily content received:', content);
-      
-      if (content && content.verse && content.hadith) {
-        setDailyVerse(content.verse);
-        setDailyHadith(content.hadith);
-        console.log('Daily content loaded successfully');
-      } else {
-        console.error('Invalid daily content structure:', content);
-        setDailyContentError(true);
-      }
+      setDailyVerse(content.verse);
+      setDailyHadith(content.hadith);
+      console.log('Daily content loaded successfully');
     } catch (error) {
       console.error('Error loading daily content:', error);
-      setDailyContentError(true);
     } finally {
       setLoadingDailyContent(false);
     }
+  };
+
+  const getWeekStartDate = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString().split('T')[0];
+  };
+
+  const findMiracleById = (id: string): Miracle | null => {
+    for (const category of miracleCategories) {
+      const miracle = category.miracles.find(m => m.id === id);
+      if (miracle) return miracle;
+    }
+    return null;
   };
 
   const loadPrayerStatus = useCallback(async () => {
@@ -201,10 +272,6 @@ export default function HomeScreen() {
 
   const completedCount = prayers.filter(p => p.completed).length;
 
-  console.log('Daily verse:', dailyVerse);
-  console.log('Daily hadith:', dailyHadith);
-  console.log('Loading daily content:', loadingDailyContent);
-
   return (
     <View style={styles.container}>
       <View style={styles.profileButtonContainer}>
@@ -245,15 +312,49 @@ export default function HomeScreen() {
             )}
           </View>
           {nextPrayer && (
-            <View style={styles.nextPrayerContent}>
-              <View>
-                <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
-                <Text style={styles.countdown}>in {timeUntilNext}</Text>
+            <React.Fragment>
+              <View style={styles.nextPrayerContent}>
+                <View>
+                  <Text style={styles.nextPrayerName}>{nextPrayer.name}</Text>
+                  <Text style={styles.countdown}>in {timeUntilNext}</Text>
+                </View>
+                <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
               </View>
-              <Text style={styles.nextPrayerTime}>{nextPrayer.time}</Text>
-            </View>
+            </React.Fragment>
           )}
         </View>
+
+        {weeklyMiracle && (
+          <TouchableOpacity
+            style={styles.weeklyLectureCard}
+            onPress={() => setShowMiracleModal(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.weeklyLectureHeader}>
+              <View style={styles.weeklyLectureIcon}>
+                <IconSymbol
+                  ios_icon_name="star.fill"
+                  android_material_icon_name="star"
+                  size={24}
+                  color={colors.card}
+                />
+              </View>
+              <View style={styles.weeklyLectureText}>
+                <Text style={styles.weeklyLectureLabel}>Weekly Miracle</Text>
+                <Text style={styles.weeklyLectureTitle}>{weeklyMiracle.title}</Text>
+              </View>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron-right"
+                size={24}
+                color={colors.card}
+              />
+            </View>
+            <Text style={styles.weeklyLectureDescription} numberOfLines={2}>
+              {weeklyMiracle.description}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.challengesCard}
@@ -284,25 +385,7 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {loadingDailyContent ? (
-          <View style={styles.dailyContentLoading}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Loading daily content...</Text>
-          </View>
-        ) : dailyContentError ? (
-          <View style={styles.dailyContentError}>
-            <IconSymbol
-              ios_icon_name="exclamationmark.triangle"
-              android_material_icon_name="error"
-              size={32}
-              color={colors.warning}
-            />
-            <Text style={styles.errorText}>Unable to load daily content</Text>
-            <TouchableOpacity onPress={loadDailyContent} style={styles.retryButton}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : dailyVerse && dailyHadith ? (
+        {!loadingDailyContent && dailyVerse && dailyHadith && (
           <View style={styles.dailyContentRow}>
             <View style={styles.dailyCardVertical}>
               <View style={styles.dailyCardHeader}>
@@ -338,7 +421,7 @@ export default function HomeScreen() {
               <Text style={styles.dailyReference}>{dailyHadith.reference}</Text>
             </View>
           </View>
-        ) : null}
+        )}
 
         <View style={styles.trackerCard}>
           <ProgressRings
@@ -360,7 +443,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Prayer Times</Text>
           {prayers.map((prayer, index) => (
             <TouchableOpacity
-              key={index}
+              key={`prayer-${prayer.name}-${index}`}
               style={[styles.prayerCard, prayer.completed && styles.prayerCardCompleted]}
               onPress={() => togglePrayer(index)}
               activeOpacity={0.7}
@@ -387,6 +470,63 @@ export default function HomeScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showMiracleModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMiracleModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{weeklyMiracle?.title}</Text>
+              <TouchableOpacity onPress={() => setShowMiracleModal(false)}>
+                <IconSymbol
+                  ios_icon_name="xmark.circle.fill"
+                  android_material_icon_name="cancel"
+                  size={28}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              <Text style={styles.modalDescription}>{weeklyMiracle?.description}</Text>
+              
+              <Text style={styles.modalSectionTitle}>Details</Text>
+              <Text style={styles.modalText}>{weeklyMiracle?.details}</Text>
+
+              <Text style={styles.modalSectionTitle}>Explanation</Text>
+              <Text style={styles.modalText}>{weeklyMiracle?.explanation}</Text>
+
+              {weeklyMiracle?.quranVerses && weeklyMiracle.quranVerses.length > 0 && (
+                <React.Fragment>
+                  <Text style={styles.modalSectionTitle}>Quranic References</Text>
+                  {weeklyMiracle.quranVerses.map((verse, index) => (
+                    <View key={`verse-${index}`} style={styles.verseCard}>
+                      <Text style={styles.verseArabic}>{verse.arabic}</Text>
+                      <Text style={styles.verseTranslation}>{verse.translation}</Text>
+                      <Text style={styles.verseReference}>Quran {verse.surah}:{verse.verse}</Text>
+                    </View>
+                  ))}
+                </React.Fragment>
+              )}
+
+              {weeklyMiracle?.hadiths && weeklyMiracle.hadiths.length > 0 && (
+                <React.Fragment>
+                  <Text style={styles.modalSectionTitle}>Hadith References</Text>
+                  {weeklyMiracle.hadiths.map((hadith, index) => (
+                    <View key={`hadith-${index}`} style={styles.hadithCard}>
+                      <Text style={styles.hadithText}>{hadith.text}</Text>
+                      <Text style={styles.hadithReference}>{hadith.source}</Text>
+                    </View>
+                  ))}
+                </React.Fragment>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -475,6 +615,55 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.85,
   },
+  weeklyLectureCard: {
+    backgroundColor: colors.secondary,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#E91E63',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  weeklyLectureHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 12,
+  },
+  weeklyLectureIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weeklyLectureText: {
+    flex: 1,
+  },
+  weeklyLectureLabel: {
+    fontSize: 12,
+    color: colors.card,
+    opacity: 0.9,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  weeklyLectureTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.card,
+  },
+  weeklyLectureDescription: {
+    fontSize: 14,
+    color: colors.card,
+    opacity: 0.9,
+    lineHeight: 20,
+  },
   challengesCard: {
     backgroundColor: colors.accent,
     borderRadius: 16,
@@ -516,61 +705,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.card,
-  },
-  dailyContentLoading: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 40,
-    marginBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  dailyContentError: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 40,
-    marginBottom: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  errorText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 16,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: colors.card,
-    fontSize: 14,
-    fontWeight: '600',
   },
   dailyContentRow: {
     flexDirection: 'row',
@@ -755,5 +889,101 @@ const styles = StyleSheet.create({
   checkboxCompleted: {
     backgroundColor: colors.card,
     borderColor: colors.card,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    width: '100%',
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+    marginRight: 12,
+  },
+  modalScroll: {
+    padding: 20,
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+    marginBottom: 20,
+    fontWeight: '600',
+  },
+  modalSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  modalText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  verseCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  verseArabic: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'right',
+    marginBottom: 8,
+    lineHeight: 26,
+  },
+  verseTranslation: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  verseReference: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  hadithCard: {
+    backgroundColor: colors.background,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  hadithText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  hadithReference: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
 });

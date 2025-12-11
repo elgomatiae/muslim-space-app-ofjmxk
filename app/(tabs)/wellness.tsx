@@ -64,36 +64,21 @@ const gratitudePrompts = [
 ];
 
 const workoutTypes = [
-  { id: 'strength', name: 'Strength Training', icon: 'dumbbell', androidIcon: 'fitness-center' },
-  { id: 'bodyweight', name: 'Bodyweight', icon: 'figure-strengthtraining-traditional', androidIcon: 'fitness-center' },
-  { id: 'yoga', name: 'Yoga', icon: 'figure-yoga', androidIcon: 'self-improvement' },
-  { id: 'stretching', name: 'Stretching', icon: 'figure-flexibility', androidIcon: 'accessibility' },
-  { id: 'hiit', name: 'HIIT', icon: 'bolt-fill', androidIcon: 'flash-on' },
-  { id: 'crossfit', name: 'CrossFit', icon: 'figure-cross-training', androidIcon: 'fitness-center' },
+  { name: 'Strength Training', icon: 'dumbbell', androidIcon: 'fitness-center' },
+  { name: 'Bodyweight', icon: 'figure-strengthtraining-traditional', androidIcon: 'fitness-center' },
+  { name: 'Yoga', icon: 'figure-yoga', androidIcon: 'self-improvement' },
+  { name: 'Stretching', icon: 'figure-flexibility', androidIcon: 'accessibility' },
+  { name: 'HIIT', icon: 'bolt-fill', androidIcon: 'flash-on' },
+  { name: 'CrossFit', icon: 'figure-cross-training', androidIcon: 'fitness-center' },
 ];
 
 const cardioTypes = [
-  { id: 'running', name: 'Running', icon: 'figure-run', androidIcon: 'directions-run' },
-  { id: 'walking', name: 'Walking', icon: 'figure-walk', androidIcon: 'directions-walk' },
-  { id: 'cycling', name: 'Cycling', icon: 'bicycle', androidIcon: 'directions-bike' },
-  { id: 'swimming', name: 'Swimming', icon: 'figure-pool-swim', androidIcon: 'pool' },
-  { id: 'rowing', name: 'Rowing', icon: 'figure-rowing', androidIcon: 'rowing' },
-  { id: 'jumprope', name: 'Jump Rope', icon: 'figure-jumprope', androidIcon: 'fitness-center' },
-];
-
-const sleepTips = [
-  { id: 'sleep-tip-1', text: 'Sleep early and wake for Fajr' },
-  { id: 'sleep-tip-2', text: 'Recite Ayat al-Kursi before sleep' },
-  { id: 'sleep-tip-3', text: 'Avoid screens 1 hour before bed' },
-  { id: 'sleep-tip-4', text: 'Make wudu before sleeping' },
-];
-
-const prophetLessons = [
-  { id: 'lesson-1', text: 'It&apos;s okay to feel sad and grieve' },
-  { id: 'lesson-2', text: 'Turn to Allah in times of distress' },
-  { id: 'lesson-3', text: 'Seek support from loved ones' },
-  { id: 'lesson-4', text: 'Remember that hardship is temporary' },
-  { id: 'lesson-5', text: 'Professional help is encouraged in Islam' },
+  { name: 'Running', icon: 'figure-run', androidIcon: 'directions-run' },
+  { name: 'Walking', icon: 'figure-walk', androidIcon: 'directions-walk' },
+  { name: 'Cycling', icon: 'bicycle', androidIcon: 'directions-bike' },
+  { name: 'Swimming', icon: 'figure-pool-swim', androidIcon: 'pool' },
+  { name: 'Rowing', icon: 'figure-rowing', androidIcon: 'rowing' },
+  { name: 'Jump Rope', icon: 'figure-jumprope', androidIcon: 'fitness-center' },
 ];
 
 export default function WellnessScreen() {
@@ -673,9 +658,9 @@ export default function WellnessScreen() {
                 Select an emotion to get Islamic guidance and support
               </Text>
               <View style={styles.emotionsGrid}>
-                {emotions.map((emotion, emotionIndex) => (
+                {emotions.map((emotion, index) => (
                   <TouchableOpacity
-                    key={`emotion-${emotion.id}-${emotionIndex}`}
+                    key={`emotion-${index}`}
                     style={[
                       styles.emotionButton,
                       selectedEmotion === emotion.id && { backgroundColor: emotion.color, borderColor: emotion.color }
@@ -707,8 +692,8 @@ export default function WellnessScreen() {
                 
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Quranic Guidance</Text>
-                  {getEmotionContent(selectedEmotion).verses.map((verse, verseIndex) => (
-                    <View key={`emotion-verse-${selectedEmotion}-${verseIndex}-${verse.reference}`} style={styles.verseCard}>
+                  {getEmotionContent(selectedEmotion).verses.map((verse, index) => (
+                    <View key={`verse-${index}`} style={styles.verseCard}>
                       <Text style={styles.verseArabic}>{verse.arabic}</Text>
                       <Text style={styles.verseTranslation}>{verse.translation}</Text>
                       <Text style={styles.verseReference}>{verse.reference}</Text>
@@ -718,8 +703,8 @@ export default function WellnessScreen() {
 
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Prophetic Wisdom</Text>
-                  {getEmotionContent(selectedEmotion).hadiths.map((hadith, hadithIndex) => (
-                    <View key={`emotion-hadith-${selectedEmotion}-${hadithIndex}-${hadith.reference}`} style={styles.hadithCard}>
+                  {getEmotionContent(selectedEmotion).hadiths.map((hadith, index) => (
+                    <View key={`hadith-${index}`} style={styles.hadithCard}>
                       <Text style={styles.hadithText}>{hadith.text}</Text>
                       <Text style={styles.hadithReference}>{hadith.reference}</Text>
                     </View>
@@ -728,8 +713,8 @@ export default function WellnessScreen() {
 
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Practical Steps</Text>
-                  {getEmotionContent(selectedEmotion).tips.map((tip, tipIndex) => (
-                    <View key={`emotion-tip-${selectedEmotion}-${tipIndex}-${tip.substring(0, 15)}`} style={styles.tipItem}>
+                  {getEmotionContent(selectedEmotion).tips.map((tip, index) => (
+                    <View key={`tip-${index}`} style={styles.tipItem}>
                       <IconSymbol
                         ios_icon_name="checkmark.circle.fill"
                         android_material_icon_name="check-circle"
@@ -882,15 +867,15 @@ export default function WellnessScreen() {
                 </View>
               </View>
               <View style={styles.waterTracker}>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((glass) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((glass, index) => (
                   <TouchableOpacity
-                    key={`water-glass-${glass}`}
+                    key={`water-${index}`}
                     style={[
                       styles.waterGlass,
-                      glass <= waterGlasses && styles.waterGlassFilled
+                      index < waterGlasses && styles.waterGlassFilled
                     ]}
                     onPress={() => {
-                      if (glass <= waterGlasses) {
+                      if (index < waterGlasses) {
                         removeWaterGlass();
                       } else {
                         addWaterGlass();
@@ -898,10 +883,10 @@ export default function WellnessScreen() {
                     }}
                   >
                     <IconSymbol
-                      ios_icon_name={glass <= waterGlasses ? 'drop.fill' : 'drop'}
+                      ios_icon_name={index < waterGlasses ? 'drop.fill' : 'drop'}
                       android_material_icon_name="water-drop"
                       size={24}
-                      color={glass <= waterGlasses ? colors.card : colors.accent}
+                      color={index < waterGlasses ? colors.card : colors.accent}
                     />
                   </TouchableOpacity>
                 ))}
@@ -1050,23 +1035,49 @@ export default function WellnessScreen() {
                 Quality sleep is essential for physical and spiritual well-being
               </Text>
               <View style={styles.tipsList}>
-                {sleepTips.map((tip) => (
-                  <View key={tip.id} style={styles.tipItem}>
-                    <IconSymbol
-                      ios_icon_name="checkmark.circle"
-                      android_material_icon_name="check-circle-outline"
-                      size={20}
-                      color={colors.success}
-                    />
-                    <Text style={styles.tipText}>{tip.text}</Text>
-                  </View>
-                ))}
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Sleep early and wake for Fajr</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Recite Ayat al-Kursi before sleep</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Avoid screens 1 hour before bed</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle"
+                    android_material_icon_name="check-circle-outline"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Make wudu before sleeping</Text>
+                </View>
               </View>
             </View>
           </React.Fragment>
         )}
       </ScrollView>
 
+      {/* Modals remain the same - keeping them for brevity */}
       <Modal
         visible={showProphetStory}
         transparent
@@ -1118,17 +1129,51 @@ export default function WellnessScreen() {
 
               <Text style={styles.modalSectionTitle}>Lessons for Us</Text>
               <View style={styles.tipsList}>
-                {prophetLessons.map((lesson) => (
-                  <View key={lesson.id} style={styles.tipItem}>
-                    <IconSymbol
-                      ios_icon_name="checkmark.circle.fill"
-                      android_material_icon_name="check-circle"
-                      size={20}
-                      color={colors.success}
-                    />
-                    <Text style={styles.tipText}>{lesson.text}</Text>
-                  </View>
-                ))}
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>It&apos;s okay to feel sad and grieve</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Turn to Allah in times of distress</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Seek support from loved ones</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Remember that hardship is temporary</Text>
+                </View>
+                <View style={styles.tipItem}>
+                  <IconSymbol
+                    ios_icon_name="checkmark.circle.fill"
+                    android_material_icon_name="check-circle"
+                    size={20}
+                    color={colors.success}
+                  />
+                  <Text style={styles.tipText}>Professional help is encouraged in Islam</Text>
+                </View>
               </View>
             </ScrollView>
           </View>
@@ -1158,8 +1203,8 @@ export default function WellnessScreen() {
               {journalEntries.length === 0 ? (
                 <Text style={styles.emptyText}>No journal entries yet. Start writing today!</Text>
               ) : (
-                journalEntries.map((entry, entryIndex) => (
-                  <View key={`journal-entry-${entry.id}-${entryIndex}`} style={styles.historyEntry}>
+                journalEntries.map((entry, index) => (
+                  <View key={`entry-${index}`} style={styles.historyEntry}>
                     <Text style={styles.historyDate}>{formatDate(entry.entry_date)}</Text>
                     {entry.prompt_used && (
                       <Text style={styles.historyPrompt}>Prompt: {entry.prompt_used}</Text>
@@ -1190,9 +1235,9 @@ export default function WellnessScreen() {
             
             <ScrollView style={styles.typeSelectionScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.quickModalButtons}>
-                {workoutTypes.map((workout, workoutIndex) => (
+                {workoutTypes.map((workout, index) => (
                   <TouchableOpacity
-                    key={`workout-type-${workout.id}-${workoutIndex}`}
+                    key={`workout-${index}`}
                     style={[
                       styles.workoutTypeButton,
                       selectedWorkoutType === workout.name && styles.workoutTypeButtonSelected
@@ -1279,9 +1324,9 @@ export default function WellnessScreen() {
             
             <ScrollView style={styles.typeSelectionScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.quickModalButtons}>
-                {cardioTypes.map((cardio, cardioIndex) => (
+                {cardioTypes.map((cardio, index) => (
                   <TouchableOpacity
-                    key={`cardio-type-${cardio.id}-${cardioIndex}`}
+                    key={`cardio-${index}`}
                     style={[
                       styles.workoutTypeButton,
                       selectedCardioType === cardio.name && styles.cardioTypeButtonSelected
@@ -1354,6 +1399,7 @@ export default function WellnessScreen() {
   );
 }
 
+// Styles remain the same - keeping them for brevity
 const styles = StyleSheet.create({
   container: {
     flex: 1,

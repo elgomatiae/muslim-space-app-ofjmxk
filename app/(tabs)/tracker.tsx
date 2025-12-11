@@ -156,9 +156,9 @@ export default function TrackerScreen() {
     return platform === 'ios' ? mapping.ios : mapping.android;
   };
 
-  const renderAchievement = (achievement: Achievement) => (
+  const renderAchievement = (achievement: Achievement, index: number) => (
     <View
-      key={`achievement-${achievement.id}`}
+      key={`achievement-${achievement.id}-${index}`}
       style={[
         styles.achievementCard,
         !achievement.unlocked && styles.achievementCardLocked,
@@ -199,12 +199,12 @@ export default function TrackerScreen() {
     </View>
   );
 
-  const renderChallenge = (challenge: Challenge) => {
+  const renderChallenge = (challenge: Challenge, index: number) => {
     const progressPercent = (challenge.progress / challenge.requirement.value) * 100;
     
     return (
       <View
-        key={`challenge-${challenge.id}`}
+        key={`challenge-${challenge.id}-${index}`}
         style={[
           styles.challengeCard,
           challenge.completed && styles.challengeCardCompleted,
@@ -602,7 +602,7 @@ export default function TrackerScreen() {
                 <Text style={styles.goalsSubsectionSubtitle}>
                   Complete {completedWeeklyCount}/{weeklyChallenges.length} this week
                 </Text>
-                {weeklyChallenges.map((challenge) => renderChallenge(challenge))}
+                {weeklyChallenges.map((challenge, index) => renderChallenge(challenge, index))}
               </View>
             </React.Fragment>
           ) : (
@@ -626,7 +626,7 @@ export default function TrackerScreen() {
 
               <View style={styles.goalsSubsection}>
                 <Text style={styles.goalsSubsectionTitle}>All Achievements</Text>
-                {achievements.map((achievement) => renderAchievement(achievement))}
+                {achievements.map((achievement, index) => renderAchievement(achievement, index))}
               </View>
             </React.Fragment>
           )}
@@ -724,9 +724,9 @@ export default function TrackerScreen() {
             </View>
             
             <ScrollView style={styles.dhikrList}>
-              {dhikrPhrases.map((dhikr) => (
+              {dhikrPhrases.map((dhikr, index) => (
                 <TouchableOpacity
-                  key={`dhikr-phrase-${dhikr.id}`}
+                  key={index}
                   style={[
                     styles.dhikrOption,
                     selectedDhikr.id === dhikr.id && styles.dhikrOptionSelected,

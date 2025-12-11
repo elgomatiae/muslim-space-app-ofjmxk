@@ -414,9 +414,9 @@ export default function DuasScreen() {
       {!selectedCategory ? (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
           <View style={styles.categoriesGrid}>
-            {duaCategories.map((cat, catIndex) => (
+            {duaCategories.map((cat, index) => (
               <TouchableOpacity
-                key={`dua-category-${cat.id}-${catIndex}`}
+                key={index}
                 style={[styles.categoryCard, { backgroundColor: cat.color }]}
                 onPress={() => setSelectedCategory(cat.id)}
                 activeOpacity={0.8}
@@ -434,7 +434,7 @@ export default function DuasScreen() {
           </View>
         </ScrollView>
       ) : (
-        <View>
+        <React.Fragment>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setSelectedCategory(null)}
@@ -450,7 +450,7 @@ export default function DuasScreen() {
 
           <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
             {category && (
-              <View>
+              <React.Fragment>
                 <View style={[styles.categoryBanner, { backgroundColor: category.color }]}>
                   <IconSymbol
                     ios_icon_name={category.icon as any}
@@ -464,10 +464,10 @@ export default function DuasScreen() {
                   </View>
                 </View>
 
-                {category.duas.map((dua, duaIndex) => (
-                  <View key={`dua-${dua.id}-${duaIndex}`} style={styles.duaCard}>
+                {category.duas.map((dua, index) => (
+                  <View key={index} style={styles.duaCard}>
                     <View style={[styles.duaNumber, { backgroundColor: category.color }]}>
-                      <Text style={styles.duaNumberText}>{duaIndex + 1}</Text>
+                      <Text style={styles.duaNumberText}>{index + 1}</Text>
                     </View>
                     <Text style={styles.duaArabic}>{dua.arabic}</Text>
                     <Text style={styles.duaTransliteration}>{dua.transliteration}</Text>
@@ -475,10 +475,10 @@ export default function DuasScreen() {
                     <Text style={styles.duaReference}>{dua.reference}</Text>
                   </View>
                 ))}
-              </View>
+              </React.Fragment>
             )}
           </ScrollView>
-        </View>
+        </React.Fragment>
       )}
     </View>
   );

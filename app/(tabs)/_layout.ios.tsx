@@ -7,7 +7,6 @@ import { colors } from '@/styles/commonStyles';
 export default function TabLayout() {
   return (
     <NativeTabs
-      backgroundColor={colors.card}
       tintColor={colors.primary}
       iconColor={colors.textSecondary}
       labelStyle={{ color: colors.text }}
