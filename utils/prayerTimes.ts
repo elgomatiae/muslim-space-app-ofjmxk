@@ -1,139 +1,163 @@
 
-import * as Location from 'expo-location';
-
 export interface PrayerTime {
   name: string;
   time: string;
-  completed: boolean;
 }
 
-export interface PrayerTimesData {
-  fajr: string;
-  dhuhr: string;
-  asr: string;
-  maghrib: string;
-  isha: string;
-  date: string;
-  location: string;
+export interface Coordinates {
+  latitude: number;
+  longitude: number;
 }
 
-// Calculate prayer times based on location
-export async function calculatePrayerTimes(): Promise<PrayerTimesData | null> {
-  try {
-    // Request location permission
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.log('Location permission denied');
-      return getDefaultPrayerTimes();
-    }
-
-    // Get current location
-    const location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
-
-    // Get location name
-    const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-    const locationName = geocode[0]?.city || geocode[0]?.region || 'Unknown';
-
-    // Calculate prayer times using a simplified algorithm
-    // In production, you'd use a proper library like adhan-js
-    const now = new Date();
-    const prayerTimes = calculateSimplePrayerTimes(latitude, longitude, now);
-
-    return {
-      ...prayerTimes,
-      date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-      location: locationName,
-    };
-  } catch (error) {
-    console.error('Error calculating prayer times:', error);
-    return getDefaultPrayerTimes();
-  }
-}
-
-function calculateSimplePrayerTimes(lat: number, lon: number, date: Date): Omit<PrayerTimesData, 'date' | 'location'> {
-  // This is a simplified calculation
-  // In production, use a proper library like adhan-js or aladhan API
+export function calculatePrayerTimes(coords: Coordinates, date: Date = new Date()): PrayerTime[] {
+  const { latitude, longitude } = coords;
   
-  const baseHour = 5; // Fajr base time
+  const julianDate = getJulianDate(date);
+  const equation = getEquationOfTime(julianDate);
+  const declination = getSunDeclination(julianDate);
   
-  return {
-    fajr: formatTime(baseHour, 30),
-    dhuhr: formatTime(12, 30),
-    asr: formatTime(15, 45),
-    maghrib: formatTime(18, 15),
-    isha: formatTime(19, 45),
-  };
-}
-
-function formatTime(hour: number, minute: number): string {
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-  return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
-}
-
-function getDefaultPrayerTimes(): PrayerTimesData {
-  const now = new Date();
-  return {
-    fajr: '5:30 AM',
-    dhuhr: '12:30 PM',
-    asr: '3:45 PM',
-    maghrib: '6:15 PM',
-    isha: '7:45 PM',
-    date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-    location: 'Default Location',
-  };
-}
-
-export function getNextPrayer(prayerTimes: PrayerTimesData): { name: string; time: string; timeUntil: string } {
-  const now = new Date();
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-
-  const prayers = [
-    { name: 'Fajr', time: prayerTimes.fajr },
-    { name: 'Dhuhr', time: prayerTimes.dhuhr },
-    { name: 'Asr', time: prayerTimes.asr },
-    { name: 'Maghrib', time: prayerTimes.maghrib },
-    { name: 'Isha', time: prayerTimes.isha },
+  const timezone = -date.getTimezoneOffset() / 60;
+  
+  const fajrAngle = 18;
+  const ishaAngle = 17;
+  
+  const fajrTime = calculatePrayerTime(latitude, longitude, declination, equation, fajrAngle, timezone, true);
+  const sunriseTime = calculatePrayerTime(latitude, longitude, declination, equation, 0.833, timezone, true);
+  const dhuhrTime = 12 + timezone - longitude / 15 - equation / 60;
+  const asrTime = calculateAsrTime(latitude, declination, dhuhrTime, equation, timezone);
+  const maghribTime = calculatePrayerTime(latitude, longitude, declination, equation, 0.833, timezone, false);
+  const ishaTime = calculatePrayerTime(latitude, longitude, declination, equation, ishaAngle, timezone, false);
+  
+  return [
+    { name: 'Fajr', time: formatTime(fajrTime) },
+    { name: 'Dhuhr', time: formatTime(dhuhrTime) },
+    { name: 'Asr', time: formatTime(asrTime) },
+    { name: 'Maghrib', time: formatTime(maghribTime) },
+    { name: 'Isha', time: formatTime(ishaTime) },
   ];
-
-  for (const prayer of prayers) {
-    const prayerMinutes = parseTimeToMinutes(prayer.time);
-    if (prayerMinutes > currentTime) {
-      const minutesUntil = prayerMinutes - currentTime;
-      const hours = Math.floor(minutesUntil / 60);
-      const minutes = minutesUntil % 60;
-      return {
-        name: prayer.name,
-        time: prayer.time,
-        timeUntil: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
-      };
-    }
-  }
-
-  // If no prayer is left today, return Fajr for tomorrow
-  const fajrMinutes = parseTimeToMinutes(prayers[0].time);
-  const minutesUntil = (24 * 60 - currentTime) + fajrMinutes;
-  const hours = Math.floor(minutesUntil / 60);
-  const minutes = minutesUntil % 60;
-  
-  return {
-    name: 'Fajr',
-    time: prayers[0].time,
-    timeUntil: `${hours}h ${minutes}m`,
-  };
 }
 
-function parseTimeToMinutes(timeStr: string): number {
-  const [time, period] = timeStr.split(' ');
-  const [hours, minutes] = time.split(':').map(Number);
-  let totalMinutes = hours * 60 + minutes;
+function getJulianDate(date: Date): number {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
   
-  if (period === 'PM' && hours !== 12) {
-    totalMinutes += 12 * 60;
-  } else if (period === 'AM' && hours === 12) {
-    totalMinutes -= 12 * 60;
+  if (month <= 2) {
+    return 365.25 * (year + 4716) + 30.6001 * (month + 13) + day - 1524.5;
+  }
+  return 365.25 * (year + 4716) + 30.6001 * (month + 1) + day - 1524.5;
+}
+
+function getEquationOfTime(julianDate: number): number {
+  const d = julianDate - 2451545.0;
+  const g = 357.529 + 0.98560028 * d;
+  const q = 280.459 + 0.98564736 * d;
+  const l = q + 1.915 * Math.sin(g * Math.PI / 180) + 0.020 * Math.sin(2 * g * Math.PI / 180);
+  const e = -1.915 * Math.sin(g * Math.PI / 180) - 0.020 * Math.sin(2 * g * Math.PI / 180) + 2.466 * Math.sin(2 * l * Math.PI / 180) - 0.053 * Math.sin(4 * l * Math.PI / 180);
+  return e;
+}
+
+function getSunDeclination(julianDate: number): number {
+  const d = julianDate - 2451545.0;
+  const g = 357.529 + 0.98560028 * d;
+  const q = 280.459 + 0.98564736 * d;
+  const l = q + 1.915 * Math.sin(g * Math.PI / 180) + 0.020 * Math.sin(2 * g * Math.PI / 180);
+  const e = 23.439 - 0.00000036 * d;
+  const declination = Math.asin(Math.sin(e * Math.PI / 180) * Math.sin(l * Math.PI / 180)) * 180 / Math.PI;
+  return declination;
+}
+
+function calculatePrayerTime(
+  latitude: number,
+  longitude: number,
+  declination: number,
+  equation: number,
+  angle: number,
+  timezone: number,
+  isSunrise: boolean
+): number {
+  const latRad = latitude * Math.PI / 180;
+  const decRad = declination * Math.PI / 180;
+  const angleRad = angle * Math.PI / 180;
+  
+  const cosH = (Math.sin(-angleRad) - Math.sin(latRad) * Math.sin(decRad)) / (Math.cos(latRad) * Math.cos(decRad));
+  
+  if (cosH > 1 || cosH < -1) {
+    return isSunrise ? 6 : 18;
   }
   
-  return totalMinutes;
+  const h = Math.acos(cosH) * 180 / Math.PI;
+  const time = 12 + timezone - longitude / 15 - equation / 60 + (isSunrise ? -h / 15 : h / 15);
+  
+  return time;
+}
+
+function calculateAsrTime(
+  latitude: number,
+  declination: number,
+  dhuhrTime: number,
+  equation: number,
+  timezone: number
+): number {
+  const latRad = latitude * Math.PI / 180;
+  const decRad = declination * Math.PI / 180;
+  
+  const shadowFactor = 1;
+  const angle = Math.atan(1 / (shadowFactor + Math.tan(Math.abs(latRad - decRad))));
+  
+  const cosH = (Math.sin(angle) - Math.sin(latRad) * Math.sin(decRad)) / (Math.cos(latRad) * Math.cos(decRad));
+  
+  if (cosH > 1 || cosH < -1) {
+    return dhuhrTime + 3;
+  }
+  
+  const h = Math.acos(cosH) * 180 / Math.PI;
+  return dhuhrTime + h / 15;
+}
+
+function formatTime(time: number): string {
+  let hours = Math.floor(time);
+  let minutes = Math.round((time - hours) * 60);
+  
+  if (minutes === 60) {
+    hours += 1;
+    minutes = 0;
+  }
+  
+  if (hours >= 24) {
+    hours -= 24;
+  }
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+export function getNextPrayer(prayers: PrayerTime[], currentTime: Date): { prayer: PrayerTime; timeUntil: string } | null {
+  const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+  
+  let nextPrayer: PrayerTime | null = null;
+  let minDiff = Infinity;
+  
+  prayers.forEach(prayer => {
+    const [hours, minutes] = prayer.time.split(':').map(Number);
+    const prayerMinutes = hours * 60 + minutes;
+    const diff = prayerMinutes - currentMinutes;
+    
+    if (diff > 0 && diff < minDiff) {
+      minDiff = diff;
+      nextPrayer = prayer;
+    }
+  });
+  
+  if (!nextPrayer) {
+    nextPrayer = prayers[0];
+    const [hours, minutes] = nextPrayer.time.split(':').map(Number);
+    const prayerMinutes = hours * 60 + minutes;
+    minDiff = (24 * 60 - currentMinutes) + prayerMinutes;
+  }
+  
+  const hours = Math.floor(minDiff / 60);
+  const mins = minDiff % 60;
+  const timeUntil = `${hours}h ${mins}m`;
+  
+  return { prayer: nextPrayer, timeUntil };
 }
