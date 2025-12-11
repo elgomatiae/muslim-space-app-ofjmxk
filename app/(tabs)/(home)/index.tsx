@@ -160,7 +160,6 @@ export default function HomeScreen() {
       await AsyncStorage.setItem(PRAYER_DATE_KEY, getTodayDateString());
       console.log('Saved prayer status:', completionStatus);
       
-      // Update the Iman Tracker with prayer completion
       const completedCount = updatedPrayers.filter(p => p.completed).length;
       await updatePrayers(completedCount, updatedPrayers.length);
       
@@ -241,7 +240,7 @@ export default function HomeScreen() {
               <TouchableOpacity onPress={requestLocationPermission}>
                 <IconSymbol
                   ios_icon_name="location.slash"
-                  android_material_icon_name="location_off"
+                  android_material_icon_name="location-off"
                   size={20}
                   color={colors.warning}
                 />
@@ -259,30 +258,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Iman Tracker Rings */}
-        <TouchableOpacity
-          style={styles.trackerCard}
-          onPress={() => router.push('/(tabs)/tracker')}
-          activeOpacity={0.8}
-        >
-          <ProgressRings
-            prayers={trackerData.prayers}
-            dhikr={trackerData.dhikr}
-            quran={trackerData.quran}
-            size={280}
-            showLabels={true}
-          />
-          <View style={styles.trackerFooter}>
-            <Text style={styles.trackerFooterText}>Tap to view details</Text>
-            <IconSymbol
-              ios_icon_name="chevron.right"
-              android_material_icon_name="chevron_right"
-              size={16}
-              color={colors.primary}
-            />
-          </View>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.challengesCard}
           onPress={() => router.push('/(tabs)/tracker')}
@@ -292,7 +267,7 @@ export default function HomeScreen() {
             <View style={styles.challengesIcon}>
               <IconSymbol
                 ios_icon_name="trophy.fill"
-                android_material_icon_name="emoji_events"
+                android_material_icon_name="emoji-events"
                 size={24}
                 color={colors.card}
               />
@@ -305,7 +280,7 @@ export default function HomeScreen() {
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron_right"
+              android_material_icon_name="chevron-right"
               size={24}
               color={colors.card}
             />
@@ -360,7 +335,7 @@ export default function HomeScreen() {
                 <View style={styles.dailyIconCircle}>
                   <IconSymbol
                     ios_icon_name="book.fill"
-                    android_material_icon_name="menu_book"
+                    android_material_icon_name="menu-book"
                     size={22}
                     color={colors.card}
                   />
@@ -377,7 +352,7 @@ export default function HomeScreen() {
                 <View style={[styles.dailyIconCircle, { backgroundColor: colors.secondary }]}>
                   <IconSymbol
                     ios_icon_name="text.quote"
-                    android_material_icon_name="format_quote"
+                    android_material_icon_name="format-quote"
                     size={22}
                     color={colors.card}
                   />
@@ -390,6 +365,14 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : null}
+
+        <View style={styles.trackerCard}>
+          <ProgressRings
+            prayers={trackerData.prayers}
+            dhikr={trackerData.dhikr}
+            quran={{ pages: trackerData.quran.pages, goal: trackerData.quran.goal, streak: trackerData.quran.streak, versesMemorized: trackerData.quran.versesMemorized, versesGoal: trackerData.quran.versesGoal }}
+          />
+        </View>
 
         <View style={styles.progressCard}>
           <Text style={styles.progressTitle}>Prayer Progress</Text>
@@ -517,32 +500,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.card,
     opacity: 0.85,
-  },
-  trackerCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-    alignItems: 'center',
-  },
-  trackerFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-  },
-  trackerFooterText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
   },
   challengesCard: {
     backgroundColor: colors.accent,
@@ -736,6 +693,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 'auto',
     textAlign: 'center',
+  },
+  trackerCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+    alignItems: 'center',
   },
   progressCard: {
     backgroundColor: colors.card,

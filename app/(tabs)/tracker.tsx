@@ -7,149 +7,136 @@ import {
   ScrollView,
   TouchableOpacity,
   useColorScheme,
-  Platform,
-  Modal,
   TextInput,
-  Alert,
+  Platform,
 } from 'react-native';
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/commonStyles';
 import { IconSymbol } from '../../components/IconSymbol';
 import { supabase } from '../../lib/supabase';
-import ProgressRings from '../../components/ProgressRings';
-import { useTracker } from '../../contexts/TrackerContext';
 
-interface DhikrPhrase {
-  id: string;
-  arabic: string;
-  transliteration: string;
-  translation: string;
-  default_count: number;
-  order_index: number;
+interface TrackerData {
+  prayers_completed: number;
+  prayers_total: number;
+  prayers_streak: number;
+  dhikr_count: number;
+  dhikr_goal: number;
+  dhikr_streak: number;
+  quran_pages: number;
+  quran_goal: number;
+  quran_streak: number;
 }
 
 export default function TrackerScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const { trackerData, updateDhikr, updateQuran, loadTrackerData } = useTracker();
   
-  const [dhikrPhrases, setDhikrPhrases] = useState<DhikrPhrase[]>([]);
-  const [selectedPhrase, setSelectedPhrase] = useState<DhikrPhrase | null>(null);
-  const [showPhraseModal, setShowPhraseModal] = useState(false);
-  const [showGoalModal, setShowGoalModal] = useState(false);
-  const [goalType, setGoalType] = useState<'pages' | 'verses' | 'dhikr' | null>(null);
-  const [goalInput, setGoalInput] = useState('');
+  const [trackerData, setTrackerData] = useState<TrackerData>({
+    prayers_completed: 0,
+    prayers_total: 5,
+    prayers_streak: 0,
+    dhikr_count: 0,
+    dhikr_goal: 300,
+    dhikr_streak: 0,
+    quran_pages: 0,
+    quran_goal: 5,
+    quran_streak: 0,
+  });
+  
+  const [dhikrInput, setDhikrInput] = useState('');
+  const [quranInput, setQuranInput] = useState('');
 
   useEffect(() => {
-    loadDhikrPhrases();
     loadTrackerData();
   }, []);
 
-  const loadDhikrPhrases = async () => {
+  const loadTrackerData = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      
       const { data, error } = await supabase
-        .from('dhikr_phrases')
+        .from('iman_tracker')
         .select('*')
-        .order('order_index');
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single();
 
       if (error) {
-        console.error('Error loading dhikr phrases:', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setDhikrPhrases(data);
-        setSelectedPhrase(data[0]);
+        console.log('No tracker data found for today');
+      } else if (data) {
+        setTrackerData({
+          prayers_completed: data.prayers_completed || 0,
+          prayers_total: data.prayers_total || 5,
+          prayers_streak: data.prayers_streak || 0,
+          dhikr_count: data.dhikr_count || 0,
+          dhikr_goal: data.dhikr_goal || 300,
+          dhikr_streak: data.dhikr_streak || 0,
+          quran_pages: data.quran_pages || 0,
+          quran_goal: data.quran_goal || 5,
+          quran_streak: data.quran_streak || 0,
+        });
       }
     } catch (error) {
-      console.error('Error loading dhikr phrases:', error);
+      console.error('Error loading tracker data:', error);
     }
   };
 
-  const incrementDhikr = async (amount: number) => {
-    const newCount = trackerData.dhikr.count + amount;
-    await updateDhikr(newCount, trackerData.dhikr.goal);
-  };
+  const updateDhikr = async () => {
+    const count = parseInt(dhikrInput);
+    if (isNaN(count) || count <= 0) return;
 
-  const addQuranPage = async () => {
-    const newPages = trackerData.quran.pages + 1;
-    await updateQuran(
-      newPages,
-      trackerData.quran.goal,
-      trackerData.quran.versesMemorized,
-      trackerData.quran.versesGoal
-    );
-  };
-
-  const addQuranVerse = async () => {
-    const newVerses = trackerData.quran.versesMemorized + 1;
-    await updateQuran(
-      trackerData.quran.pages,
-      trackerData.quran.goal,
-      newVerses,
-      trackerData.quran.versesGoal
-    );
-  };
-
-  const openGoalModal = (type: 'pages' | 'verses' | 'dhikr') => {
-    setGoalType(type);
-    let currentGoal = 0;
-    
-    if (type === 'pages') {
-      currentGoal = trackerData.quran.goal;
-    } else if (type === 'verses') {
-      currentGoal = trackerData.quran.versesGoal;
-    } else if (type === 'dhikr') {
-      currentGoal = trackerData.dhikr.goal;
-    }
-    
-    setGoalInput(currentGoal.toString());
-    setShowGoalModal(true);
-  };
-
-  const saveGoal = async () => {
-    const newGoal = parseInt(goalInput);
-    
-    if (isNaN(newGoal) || newGoal <= 0) {
-      Alert.alert('Invalid Goal', 'Please enter a valid number greater than 0');
-      return;
-    }
+    const newCount = trackerData.dhikr_count + count;
+    setTrackerData(prev => ({ ...prev, dhikr_count: newCount }));
+    setDhikrInput('');
 
     try {
-      if (goalType === 'pages') {
-        await updateQuran(
-          trackerData.quran.pages,
-          newGoal,
-          trackerData.quran.versesMemorized,
-          trackerData.quran.versesGoal
-        );
-      } else if (goalType === 'verses') {
-        await updateQuran(
-          trackerData.quran.pages,
-          trackerData.quran.goal,
-          trackerData.quran.versesMemorized,
-          newGoal
-        );
-      } else if (goalType === 'dhikr') {
-        await updateDhikr(trackerData.dhikr.count, newGoal);
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
       
-      setShowGoalModal(false);
-      Alert.alert('Success', 'Goal updated successfully!');
+      await supabase
+        .from('iman_tracker')
+        .upsert({
+          user_id: user.id,
+          date: today,
+          dhikr_count: newCount,
+        });
     } catch (error) {
-      console.error('Error saving goal:', error);
-      Alert.alert('Error', 'Failed to update goal. Please try again.');
+      console.error('Error updating dhikr:', error);
+    }
+  };
+
+  const updateQuran = async () => {
+    const pages = parseInt(quranInput);
+    if (isNaN(pages) || pages <= 0) return;
+
+    const newPages = trackerData.quran_pages + pages;
+    setTrackerData(prev => ({ ...prev, quran_pages: newPages }));
+    setQuranInput('');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      await supabase
+        .from('iman_tracker')
+        .upsert({
+          user_id: user.id,
+          date: today,
+          quran_pages: newPages,
+        });
+    } catch (error) {
+      console.error('Error updating Quran:', error);
     }
   };
 
   const getProgressPercentage = (current: number, goal: number) => {
     return Math.min((current / goal) * 100, 100);
-  };
-
-  const getGoalModalTitle = () => {
-    if (goalType === 'pages') return 'Set Pages Goal';
-    if (goalType === 'verses') return 'Set Verses Goal';
-    if (goalType === 'dhikr') return 'Set Dhikr Goal';
-    return 'Set Goal';
   };
 
   return (
@@ -164,15 +151,50 @@ export default function TrackerScreen() {
         Track your daily spiritual habits
       </Text>
 
-      {/* Progress Rings */}
-      <View style={[styles.ringsCard, isDark && styles.cardDark]}>
-        <ProgressRings
-          prayers={trackerData.prayers}
-          dhikr={trackerData.dhikr}
-          quran={trackerData.quran}
-          size={280}
-          showLabels={true}
-        />
+      {/* Prayers Section */}
+      <View style={styles.section}>
+        <View style={[styles.card, isDark && styles.cardDark]}>
+          <View style={styles.cardHeader}>
+            <IconSymbol
+              ios_icon_name="hands.sparkles.fill"
+              android_material_icon_name="mosque"
+              size={24}
+              color={colors.primary}
+            />
+            <Text style={[styles.cardTitle, isDark && styles.textDark]}>
+              Prayers
+            </Text>
+          </View>
+          
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${getProgressPercentage(trackerData.prayers_completed, trackerData.prayers_total)}%`,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressText, isDark && styles.textDark]}>
+              {trackerData.prayers_completed} / {trackerData.prayers_total}
+            </Text>
+          </View>
+
+          <View style={styles.streakContainer}>
+            <IconSymbol
+              ios_icon_name="flame.fill"
+              android_material_icon_name="local_fire_department"
+              size={20}
+              color={colors.secondary}
+            />
+            <Text style={[styles.streakText, isDark && styles.textDark]}>
+              {trackerData.prayers_streak} day streak
+            </Text>
+          </View>
+        </View>
       </View>
 
       {/* Dhikr Section */}
@@ -183,84 +205,30 @@ export default function TrackerScreen() {
               ios_icon_name="circle.grid.3x3.fill"
               android_material_icon_name="grid_view"
               size={24}
-              color={colors.secondary}
+              color={colors.primary}
             />
             <Text style={[styles.cardTitle, isDark && styles.textDark]}>
-              Dhikr Counter
+              Dhikr
             </Text>
-            <TouchableOpacity 
-              style={styles.goalButton}
-              onPress={() => openGoalModal('dhikr')}
-            >
-              <IconSymbol
-                ios_icon_name="target"
-                android_material_icon_name="flag"
-                size={20}
-                color={colors.secondary}
+          </View>
+          
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${getProgressPercentage(trackerData.dhikr_count, trackerData.dhikr_goal)}%`,
+                    backgroundColor: colors.secondary,
+                  },
+                ]}
               />
-            </TouchableOpacity>
-          </View>
-
-          {/* Selected Phrase Display */}
-          {selectedPhrase && (
-            <TouchableOpacity
-              style={[styles.phraseCard, isDark && styles.phraseCardDark]}
-              onPress={() => setShowPhraseModal(true)}
-            >
-              <Text style={[styles.phraseArabic, isDark && styles.textDark]}>
-                {selectedPhrase.arabic}
-              </Text>
-              <Text style={[styles.phraseTransliteration, isDark && styles.textSecondaryDark]}>
-                {selectedPhrase.transliteration}
-              </Text>
-              <Text style={[styles.phraseTranslation, isDark && styles.textSecondaryDark]}>
-                {selectedPhrase.translation}
-              </Text>
-              <View style={styles.changePhraseButton}>
-                <Text style={styles.changePhraseText}>Tap to change phrase</Text>
-                <IconSymbol
-                  ios_icon_name="chevron.down"
-                  android_material_icon_name="expand_more"
-                  size={16}
-                  color={colors.primary}
-                />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* Counter Display */}
-          <View style={styles.counterDisplay}>
-            <Text style={[styles.counterNumber, isDark && styles.textDark]}>
-              {trackerData.dhikr.count}
-            </Text>
-            <Text style={[styles.counterGoal, isDark && styles.textSecondaryDark]}>
-              / {trackerData.dhikr.goal}
+            </View>
+            <Text style={[styles.progressText, isDark && styles.textDark]}>
+              {trackerData.dhikr_count} / {trackerData.dhikr_goal}
             </Text>
           </View>
 
-          {/* Counter Buttons */}
-          <View style={styles.counterButtons}>
-            <TouchableOpacity
-              style={[styles.counterButton, { backgroundColor: colors.secondary }]}
-              onPress={() => incrementDhikr(1)}
-            >
-              <Text style={styles.counterButtonText}>+1</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.counterButton, { backgroundColor: colors.secondary }]}
-              onPress={() => incrementDhikr(10)}
-            >
-              <Text style={styles.counterButtonText}>+10</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.counterButton, { backgroundColor: colors.secondary }]}
-              onPress={() => incrementDhikr(33)}
-            >
-              <Text style={styles.counterButtonText}>+33</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Streak */}
           <View style={styles.streakContainer}>
             <IconSymbol
               ios_icon_name="flame.fill"
@@ -269,8 +237,30 @@ export default function TrackerScreen() {
               color={colors.secondary}
             />
             <Text style={[styles.streakText, isDark && styles.textDark]}>
-              {trackerData.dhikr.streak} day streak
+              {trackerData.dhikr_streak} day streak
             </Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, isDark && styles.inputDark]}
+              placeholder="Add count..."
+              placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
+              value={dhikrInput}
+              onChangeText={setDhikrInput}
+              keyboardType="number-pad"
+            />
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: colors.primary }]}
+              onPress={updateDhikr}
+            >
+              <IconSymbol
+                ios_icon_name="plus"
+                android_material_icon_name="add"
+                size={20}
+                color={colors.textDark}
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
@@ -286,113 +276,27 @@ export default function TrackerScreen() {
               color={colors.primary}
             />
             <Text style={[styles.cardTitle, isDark && styles.textDark]}>
-              Quran Progress
+              Quran Reading
+            </Text>
+          </View>
+          
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${getProgressPercentage(trackerData.quran_pages, trackerData.quran_goal)}%`,
+                    backgroundColor: colors.info,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressText, isDark && styles.textDark]}>
+              {trackerData.quran_pages} / {trackerData.quran_goal} pages
             </Text>
           </View>
 
-          {/* Pages Read */}
-          <View style={styles.quranSubsection}>
-            <View style={styles.subsectionHeader}>
-              <Text style={[styles.subsectionTitle, isDark && styles.textDark]}>
-                Pages Read
-              </Text>
-              <TouchableOpacity 
-                style={styles.goalButtonSmall}
-                onPress={() => openGoalModal('pages')}
-              >
-                <IconSymbol
-                  ios_icon_name="target"
-                  android_material_icon_name="flag"
-                  size={18}
-                  color={colors.primary}
-                />
-                <Text style={styles.goalButtonText}>Goal</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${getProgressPercentage(trackerData.quran.pages, trackerData.quran.goal)}%`,
-                      backgroundColor: colors.primary,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={[styles.progressText, isDark && styles.textDark]}>
-                {trackerData.quran.pages} / {trackerData.quran.goal} pages
-              </Text>
-            </View>
-
-            {/* Quick Track Button */}
-            <TouchableOpacity
-              style={[styles.quickTrackButton, { backgroundColor: colors.primary }]}
-              onPress={addQuranPage}
-            >
-              <IconSymbol
-                ios_icon_name="plus.circle.fill"
-                android_material_icon_name="add_circle"
-                size={24}
-                color={colors.textDark}
-              />
-              <Text style={styles.quickTrackButtonText}>Track 1 Page</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Verses Memorized */}
-          <View style={styles.quranSubsection}>
-            <View style={styles.subsectionHeader}>
-              <Text style={[styles.subsectionTitle, isDark && styles.textDark]}>
-                Verses Memorized
-              </Text>
-              <TouchableOpacity 
-                style={styles.goalButtonSmall}
-                onPress={() => openGoalModal('verses')}
-              >
-                <IconSymbol
-                  ios_icon_name="target"
-                  android_material_icon_name="flag"
-                  size={18}
-                  color={colors.accent}
-                />
-                <Text style={[styles.goalButtonText, { color: colors.accent }]}>Goal</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: `${getProgressPercentage(trackerData.quran.versesMemorized, trackerData.quran.versesGoal)}%`,
-                      backgroundColor: colors.accent,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={[styles.progressText, isDark && styles.textDark]}>
-                {trackerData.quran.versesMemorized} / {trackerData.quran.versesGoal} verses
-              </Text>
-            </View>
-
-            {/* Quick Track Button */}
-            <TouchableOpacity
-              style={[styles.quickTrackButton, { backgroundColor: colors.accent }]}
-              onPress={addQuranVerse}
-            >
-              <IconSymbol
-                ios_icon_name="plus.circle.fill"
-                android_material_icon_name="add_circle"
-                size={24}
-                color={colors.textDark}
-              />
-              <Text style={styles.quickTrackButtonText}>Track 1 Verse</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Streak */}
           <View style={styles.streakContainer}>
             <IconSymbol
               ios_icon_name="flame.fill"
@@ -401,126 +305,36 @@ export default function TrackerScreen() {
               color={colors.secondary}
             />
             <Text style={[styles.streakText, isDark && styles.textDark]}>
-              {trackerData.quran.streak} day streak
+              {trackerData.quran_streak} day streak
             </Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, isDark && styles.inputDark]}
+              placeholder="Add pages..."
+              placeholderTextColor={isDark ? colors.textSecondaryDark : colors.textSecondary}
+              value={quranInput}
+              onChangeText={setQuranInput}
+              keyboardType="number-pad"
+            />
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: colors.primary }]}
+              onPress={updateQuran}
+            >
+              <IconSymbol
+                ios_icon_name="plus"
+                android_material_icon_name="add"
+                size={20}
+                color={colors.textDark}
+              />
+            </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Phrase Selection Modal */}
-      <Modal
-        visible={showPhraseModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPhraseModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDark && styles.textDark]}>
-                Select Dhikr Phrase
-              </Text>
-              <TouchableOpacity onPress={() => setShowPhraseModal(false)}>
-                <IconSymbol
-                  ios_icon_name="xmark"
-                  android_material_icon_name="close"
-                  size={24}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.phraseList}>
-              {dhikrPhrases.map((phrase) => (
-                <TouchableOpacity
-                  key={phrase.id}
-                  style={[
-                    styles.phraseOption,
-                    selectedPhrase?.id === phrase.id && styles.phraseOptionSelected,
-                    isDark && styles.phraseOptionDark,
-                  ]}
-                  onPress={() => {
-                    setSelectedPhrase(phrase);
-                    setShowPhraseModal(false);
-                  }}
-                >
-                  <Text style={[styles.phraseOptionArabic, isDark && styles.textDark]}>
-                    {phrase.arabic}
-                  </Text>
-                  <Text style={[styles.phraseOptionTransliteration, isDark && styles.textSecondaryDark]}>
-                    {phrase.transliteration}
-                  </Text>
-                  <Text style={[styles.phraseOptionTranslation, isDark && styles.textSecondaryDark]}>
-                    {phrase.translation}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Goal Setting Modal */}
-      <Modal
-        visible={showGoalModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowGoalModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.goalModalContent, isDark && styles.modalContentDark]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDark && styles.textDark]}>
-                {getGoalModalTitle()}
-              </Text>
-              <TouchableOpacity onPress={() => setShowGoalModal(false)}>
-                <IconSymbol
-                  ios_icon_name="xmark"
-                  android_material_icon_name="close"
-                  size={24}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.goalDescription, isDark && styles.textSecondaryDark]}>
-              {goalType === 'pages' && 'Set your daily goal for Quran pages to read'}
-              {goalType === 'verses' && 'Set your daily goal for verses to memorize'}
-              {goalType === 'dhikr' && 'Set your daily goal for dhikr count'}
-            </Text>
-
-            <View style={styles.goalInputContainer}>
-              <TextInput
-                style={[styles.goalInput, isDark && styles.goalInputDark]}
-                value={goalInput}
-                onChangeText={setGoalInput}
-                keyboardType="number-pad"
-                placeholder="Enter goal"
-                placeholderTextColor={colors.textSecondary}
-                autoFocus
-              />
-            </View>
-
-            <View style={styles.goalModalButtons}>
-              <TouchableOpacity
-                style={[styles.goalModalButton, styles.goalModalButtonCancel]}
-                onPress={() => setShowGoalModal(false)}
-              >
-                <Text style={styles.goalModalButtonTextCancel}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.goalModalButton, styles.goalModalButtonSave]}
-                onPress={saveGoal}
-              >
-                <Text style={styles.goalModalButtonTextSave}>Save Goal</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Bottom Padding */}
-      <View style={{ height: 120 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
@@ -546,14 +360,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
-  ringsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    ...shadows.small,
-    alignItems: 'center',
-  },
   section: {
     marginBottom: spacing.md,
   },
@@ -575,121 +381,13 @@ const styles = StyleSheet.create({
     ...typography.h4,
     color: colors.text,
     marginLeft: spacing.sm,
-    flex: 1,
-  },
-  goalButton: {
-    padding: spacing.xs,
-  },
-  phraseCard: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  phraseCardDark: {
-    backgroundColor: colors.backgroundDark,
-  },
-  phraseArabic: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  phraseTransliteration: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  phraseTranslation: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  changePhraseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  changePhraseText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  counterDisplay: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  counterNumber: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  counterGoal: {
-    fontSize: 24,
-    color: colors.textSecondary,
-    marginLeft: spacing.xs,
-  },
-  counterButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  counterButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  counterButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textDark,
-  },
-  quranSubsection: {
-    marginBottom: spacing.lg,
-  },
-  subsectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  subsectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  goalButtonSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.background,
-  },
-  goalButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
   },
   progressContainer: {
     marginBottom: spacing.md,
   },
   progressBar: {
     height: 8,
-    backgroundColor: colors.border,
+    backgroundColor: isDark => isDark ? colors.surfaceDark : colors.surface,
     borderRadius: borderRadius.sm,
     overflow: 'hidden',
     marginBottom: spacing.xs,
@@ -703,149 +401,38 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'right',
   },
-  quickTrackButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    ...shadows.small,
-  },
-  quickTrackButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textDark,
-  },
   streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: spacing.md,
   },
   streakText: {
     ...typography.bodySmall,
     color: colors.text,
     marginLeft: spacing.xs,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    width: '100%',
-    maxHeight: '80%',
-  },
-  modalContentDark: {
-    backgroundColor: colors.surfaceDark,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  modalTitle: {
-    ...typography.h4,
-    color: colors.text,
-  },
-  phraseList: {
-    maxHeight: 400,
-  },
-  phraseOption: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 2,
-    borderColor: colors.transparent,
-  },
-  phraseOptionDark: {
-    backgroundColor: colors.backgroundDark,
-  },
-  phraseOptionSelected: {
-    borderColor: colors.primary,
-  },
-  phraseOptionArabic: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  phraseOptionTransliteration: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  phraseOptionTranslation: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  goalModalContent: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    width: '90%',
-    maxWidth: 400,
-  },
-  goalDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-  },
-  goalInputContainer: {
-    marginBottom: spacing.lg,
-  },
-  goalInput: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    textAlign: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  goalInputDark: {
-    backgroundColor: colors.backgroundDark,
-  },
-  goalModalButtons: {
+  inputContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  goalModalButton: {
+  input: {
     flex: 1,
-    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
     borderRadius: borderRadius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goalModalButtonCancel: {
-    backgroundColor: colors.border,
-  },
-  goalModalButtonSave: {
-    backgroundColor: colors.primary,
-  },
-  goalModalButtonTextCancel: {
-    fontSize: 16,
-    fontWeight: '600',
+    padding: spacing.md,
+    ...typography.body,
     color: colors.text,
   },
-  goalModalButtonTextSave: {
-    fontSize: 16,
-    fontWeight: '700',
+  inputDark: {
+    backgroundColor: colors.backgroundDark,
     color: colors.textDark,
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   textDark: {
     color: colors.textDark,

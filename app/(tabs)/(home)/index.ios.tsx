@@ -237,7 +237,7 @@ export default function HomeScreen() {
               <TouchableOpacity onPress={requestLocationPermission}>
                 <IconSymbol
                   ios_icon_name="location.slash"
-                  android_material_icon_name="location_off"
+                  android_material_icon_name="location-off"
                   size={20}
                   color={colors.warning}
                 />
@@ -255,30 +255,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Iman Tracker Rings */}
-        <TouchableOpacity
-          style={styles.trackerCard}
-          onPress={() => router.push('/(tabs)/tracker')}
-          activeOpacity={0.8}
-        >
-          <ProgressRings
-            prayers={trackerData.prayers}
-            dhikr={trackerData.dhikr}
-            quran={trackerData.quran}
-            size={280}
-            showLabels={true}
-          />
-          <View style={styles.trackerFooter}>
-            <Text style={styles.trackerFooterText}>Tap to view details</Text>
-            <IconSymbol
-              ios_icon_name="chevron.right"
-              android_material_icon_name="chevron_right"
-              size={16}
-              color={colors.primary}
-            />
-          </View>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.challengesCard}
           onPress={() => router.push('/(tabs)/tracker')}
@@ -288,7 +264,7 @@ export default function HomeScreen() {
             <View style={styles.challengesIcon}>
               <IconSymbol
                 ios_icon_name="trophy.fill"
-                android_material_icon_name="emoji_events"
+                android_material_icon_name="emoji-events"
                 size={24}
                 color={colors.card}
               />
@@ -301,34 +277,11 @@ export default function HomeScreen() {
             </View>
             <IconSymbol
               ios_icon_name="chevron.right"
-              android_material_icon_name="chevron_right"
+              android_material_icon_name="chevron-right"
               size={24}
               color={colors.card}
             />
           </View>
-          
-          {weeklyChallenges.length > 0 && (
-            <View style={styles.challengesPreview}>
-              {weeklyChallenges.slice(0, 3).map((challenge, index) => (
-                <View key={index} style={styles.challengePreviewItem}>
-                  <View style={styles.challengePreviewBar}>
-                    <View 
-                      style={[
-                        styles.challengePreviewFill, 
-                        { 
-                          width: `${Math.min((challenge.progress / challenge.requirement.value) * 100, 100)}%`,
-                          backgroundColor: challenge.completed ? colors.success : colors.card
-                        }
-                      ]} 
-                    />
-                  </View>
-                  <Text style={styles.challengePreviewText} numberOfLines={1}>
-                    {challenge.title}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
         </TouchableOpacity>
 
         {loadingDailyContent ? (
@@ -356,7 +309,7 @@ export default function HomeScreen() {
                 <View style={styles.dailyIconCircle}>
                   <IconSymbol
                     ios_icon_name="book.fill"
-                    android_material_icon_name="menu_book"
+                    android_material_icon_name="menu-book"
                     size={22}
                     color={colors.card}
                   />
@@ -373,7 +326,7 @@ export default function HomeScreen() {
                 <View style={[styles.dailyIconCircle, { backgroundColor: colors.secondary }]}>
                   <IconSymbol
                     ios_icon_name="text.quote"
-                    android_material_icon_name="format_quote"
+                    android_material_icon_name="format-quote"
                     size={22}
                     color={colors.card}
                   />
@@ -386,6 +339,14 @@ export default function HomeScreen() {
             </View>
           </View>
         ) : null}
+
+        <View style={styles.trackerCard}>
+          <ProgressRings
+            prayers={trackerData.prayers}
+            dhikr={trackerData.dhikr}
+            quran={{ pages: trackerData.quran.pages, goal: trackerData.quran.goal, streak: trackerData.quran.streak, versesMemorized: trackerData.quran.versesMemorized, versesGoal: trackerData.quran.versesGoal }}
+          />
+        </View>
 
         <View style={styles.progressCard}>
           <Text style={styles.progressTitle}>Prayer Progress</Text>
@@ -514,32 +475,6 @@ const styles = StyleSheet.create({
     color: colors.card,
     opacity: 0.85,
   },
-  trackerCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-    alignItems: 'center',
-  },
-  trackerFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-  },
-  trackerFooterText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
-  },
   challengesCard: {
     backgroundColor: colors.accent,
     borderRadius: 16,
@@ -558,7 +493,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 12,
   },
   challengesIcon: {
     width: 48,
@@ -582,31 +516,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.card,
-  },
-  challengesPreview: {
-    gap: 8,
-  },
-  challengePreviewItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  challengePreviewBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  challengePreviewFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  challengePreviewText: {
-    fontSize: 11,
-    color: colors.card,
-    opacity: 0.9,
-    width: 100,
   },
   dailyContentLoading: {
     backgroundColor: colors.card,
@@ -732,6 +641,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 'auto',
     textAlign: 'center',
+  },
+  trackerCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
+    alignItems: 'center',
   },
   progressCard: {
     backgroundColor: colors.card,

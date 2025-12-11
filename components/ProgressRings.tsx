@@ -14,66 +14,41 @@ interface ProgressRingsProps {
     versesMemorized: number;
     versesGoal: number;
   };
-  size?: number;
-  showLabels?: boolean;
 }
 
-export default function ProgressRings({ 
-  prayers, 
-  dhikr, 
-  quran, 
-  size = 300,
-  showLabels = true 
-}: ProgressRingsProps) {
-  const strokeWidth = 16;
+export default function ProgressRings({ prayers, dhikr, quran }: ProgressRingsProps) {
+  const size = 280;
+  const strokeWidth = 20;
   const center = size / 2;
-  
-  // Calculate radii for three concentric rings
-  const radius1 = (size - strokeWidth) / 2 - 10; // Outer ring (Prayers)
-  const radius2 = radius1 - strokeWidth - 8;      // Middle ring (Quran)
-  const radius3 = radius2 - strokeWidth - 8;      // Inner ring (Dhikr)
-  
+  const radius1 = (size - strokeWidth) / 2 - 10;
+  const radius2 = radius1 - strokeWidth - 10;
+  const radius3 = radius2 - strokeWidth - 10;
   const circumference1 = 2 * Math.PI * radius1;
   const circumference2 = 2 * Math.PI * radius2;
   const circumference3 = 2 * Math.PI * radius3;
 
-  // Calculate progress percentages
   const prayersProgress = prayers.total > 0 ? prayers.completed / prayers.total : 0;
   const dhikrProgress = dhikr.goal > 0 ? Math.min(dhikr.count / dhikr.goal, 1) : 0;
   
   // Calculate Quran progress as 50% pages + 50% verses
   const pagesProgress = quran.goal > 0 ? Math.min(quran.pages / quran.goal, 1) : 0;
   const versesProgress = quran.versesGoal > 0 ? Math.min(quran.versesMemorized / quran.versesGoal, 1) : 0;
-  const quranProgress = (pagesProgress * 0.5) + (versesProgress * 0.5);
+  const quranProgress = (pagesProgress * 0.5) + (versesProgress * 0.5); // 50% each
 
-  // Calculate stroke dash offsets
   const prayersOffset = circumference1 - prayersProgress * circumference1;
-  const quranOffset = circumference2 - quranProgress * circumference2;
-  const dhikrOffset = circumference3 - dhikrProgress * circumference3;
+  const dhikrOffset = circumference2 - dhikrProgress * circumference2;
+  const quranOffset = circumference3 - quranProgress * circumference3;
 
-  // Color based on progress
-  const getPrayerColor = () => {
-    if (prayersProgress >= 1) return colors.success;
-    if (prayersProgress >= 0.6) return colors.primaryLight;
-    return colors.primary;
-  };
-
-  const getQuranColor = () => {
-    if (quranProgress >= 1) return colors.success;
-    if (quranProgress >= 0.6) return '#4CAF50';
-    return colors.accent;
-  };
-
-  const getDhikrColor = () => {
-    if (dhikrProgress >= 1) return colors.success;
-    if (dhikrProgress >= 0.6) return colors.secondaryLight;
-    return colors.secondary;
+  const getProgressColor = (progress: number) => {
+    if (progress >= 1) return colors.success;
+    if (progress >= 0.5) return colors.warning;
+    return colors.error;
   };
 
   return (
     <View style={styles.container}>
       <Svg width={size} height={size}>
-        {/* Prayers Ring (Outer) - Background */}
+        {/* Prayers Ring (Outer) */}
         <Circle
           cx={center}
           cy={center}
@@ -81,14 +56,12 @@ export default function ProgressRings({
           stroke={colors.border}
           strokeWidth={strokeWidth}
           fill="none"
-          opacity={0.2}
         />
-        {/* Prayers Ring (Outer) - Progress */}
         <Circle
           cx={center}
           cy={center}
           r={radius1}
-          stroke={getPrayerColor()}
+          stroke={getProgressColor(prayersProgress)}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference1}
@@ -97,7 +70,7 @@ export default function ProgressRings({
           transform={`rotate(-90 ${center} ${center})`}
         />
 
-        {/* Quran Ring (Middle) - Background */}
+        {/* Dhikr Ring (Middle) */}
         <Circle
           cx={center}
           cy={center}
@@ -105,23 +78,21 @@ export default function ProgressRings({
           stroke={colors.border}
           strokeWidth={strokeWidth}
           fill="none"
-          opacity={0.2}
         />
-        {/* Quran Ring (Middle) - Progress */}
         <Circle
           cx={center}
           cy={center}
           r={radius2}
-          stroke={getQuranColor()}
+          stroke={colors.secondary}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference2}
-          strokeDashoffset={quranOffset}
+          strokeDashoffset={dhikrOffset}
           strokeLinecap="round"
           transform={`rotate(-90 ${center} ${center})`}
         />
 
-        {/* Dhikr Ring (Inner) - Background */}
+        {/* Quran Ring (Inner) */}
         <Circle
           cx={center}
           cy={center}
@@ -129,51 +100,24 @@ export default function ProgressRings({
           stroke={colors.border}
           strokeWidth={strokeWidth}
           fill="none"
-          opacity={0.2}
         />
-        {/* Dhikr Ring (Inner) - Progress */}
         <Circle
           cx={center}
           cy={center}
           r={radius3}
-          stroke={getDhikrColor()}
+          stroke={colors.accent}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference3}
-          strokeDashoffset={dhikrOffset}
+          strokeDashoffset={quranOffset}
           strokeLinecap="round"
           transform={`rotate(-90 ${center} ${center})`}
         />
       </Svg>
 
-      {/* Center Content - Centered Text */}
-      <View style={[styles.centerContent, { width: radius3 * 2, height: radius3 * 2 }]}>
-        <Text style={styles.centerTitle}>Iman{'\n'}Tracker</Text>
+      <View style={styles.centerContent}>
+        <Text style={styles.centerTitle}>Faith{'\n'}Tracker</Text>
       </View>
-
-      {/* Labels */}
-      {showLabels && (
-        <View style={styles.labelsContainer}>
-          <View style={styles.labelRow}>
-            <View style={[styles.labelDot, { backgroundColor: getPrayerColor() }]} />
-            <Text style={styles.labelText}>
-              Prayers {prayers.completed}/{prayers.total}
-            </Text>
-          </View>
-          <View style={styles.labelRow}>
-            <View style={[styles.labelDot, { backgroundColor: getQuranColor() }]} />
-            <Text style={styles.labelText}>
-              Quran {Math.round(quranProgress * 100)}%
-            </Text>
-          </View>
-          <View style={styles.labelRow}>
-            <View style={[styles.labelDot, { backgroundColor: getDhikrColor() }]} />
-            <Text style={styles.labelText}>
-              Dhikr {dhikr.count}/{dhikr.goal}
-            </Text>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -190,29 +134,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centerTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
-    lineHeight: 32,
-  },
-  labelsContainer: {
-    marginTop: 20,
-    gap: 8,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  labelDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  labelText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
+    lineHeight: 24,
   },
 });
